@@ -6,9 +6,19 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "bin"
+path = "src/bin.rs"
+
 [profile.release]
 lto = true
 strip = true
 
 [dependencies]
 wasm-bindgen = "0.2.87"
+tokio = { version = "1.33.0", features = ["macros"]}
+anyhow = "1.0.75"
+serde = { version = "1.0.189", features = ["derive"]}
+serde_json = "1.0"
+# Bindings for OpenSlide, used to decode many image formats like WSI
+openslide-rs = "1.2.1"
