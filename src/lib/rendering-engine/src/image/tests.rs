@@ -1,10 +1,10 @@
 use crate::image;
 
-use std::{fs, path::PathBuf};
 use anyhow::Result;
+use std::{fs, path::PathBuf};
 
 #[test]
-fn test_image_process() -> Result<()>{
+fn test_image_process() -> Result<()> {
     let image_path = PathBuf::from("images/image.tiff");
     let h5_path = PathBuf::from("test_temp/test_image_process.h5");
 

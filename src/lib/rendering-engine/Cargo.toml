@@ -5,8 +5,7 @@ edition = "2021"
 
 [[bin]]
 name = "rendering_engine"
-# path = "src/api.rs"
-path = "src/bin.rs"
+path = "src/api.rs"
 
 [profile.release]
 lto = true
@@ -14,21 +13,29 @@ strip = true
 
 [dependencies]
 tokio = { version = "1.33.0", features = ["full"] }
-axum = "0.6.20"
+axum = { version = "0.6.20", features = ["ws"] }
 anyhow = "1.0.75"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0"
+futures-util = { version = "0.3.29", features = ["async-await", "sink"] }
+tower-http = { version = "0.4.4", features = ["cors"] }
 # Bindings for OpenSlide, used to decode many image formats like WSI
 openslide-rs = "1.2.1"
 image = "0.24.7"
 # HDF5 for storing and querying image thumbnails
 hdf5 = "0.8.1"
-hdf5-sys = "0.8.1"
 ndarray = "0.15.6"
+# OME-ZARR
+zarrs = "0.6.0"
+rayon = "1.5.1"
+safe-transmute = "0.11.2"
+chrono = "0.4.19"
 
 [features]
-default = ["parallelised_batch_write_to_hdf5"]
+default = ["hdf5", "batch_write_to_hdf5"]
 write_to_fs = []
+hdf5 = []
 immediately_write_to_hdf5 = []
 batch_write_to_hdf5 = []
 parallelised_batch_write_to_hdf5 = []
+zarr = []

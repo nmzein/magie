@@ -1,11 +1,11 @@
 use crate::io;
 
-use std::{fs, path::PathBuf};
 use anyhow::Result;
+use std::{fs, path::PathBuf};
 
 #[cfg(feature = "immediately_write_to_hdf5")]
 #[test]
-fn test_io_create_hdf5() -> Result<()>{
+fn test_io_create_hdf5() -> Result<()> {
     let num_tiles = 1500;
     let tile_size: usize = 1024;
     let max_tile_length: usize = 110_000;
@@ -17,7 +17,7 @@ fn test_io_create_hdf5() -> Result<()>{
 
     // Get the dataset.
     let dataset = io::create_hdf5(&h5_path, num_tiles)?;
-    
+
     // Verify that the dataset is 2D dataset.
     let dataspace = dataset.space()?;
     assert_eq!(dataspace.ndim(), 2);
