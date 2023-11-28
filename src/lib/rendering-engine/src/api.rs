@@ -1,11 +1,15 @@
 mod image;
 mod io;
+mod db;
 mod structs;
+mod traits;
+mod decoders;
 
-use crate::structs::{ImageState, ImageMetadata, ImageSelection, State};
+use crate::structs::{AppState, ImageState, ImageSelection};
+// use crate::decoders::openslide;
 
 use std::path::PathBuf;
-use std::collections::BTreeMap;
+// use std::collections::BTreeMap;
 use std::fs;
 use std::fmt::Display;
 
@@ -15,42 +19,35 @@ use axum::{
         Extension, WebSocketUpgrade
     },
     response::{Json, IntoResponse, Response},
-    http::{Method, StatusCode},
+    // http::{Method, StatusCode},
+    http::StatusCode,
     routing::{get, post},
     Router, Server
 };
-
+use openslide_rs::OpenSlide;
 use futures_util::{SinkExt, StreamExt};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::{
+    cors::{Any, CorsLayer}
+};
+
+static IMAGE_NAME: &str = "image-1";
+static IMAGE_NAME_EXT: &str = "image-1.tiff";
 
 #[tokio::main]
 async fn main() {
-    let mut state: State = BTreeMap::new();
-
-    // ** Example Only ** //
-    let example_state = ImageState {
-        image_path: PathBuf::from("store/image/image.tiff"),
-        datastore_path: PathBuf::from("store/image/image.h5"),
-        image_metadata: ImageMetadata {
-            cols: 44,
-            rows: 35
-        }
-    };
-
-    state.insert(String::from("image"), example_state);
-    // ****************** //
-
+    let pool = db::connect().await.unwrap();
+    
     let cors: CorsLayer = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods(Any)
         .allow_origin(Any);
-
+    
     let app = Router::new()
         .route("/api/connect", get(connect))
         .route("/api/process", post(process))
         .route("/api/metadata", post(metadata))
         .route("/api/delete", post(delete))
         .layer(cors)
-        .layer(Extension(state));
+        .layer(Extension(pool));
 
     Server::bind(&"127.0.0.1:3000".parse().unwrap())
         .serve(app.into_make_service())
@@ -58,104 +55,111 @@ async fn main() {
         .unwrap();
 }
 
-async fn connect(socket_upgrader: WebSocketUpgrade, Extension(state): Extension<State>) -> impl IntoResponse {
+async fn connect(socket_upgrader: WebSocketUpgrade, Extension(pool): Extension<AppState>) -> impl IntoResponse {
     socket_upgrader.on_upgrade(|socket| async {
-        render(socket, Extension(state)).await;
+        render(socket, Extension(pool)).await;
     })
 }
 
-async fn render(socket: WebSocket, Extension(state): Extension<State>) {
+async fn render(socket: WebSocket, Extension(pool): Extension<AppState>) {
     let (mut sender, mut receiver) = socket.split();
 
     while let Some(Ok(Message::Text(message))) = receiver.next().await {
         if let Ok(selection) = serde_json::from_str::<ImageSelection>(&message) {
             // ** Example Only ** //
-            let name = "image";
+            let level = 0;
             // ****************** //
             
             println!("Received selection: {:?}", selection);
 
-            match io::read_hdf5(
-                &state[name].datastore_path,
-                &selection,
-                &state[name].image_metadata
-            ) {
-                Ok(tiles) => {
-                    println!("Sending {} tiles.", tiles.len());
-                    println!("ImageState Metadata: {:?}", &state[name].image_metadata);
-                    for tile in tiles {
-                        let _ = sender.send(Message::Binary(tile)).await.map_err(|err| {
-                            eprintln!("Error sending tile: {}", err);
-                        });
+
+            if let Ok(Some(image)) = db::get(IMAGE_NAME, &pool).await {
+                match io::retrieve(
+                    &image.store_path,
+                    &level,
+                    &selection,
+                ) {
+                    Ok(tiles) => {
+                        println!("Sending {} tiles.", tiles.len());
+                        for tile in tiles {
+                            let _ = sender.send(Message::Binary(tile)).await.map_err(|err| {
+                                eprintln!("Error sending tile: {}", err);
+                            });
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("Error reading from datastore: {}", err);
                     }
                 }
-                Err(err) => {
-                    eprintln!("Error reading from datastore: {}", err);
-                }
+            } else {
+                // Not only error.
+                eprintln!("ImageState with name {} does not exist.", IMAGE_NAME);
             }
+
         } else {
             eprintln!("Error deserialising selection.");
         }
     }
 }
 
-async fn metadata(Extension(state): Extension<State>) -> Response {
-    // ** Example Only ** //
-    let name = "image";
-    // ****************** //
-    
-    Json(&state[name].image_metadata).into_response()
+async fn metadata(Extension(pool): Extension<AppState>) -> Response {
+    match db::get(IMAGE_NAME, &pool).await {
+        Ok(Some(image)) => {
+            Json(image.metadata).into_response()
+        },
+        Ok(None) => {
+            log_respond::<String>(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Metadata for image with name {} does not exist.", IMAGE_NAME).as_str(),
+                None
+            )
+        },
+        Err(err) => {
+            log_respond(StatusCode::INTERNAL_SERVER_ERROR, "Failed to retrieve metadata.", Some(err))
+        }
+    }
 }
 
-async fn process(Extension(mut state): Extension<State>) -> Response {
-    // ** Example Only ** //
-    let image = "image.tiff";
-    // ****************** //
-    
+async fn process(Extension(pool): Extension<AppState>) -> Response {
     // Strip file extension.
-    let name = String::from(image.split('.').collect::<Vec<&str>>()[0]);
+    let id = IMAGE_NAME_EXT.split('.').collect::<Vec<&str>>()[0];
+    println!("Processing image with name: {}", id);
 
-    if state.contains_key(&name) {
+    if db::contains(&id, &pool).await {
         return log_respond::<String>(
             StatusCode::BAD_REQUEST,
-            format!("ImageState with name {} already exists. Consider deleting it from the list first.", name).as_str(),
+            format!("ImageState with name {} already exists. Consider deleting it from the list first.", id).as_str(),
             None
         );
     }
-    
-    let image_path = PathBuf::from(format!("store/{}/{}", name, image));
-    let datastore_path = PathBuf::from(format!("store/{}/{}.h5", name, name));
 
-    match image::process(
+    let image_path = PathBuf::from(format!("store/{}/{}", id, IMAGE_NAME_EXT));
+    let store_path = PathBuf::from(format!("store/{}/{}.zarr", id, id));
+
+    match io::convert::<OpenSlide>(
         &image_path,
-        &datastore_path,
+        &store_path,
     ) {
-        Ok(image_metadata) => {
-            let image = ImageState { image_path, datastore_path, image_metadata };
-            state.insert(name, image);
-            // TODO: Store in SQLite database.
+        Ok(metadata) => {
+            // TODO: Error handling.
+            let _ = db::insert(id, &ImageState { image_path, store_path, metadata }, &pool).await;
             log_respond::<String>(StatusCode::OK, "Successfully processed image.", None)
         },
         Err(err) => log_respond(StatusCode::INTERNAL_SERVER_ERROR, "Failed to process the image.", Some(err))
     }
 }
 
-async fn delete(Extension(mut state): Extension<State>) -> Response {
-    // ** Example Only ** //
-    let name = "image";
-    // ****************** //
-
-    let dir_path = PathBuf::from("store/".to_owned() + name);
+async fn delete(Extension(pool): Extension<AppState>) -> Response {
+    // TODO: Move to IO.
+    let dir_path = PathBuf::from("store/".to_owned() + IMAGE_NAME);
     
     // Remove directory.
     let _  = fs::remove_dir_all(dir_path).map_err(|err| {
         return log_respond(StatusCode::INTERNAL_SERVER_ERROR, "Could not delete directory.", Some(err));
     });
     
-    // TODO: Remove from SQLite database.
-
-    // Remove from map.
-    state.remove(name);
+    // TODO: Error handling.
+    let _ = db::remove(IMAGE_NAME, &pool).await;
 
     log_respond::<String>(StatusCode::OK, "Successfully deleted image entry.", None)
 }

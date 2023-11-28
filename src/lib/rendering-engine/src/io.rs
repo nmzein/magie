@@ -1,70 +1,38 @@
 #[cfg(test)]
 mod tests;
 
-use crate::structs::{ImageMetadata, ImageSelection};
-
+use crate::structs::{Address, ImageMetadata, ImageSelection, Region, Size};
 use anyhow::Result;
-use hdf5::File;
-use ndarray::s;
-
 use std::path::PathBuf;
+
+// use crate::image::encode_tile_to_jpeg;
+// use hdf5::File;
+// use ndarray::s;
 
 #[cfg(feature = "blosc")]
 use hdf5::filters::blosc_set_nthreads;
-
-#[cfg(feature = "write_to_fs")]
-use image::RgbImage;
-
-#[cfg(feature = "immediately_write_to_hdf5")]
-use hdf5::{Dataset, SimpleExtents};
-#[cfg(feature = "immediately_write_to_hdf5")]
-use ndarray::ArrayView;
-
-#[cfg(feature = "batch_write_to_hdf5")]
+#[cfg(feature = "hdf5")]
 use hdf5::types::VarLenArray;
-#[cfg(feature = "batch_write_to_hdf5")]
+#[cfg(feature = "hdf5")]
 use ndarray::{arr2, Array, Ix1};
 
-#[cfg(feature = "parallelised_batch_write_to_hdf5")]
-use hdf5::types::VarLenArray;
-#[cfg(feature = "parallelised_batch_write_to_hdf5")]
-use ndarray::{arr2, Array, Ix1};
-
-#[cfg(feature = "write_to_fs")]
-pub fn write_to_fs_png(tile: &RgbImage, current_tile: usize) -> Result<()> {
-    use image::ImageOutputFormat::Png;
-    use std::fs::File;
-    use std::io::BufWriter;
-
-    let output_path = PathBuf::from(format!("test_temp/tile_{}.png", current_tile));
-
-    // Open a file for writing.
-    let output_file = File::create(output_path)?;
-
-    // Create a BufWriter for writing the PNG image.
-    let mut writer = BufWriter::new(output_file);
-
-    // Write the PNG data to the file.
-    tile.write_to(&mut writer, Png)?;
-
-    Ok(())
-}
-
-#[cfg(feature = "write_to_fs")]
-pub fn write_to_fs_jpeg(tile: &[u8], current_tile: usize) -> Result<()> {
-    use std::fs::File;
-    use std::io::Write;
-
-    let output_path = PathBuf::from(format!("test_temp/tile_{}.png", current_tile));
-
-    // Open a file for writing.
-    let mut file = File::create(output_path)?;
-
-    // Write the JPEG data to the file.
-    file.write_all(&tile)?;
-
-    Ok(())
-}
+#[cfg(feature = "zarr")]
+use crate::traits::Decoder;
+#[cfg(feature = "zarr")]
+use image::codecs::jpeg::JpegEncoder;
+#[cfg(feature = "zarr")]
+use itertools::izip;
+// #[cfg(feature = "zarr")]
+// use ndarray::{s, ArrayD};
+#[cfg(feature = "zarr")]
+use std::sync::Arc;
+#[cfg(feature = "zarr")]
+use zarrs::{
+    array::{chunk_grid::ChunkGridTraits, Array, ArrayBuilder, DataType, FillValue},
+    // array_subset::ArraySubset,
+    group::GroupBuilder,
+    storage::store::FilesystemStore,
+};
 
 #[cfg(feature = "hdf5")]
 pub fn write_metadata(metadata_path: &PathBuf, image_metadata: ImageMetadata) -> Result<()> {
@@ -100,89 +68,9 @@ pub fn read_metadata(metadata_path: &PathBuf) -> Result<ImageMetadata> {
     Ok(image_metadata)
 }
 
-#[cfg(feature = "immediately_write_to_hdf5")]
-pub fn create_hdf5(hdf5_path: &PathBuf, num_tiles: usize) -> Result<Dataset> {
-    // Create a new HDF5 file or fail if it already exists.
-    File::create_excl(hdf5_path)?;
-
-    // Open HDF5 file for reading and writing.
-    let hdf5_file = File::open_rw(hdf5_path)?;
-
-    // Define the dataset dimensions.
-    // Bad, adds 0 padding to end of tile.
-    let max_tile_length: usize = 110000;
-    let dataset_dimensions = SimpleExtents::new([num_tiles, max_tile_length]);
-
-    // Set number of blosc threads.
-    #[cfg(feature = "blosc")]
-    blosc_set_nthreads(2);
-
-    let builder = hdf5_file.new_dataset::<u8>();
-
-    // Define compression type and level (lz4, compression level 9, w/ shuffle).
-    #[cfg(feature = "blosc")]
-    let builder = builder.blosc_lz4(9, true);
-
-    let dataset = builder.shape(dataset_dimensions).create("tiles")?;
-
-    Ok(dataset)
-}
-
-#[cfg(feature = "immediately_write_to_hdf5")]
-pub fn write_to_hdf5(dataset: &Dataset, tile: &[u8], current_tile: usize) -> Result<()> {
-    let tile_length = tile.len();
-
-    // Transform the tile data into a 2D array where the first value is its depth and the second its length.
-    let tile = ArrayView::from_shape((1, tile_length), tile)?;
-
-    // Define the slice of the dataset to write to. First value is the index and also encodes depth of 1.
-    let slice = s![current_tile..current_tile + 1, 0..tile_length];
-
-    // Write the tile data to the dataset.
-    dataset.write_slice(&tile, slice)?;
-
-    Ok(())
-}
-
-#[cfg(feature = "immediately_write_to_hdf5")]
-pub fn read_hdf5(hdf5_path: &PathBuf) -> Result<()> {
-    // Open HDF5 file for reading.
-    let hdf5_file = File::open(hdf5_path)?;
-
-    // Open the dataset.
-    let dataset = hdf5_file.dataset("tiles")?;
-
-    // Read the entire dataset.
-    let data = dataset.read_2d::<u8>()?;
-
-    Ok(())
-}
-
-#[cfg(feature = "batch_write_to_hdf5")]
-pub fn write_to_hdf5(hdf5_path: &PathBuf, tiles: &[[VarLenArray<u8>; 1]]) -> Result<()> {
-    // Create a new HDF5 file or fail if it already exists.
-    File::create_excl(hdf5_path)?;
-
-    // Open HDF5 file for reading and writing.
-    let hdf5_file = File::open_rw(hdf5_path)?;
-
-    // Set number of blosc threads.
-    #[cfg(feature = "blosc")]
-    blosc_set_nthreads(2);
-
-    let builder = hdf5_file.new_dataset_builder();
-
-    // Define compression type and level (lz4, compression level 9, w/ shuffle).
-    #[cfg(feature = "blosc")]
-    let builder = builder.blosc_lz4(9, true);
-
-    let _ = builder.with_data(&arr2(tiles)).create("tiles")?;
-    Ok(())
-}
-
-#[cfg(feature = "batch_write_to_hdf5")]
-pub fn read_hdf5(
-    hdf5_path: &PathBuf,
+#[cfg(feature = "hdf5")]
+pub fn retrieve(
+    store_path: &PathBuf,
     selection: &ImageSelection,
     image_metadata: &ImageMetadata,
 ) -> Result<Vec<Vec<u8>>> {
@@ -197,7 +85,7 @@ pub fn read_hdf5(
     }
 
     // Open HDF5 file for reading.
-    let file = File::open(hdf5_path)?;
+    let file = File::open(store_path)?;
 
     // Open the dataset.
     let dataset = file.dataset("tiles")?;
@@ -219,13 +107,13 @@ pub fn read_hdf5(
     Ok(result)
 }
 
-#[cfg(feature = "parallelised_batch_write_to_hdf5")]
-pub fn write_to_hdf5(hdf5_path: &PathBuf, tiles: &[[VarLenArray<u8>; 1]]) -> Result<()> {
+#[cfg(feature = "hdf5")]
+pub fn convert(store_path: &PathBuf, tiles: &[[VarLenArray<u8>; 1]]) -> Result<()> {
     // Create a new HDF5 file or fail if it already exists.
-    File::create_excl(hdf5_path)?;
+    File::create_excl(store_path)?;
 
     // Open HDF5 file for reading and writing.
-    let hdf5_file = File::open_rw(hdf5_path)?;
+    let hdf5_file = File::open_rw(store_path)?;
 
     // Set number of blosc threads.
     #[cfg(feature = "blosc")]
@@ -238,117 +126,197 @@ pub fn write_to_hdf5(hdf5_path: &PathBuf, tiles: &[[VarLenArray<u8>; 1]]) -> Res
     let builder = builder.blosc_lz4(9, true);
 
     let _ = builder.with_data(&arr2(tiles)).create("tiles")?;
-
     Ok(())
 }
 
-#[cfg(feature = "parallelised_batch_write_to_hdf5")]
-pub fn read_hdf5(hdf5_path: &PathBuf) -> Result<()> {
-    // Open HDF5 file for reading.
-    let file = File::open(hdf5_path)?;
+// #[cfg(feature = "zarr")]
+// pub fn retrieve(
+//     store_path: &PathBuf,
+//     level: &u64,
+//     selection: &ImageSelection,
+// ) -> Result<Vec<Vec<u8>>> {
+//     const CHUNK_SIZE: u32 = 64;
+//     const RGB_CHANNELS: u32 = 3;
+//     const GROUP_PATH: &str = "/group";
+//     const RED: usize = 0;
+//     const GREEN: usize = 1;
+//     const BLUE: usize = 2;
 
-    // Open the dataset.
-    let dataset = file.dataset("tiles")?;
+//     let store = Arc::new(FilesystemStore::new(store_path)?);
+//     let array = Array::new(store.clone(), &format!("{}/{}", GROUP_PATH, level))?;
 
-    // Read the entire dataset.
-    let data = dataset.read_2d::<u8>()?;
+//     let subset = ArraySubset::new_with_start_end_inc(
+//         vec![0, 0, 0, selection.start.y as u64, selection.start.x as u64],
+//         vec![0, 2, 0, selection.end.y as u64, selection.end.x as u64],
+//     )?;
 
-    Ok(())
+//     let mut tiles: ArrayD<u8> = array.retrieve_array_subset_ndarray(&subset)?;
+//     let mut combined_tiles: Vec<u8> = Vec::new();
+
+//     for y in 0..tiles.shape()[3] {
+//         for x in 0..tiles.shape()[4] {
+//             println!("Y: {}, X: {}", y, x);
+//             let red = tiles.slice(s![0, RED..GREEN, 0, y..y + 1, x..x + 1]);
+//             let green = tiles.slice(s![0, GREEN..BLUE, 0, y..y + 1, x..x + 1]);
+//             let blue = tiles.slice(s![0, BLUE.., 0, y..y + 1, x..x + 1]);
+
+//             println!("Red: {:?}", red);
+//             println!("Green: {:?}", green);
+//             println!("Blue: {:?}", blue);
+
+//             // Interleave RGB channels.
+//             let tile: Vec<u8> = izip!(red, green, blue)
+//                 .flat_map(|(r, g, b)| vec![*r, *g, *b])
+//                 .collect();
+
+//             println!("Tile: {:?}", tile);
+
+//             let mut jpeg_tile = Vec::new();
+//             JpegEncoder::new(&mut jpeg_tile)
+//                 .encode(&tile, CHUNK_SIZE, CHUNK_SIZE, image::ColorType::Rgb8)
+//                 .unwrap();
+
+//             combined_tiles.extend(jpeg_tile);
+//         }
+//     }
+
+//     // let mut tiles = tiles
+//     //     .map(|channels: ArrayD<u8>| -> Vec<u8> {
+//     //         let mut tile = Vec::new();
+//     //         for (r, g, b) in izip!(
+//     //             channels.slice(s![0, 0, 0, .., ..]).iter(),
+//     //             channels.slice(s![0, 1, 0, .., ..]).iter(),
+//     //             channels.slice(s![0, 2, 0, .., ..]).iter()
+//     //         ) {
+//     //             tile.push(*r);
+//     //             tile.push(*g);
+//     //             tile.push(*b);
+//     //         }
+
+//     //         let mut jpeg_tile = Vec::new();
+//     //         JpegEncoder::new(&mut jpeg_tile)
+//     //             .encode(&tile, CHUNK_SIZE, CHUNK_SIZE, image::ColorType::Rgb8)
+//     //             .unwrap();
+
+//     //         jpeg_tile
+//     //     })
+//     //     .collect();
+
+//     // .map(|channels: &[Vec<u8>]| {
+//     //     let mut tile = Vec::new();
+//     //     for (r, g, b) in izip!(
+//     //         channels[0].into_iter(),
+//     //         channels[1].into_iter(),
+//     //         channels[2].into_iter()
+//     //     ) {
+//     //         tile.push(r);
+//     //         tile.push(g);
+//     //         tile.push(b);
+//     //     }
+
+//     //     let mut jpeg_tile = Vec::new();
+//     //     JpegEncoder::new(&mut jpeg_tile)
+//     //         .encode(&tile, CHUNK_SIZE, CHUNK_SIZE, image::ColorType::Rgb8)
+//     //         .unwrap();
+
+//     //     jpeg_tile
+//     // })
+//     // .collect();
+
+//     // .flat_map(|chunk| chunk.to_vec())
+//     // .collect();
+
+//     println!("Tiles: {:?}", tiles.len());
+
+//     Ok(Vec::new())
+// }
+
+static CHUNK_SIZE: u32 = 1024;
+static RGB_CHANNELS: u64 = 3;
+static GROUP_PATH: &str = "/group";
+
+#[cfg(feature = "zarr")]
+pub fn retrieve(
+    store_path: &PathBuf,
+    level: &u64,
+    selection: &ImageSelection,
+) -> Result<Vec<Vec<u8>>> {
+    let store = Arc::new(FilesystemStore::new(store_path)?);
+    let array = Array::new(store.clone(), &format!("{}/{}", GROUP_PATH, level))?;
+
+    let mut tiles = Vec::new();
+
+    for y in selection.start.y..selection.end.y {
+        for x in selection.start.x..selection.end.x {
+            // Retrieve chunk for each RGB channel.
+            let channels: Vec<Vec<u8>> = (0..RGB_CHANNELS)
+                .map(|c| {
+                    array
+                        .retrieve_chunk(&[0, c, 0, y as u64, x as u64])
+                        .expect("Failed to retrieve chunk.")
+                        .to_vec()
+                })
+                .collect();
+
+            // Interleave RGB channels.
+            let tile: Vec<u8> = izip!(
+                channels[0].clone(),
+                channels[1].clone(),
+                channels[2].clone()
+            )
+            .flat_map(|(r, g, b)| vec![r, g, b])
+            .collect();
+
+            // Encode tile to JPEG.
+            let mut jpeg_tile = Vec::new();
+
+            JpegEncoder::new(&mut jpeg_tile).encode(
+                &tile,
+                CHUNK_SIZE,
+                CHUNK_SIZE,
+                image::ColorType::Rgb8,
+            )?;
+
+            tiles.push(jpeg_tile);
+        }
+    }
+
+    Ok(tiles)
 }
 
 #[cfg(feature = "zarr")]
-use image::{ImageBuffer, Rgb};
-#[cfg(feature = "zarr")]
-use openslide_rs::{Address, OpenSlide, Region, Size};
-#[cfg(feature = "zarr")]
-use std::sync::Arc;
-#[cfg(feature = "zarr")]
-use zarrs::{
-    array::ArrayBuilder,
-    array::FillValue,
-    array::{chunk_grid::ChunkGridTraits, DataType},
-    group::GroupBuilder,
-    storage::store::FilesystemStore,
-};
-
-#[cfg(feature = "zarr")]
-pub trait Image {
-    fn open(image_path: &PathBuf) -> Result<Self>
-    where
-        Self: Sized;
-    fn levels(&self) -> Result<u32>;
-    fn level_dimensions(&self, level: u32) -> Result<(u64, u64)>;
-    fn read_region(&self, region: &Region) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>>;
-}
-
-#[cfg(feature = "zarr")]
-impl Image for OpenSlide {
-    fn open(image_path: &PathBuf) -> Result<OpenSlide> {
-        let image = OpenSlide::new(image_path)?;
-
-        Ok(image)
-    }
-
-    fn levels(&self) -> Result<u32> {
-        use openslide_rs::traits::Slide;
-        let levels = self.get_level_count()?;
-
-        Ok(levels)
-    }
-
-    fn level_dimensions(&self, level: u32) -> Result<(u64, u64)> {
-        use openslide_rs::traits::Slide;
-        let image_dimensions = self.get_level_dimensions(level)?;
-
-        Ok((image_dimensions.h.into(), image_dimensions.w.into()))
-    }
-
-    fn read_region(&self, region: &Region) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
-        use openslide_rs::traits::Slide;
-        let tile = self.read_image_rgb(region)?;
-
-        Ok(tile)
-    }
-}
-
-#[cfg(feature = "zarr")]
-pub fn convert_to_zarr<T: Image>(image_path: &PathBuf, output_path: &PathBuf) -> Result<()> {
-    const CHUNK_SIZE: u64 = 64;
-    const PIXELS: usize = 64 * 64;
-    const RGB_CHANNELS: u64 = 3;
-
-    let image: T = Image::open(image_path)?;
+pub fn convert<T: Decoder>(image_path: &PathBuf, store_path: &PathBuf) -> Result<ImageMetadata> {
+    let image: T = Decoder::open(image_path)?;
 
     // One store per image.
-    let store = Arc::new(FilesystemStore::new(output_path)?);
+    let store = Arc::new(FilesystemStore::new(store_path)?);
 
     // One group per image.
-    let group_path = "/group";
-    let group = GroupBuilder::new().build(store.clone(), group_path)?;
+    let group = GroupBuilder::new().build(store.clone(), GROUP_PATH)?;
 
     // Write group metadata to store.
     group.store_metadata()?;
 
-    let levels = image.levels()?;
+    let levels = image.get_level_count()?;
 
     for level in 0..levels {
         // Get image dimensions.
-        let (height, width) = image.level_dimensions(level)?;
+        let (height, width) = image.get_level_dimensions(level)?;
 
         // Calculate number of chunks per row and column.
         let rows = height / CHUNK_SIZE;
         let cols = width / CHUNK_SIZE;
 
         // One array per image level.
-        let array_path = format!("{}/{}", group_path, level);
+        let array_path = format!("{}/{}", GROUP_PATH, level);
 
         let array = ArrayBuilder::new(
             // Define image shape.
-            vec![0, RGB_CHANNELS, 0, height, width],
+            vec![0, RGB_CHANNELS, 0, height.into(), width.into()],
             // Define data type.
             DataType::UInt8,
             // Define chunk size.
-            vec![1, 1, 1, CHUNK_SIZE, CHUNK_SIZE].into(),
+            vec![1, 1, 1, CHUNK_SIZE.into(), CHUNK_SIZE.into()].into(),
             // Define initial fill value.
             FillValue::from(0u8),
         )
@@ -373,13 +341,13 @@ pub fn convert_to_zarr<T: Image>(image_path: &PathBuf, output_path: &PathBuf) ->
                 let tile_split_channel: Vec<Vec<u8>> = image
                     .read_region(&Region {
                         size: Size {
-                            w: CHUNK_SIZE as u32,
-                            h: CHUNK_SIZE as u32,
+                            width: CHUNK_SIZE,
+                            height: CHUNK_SIZE,
                         },
                         level: level,
                         address: Address {
-                            x: (x * CHUNK_SIZE) as u32,
-                            y: (y * CHUNK_SIZE) as u32,
+                            x: (x * CHUNK_SIZE),
+                            y: (y * CHUNK_SIZE),
                         },
                     })
                     .unwrap()
@@ -395,7 +363,7 @@ pub fn convert_to_zarr<T: Image>(image_path: &PathBuf, output_path: &PathBuf) ->
                     );
 
                 for c in 0..RGB_CHANNELS {
-                    let chunk_indices: Vec<u64> = vec![0, c, 0, y, x];
+                    let chunk_indices: Vec<u64> = vec![0, c, 0, y.into(), x.into()];
 
                     if chunk_grid.subset(&chunk_indices, array.shape())?.is_some() {
                         let _ = array.store_chunk_elements(
@@ -406,7 +374,9 @@ pub fn convert_to_zarr<T: Image>(image_path: &PathBuf, output_path: &PathBuf) ->
                 }
             }
         }
+        // Change to return vec of metadata.
+        return Ok(ImageMetadata { cols, rows });
     }
 
-    Ok(())
+    Err(anyhow::anyhow!("Image has no levels."))
 }

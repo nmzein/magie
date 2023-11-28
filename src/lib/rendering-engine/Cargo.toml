@@ -18,7 +18,9 @@ anyhow = "1.0.75"
 serde = { version = "1.0.189", features = ["derive"] }
 serde_json = "1.0"
 futures-util = { version = "0.3.29", features = ["async-await", "sink"] }
-tower-http = { version = "0.4.4", features = ["cors"] }
+tower-http = { version = "0.4.4", features = ["cors", "add-extension"] }
+sqlx = { version = "0.7.2", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+dotenv = "0.15.0"
 # Bindings for OpenSlide, used to decode many image formats like WSI
 openslide-rs = "1.2.1"
 image = "0.24.7"
@@ -30,12 +32,9 @@ zarrs = "0.6.0"
 rayon = "1.5.1"
 safe-transmute = "0.11.2"
 chrono = "0.4.19"
+itertools = "0.12.0"
 
 [features]
-default = ["hdf5", "batch_write_to_hdf5"]
-write_to_fs = []
+default = ["zarr"]
 hdf5 = []
-immediately_write_to_hdf5 = []
-batch_write_to_hdf5 = []
-parallelised_batch_write_to_hdf5 = []
 zarr = []
