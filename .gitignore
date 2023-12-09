@@ -9,4 +9,5 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 /src/lib/rendering-engine/target/
-/src/lib/rendering-engine/store/
+/src/lib/rendering-engine/store/image-125/
+/src/lib/rendering-engine/store/image-300/

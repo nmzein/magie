@@ -1,0 +1,53 @@
+{
+  "node_type": "array",
+  "zarr_format": 3,
+  "shape": [
+    0,
+    3,
+    0,
+    2967,
+    2220
+  ],
+  "data_type": "uint8",
+  "chunk_grid": {
+    "name": "regular",
+    "configuration": {
+      "chunk_shape": [
+        1,
+        1,
+        1,
+        1024,
+        1024
+      ]
+    }
+  },
+  "chunk_key_encoding": {
+    "name": "default",
+    "configuration": {
+      "separator": "/"
+    }
+  },
+  "fill_value": 0,
+  "codecs": [
+    {
+      "name": "bytes",
+      "configuration": {
+        "endian": "little"
+      }
+    }
+  ],
+  "attributes": {
+    "_zarrs": {
+      "description": "This array was created with zarrs",
+      "repository": "https://github.com/LDeakin/zarrs",
+      "version": "0.6.0"
+    }
+  },
+  "dimension_names": [
+    "t",
+    "c",
+    "z",
+    "y",
+    "x"
+  ]
+}
