@@ -277,6 +277,7 @@ pub fn retrieve(
                 image::ColorType::Rgb8,
             )?;
 
+            // TODO: Send immediately instead of storing.
             tiles.push(jpeg_tile);
         }
     }

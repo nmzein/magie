@@ -6,7 +6,6 @@ mod traits;
 mod decoders;
 
 use crate::structs::{AppState, ImageState, ImageSelection};
-// use crate::decoders::openslide;
 
 use std::path::PathBuf;
 // use std::collections::BTreeMap;
@@ -72,7 +71,6 @@ async fn render(socket: WebSocket, Extension(pool): Extension<AppState>) {
             
             println!("Received selection: {:?}", selection);
 
-
             if let Ok(Some(image)) = db::get(IMAGE_NAME, &pool).await {
                 match io::retrieve(
                     &image.store_path,
@@ -136,6 +134,7 @@ async fn process(Extension(pool): Extension<AppState>) -> Response {
     let image_path = PathBuf::from(format!("store/{}/{}", id, IMAGE_NAME_EXT));
     let store_path = PathBuf::from(format!("store/{}/{}.zarr", id, id));
 
+    // TODO: Check file extension in function and choose decoder based on this.
     match io::convert::<OpenSlide>(
         &image_path,
         &store_path,

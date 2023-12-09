@@ -116,8 +116,9 @@
 
 	// Add selection request to RequestsStore.
 	requests.push({ start: { x: 0, y: 0 }, end: { x: 2, y: 2 } });
-	requests.push({ start: { x: 0, y: 0 }, end: { x: 5, y: 5 } });
-	// requests.push({ start: { x: 0, y: 0 }, end: { x: 43, y: 34 } });
+	// requests.push({ start: { x: 0, y: 0 }, end: { x: 2, y: 2 } });
+	// requests.push({ start: { x: 0, y: 0 }, end: { x: 5, y: 5 } });
+	// requests.push({ start: { x: 0, y: 0 }, end: { x: 34, y: 46 } });
 	console.log(requests);
 
 	// Unsubscribe from stores when the component is destroyed.

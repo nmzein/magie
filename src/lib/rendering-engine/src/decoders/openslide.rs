@@ -2,8 +2,7 @@ use crate::structs::Region;
 use crate::traits::Decoder;
 use anyhow::Result;
 use image::RgbImage;
-use openslide_rs::traits::Slide;
-use openslide_rs::OpenSlide;
+use openslide_rs::{traits::Slide, OpenSlide};
 use std::path::PathBuf;
 
 #[cfg(feature = "zarr")]
