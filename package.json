@@ -31,5 +31,10 @@
 		"vite-plugin-wasm": "^3.2.2",
 		"workbox-precaching": "^7.0.0"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"canvas": "^2.11.2",
+		"konva": "^9.3.0",
+		"svelte-konva": "^0.3.1"
+	}
 }

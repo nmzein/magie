@@ -1,4 +1,3 @@
-#[cfg(feature = "zarr")]
 pub trait Decoder: Sized {
     fn open(image_path: &std::path::PathBuf) -> anyhow::Result<Self>;
     fn get_level_count(&self) -> anyhow::Result<u32>;

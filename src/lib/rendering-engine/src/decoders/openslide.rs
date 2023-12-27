@@ -1,11 +1,12 @@
 use crate::structs::Region;
 use crate::traits::Decoder;
+
+use std::path::PathBuf;
+
 use anyhow::Result;
 use image::RgbImage;
 use openslide_rs::{traits::Slide, OpenSlide};
-use std::path::PathBuf;
 
-#[cfg(feature = "zarr")]
 impl Decoder for OpenSlide {
     fn open(image_path: &PathBuf) -> Result<OpenSlide> {
         let image = OpenSlide::new(image_path)?;

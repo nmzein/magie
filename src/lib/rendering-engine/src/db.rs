@@ -15,6 +15,21 @@ pub async fn connect() -> Result<SqlitePool> {
     Ok(pool)
 }
 
+pub async fn list(pool: &SqlitePool) -> Result<Vec<String>> {
+    let query = sqlx::query!("SELECT name FROM images;")
+        .fetch_all(pool)
+        .await?;
+
+    println!("LIST Query: {:?}", query);
+
+    let result: Result<Vec<String>> = query
+        .into_iter()
+        .map(|row| Ok(row.name.unwrap_or_default()))
+        .collect();
+
+    result
+}
+
 pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> Result<()> {
     let image_path = image_state.image_path.to_str().unwrap();
     let store_path = image_state.store_path.to_str().unwrap();
@@ -35,11 +50,7 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
 }
 
 pub async fn contains(id: &str, pool: &SqlitePool) -> bool {
-    if get(id, pool).await.is_ok() {
-        return true;
-    }
-
-   false
+    get(id, pool).await.is_ok()
 }
 
 pub async fn get(id: &str, pool: &SqlitePool) -> Result<Option<ImageState>> {
@@ -59,12 +70,12 @@ pub async fn get(id: &str, pool: &SqlitePool) -> Result<Option<ImageState>> {
     }))
 }
 
-pub async fn remove(id: &str, pool: &SqlitePool) -> Result<()> {
+pub async fn remove(id: &str, pool: &SqlitePool) -> bool {
     let query = sqlx::query!("DELETE FROM images WHERE name = $1;", id)
         .execute(pool)
-        .await?;
+        .await;
 
-    println!("REMOVE Query: {:?}", query);
+    // println!("REMOVE Query: {:?}", query);
 
-    Ok(())
+    return query.is_ok();
 }

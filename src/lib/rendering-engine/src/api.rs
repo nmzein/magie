@@ -1,4 +1,3 @@
-mod image;
 mod io;
 mod db;
 mod structs;
@@ -8,8 +7,6 @@ mod decoders;
 use crate::structs::{AppState, ImageState, ImageSelection};
 
 use std::path::PathBuf;
-// use std::collections::BTreeMap;
-use std::fs;
 use std::fmt::Display;
 
 use axum::{
@@ -18,10 +15,9 @@ use axum::{
         Extension, WebSocketUpgrade
     },
     response::{Json, IntoResponse, Response},
-    // http::{Method, StatusCode},
     http::StatusCode,
     routing::{get, post},
-    Router, Server
+    Router
 };
 use openslide_rs::OpenSlide;
 use futures_util::{SinkExt, StreamExt};
@@ -41,6 +37,7 @@ async fn main() {
         .allow_origin(Any);
     
     let app = Router::new()
+        .route("/api/list", post(list))
         .route("/api/connect", get(connect))
         .route("/api/process", post(process))
         .route("/api/metadata", post(metadata))
@@ -48,10 +45,17 @@ async fn main() {
         .layer(cors)
         .layer(Extension(pool));
 
-    Server::bind(&"127.0.0.1:3000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn list(Extension(pool): Extension<AppState>) -> Response {
+    if let Ok(images) = db::list(&pool).await {
+        return Json(images).into_response();
+    }
+
+    log_respond::<String>(StatusCode::INTERNAL_SERVER_ERROR, "Failed to retrieve list of images.", None)
 }
 
 async fn connect(socket_upgrader: WebSocketUpgrade, Extension(pool): Extension<AppState>) -> impl IntoResponse {
@@ -118,6 +122,20 @@ async fn metadata(Extension(pool): Extension<AppState>) -> Response {
     }
 }
 
+// async fn annotations(Extension(pool): Extension<AppState>) -> Response {
+//     if !db:contains(IMAGE_NAME, &pool).await {
+//         return log_respond::<String>(
+//             StatusCode::BAD_REQUEST,
+//             format!("Image with name {} does not exist.", IMAGE_NAME).as_str(),
+//             None
+//         );
+//     }
+
+//     //****************************************/
+
+//     //****************************************/
+// }
+
 async fn process(Extension(pool): Extension<AppState>) -> Response {
     // Strip file extension.
     let id = IMAGE_NAME_EXT.split('.').collect::<Vec<&str>>()[0];
@@ -126,7 +144,7 @@ async fn process(Extension(pool): Extension<AppState>) -> Response {
     if db::contains(&id, &pool).await {
         return log_respond::<String>(
             StatusCode::BAD_REQUEST,
-            format!("ImageState with name {} already exists. Consider deleting it from the list first.", id).as_str(),
+            format!("Image with name {} already exists. Consider deleting it from the list first.", id).as_str(),
             None
         );
     }
@@ -149,16 +167,23 @@ async fn process(Extension(pool): Extension<AppState>) -> Response {
 }
 
 async fn delete(Extension(pool): Extension<AppState>) -> Response {
-    // TODO: Move to IO.
-    let dir_path = PathBuf::from("store/".to_owned() + IMAGE_NAME);
-    
-    // Remove directory.
-    let _  = fs::remove_dir_all(dir_path).map_err(|err| {
-        return log_respond(StatusCode::INTERNAL_SERVER_ERROR, "Could not delete directory.", Some(err));
-    });
-    
-    // TODO: Error handling.
-    let _ = db::remove(IMAGE_NAME, &pool).await;
+    // Remove from fs.
+    if !io::remove(IMAGE_NAME) {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Could not delete directory for image with name {}.", IMAGE_NAME).as_str(),
+            None
+        );
+    }
+
+    // Remove entry from db.
+    if !db::remove(IMAGE_NAME, &pool).await {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Could not delete image with name {} from state database.", IMAGE_NAME).as_str(),
+            None
+        );
+    }
 
     log_respond::<String>(StatusCode::OK, "Successfully deleted image entry.", None)
 }

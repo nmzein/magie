@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import type { ImageMetadata, ImageSelection } from '$lib/types';
 	import { webSocketURL } from '$lib/urls';
 	import { sendMetadataRequest } from '$lib/api';
 	import { imagesStore, metadataStore } from '$lib/stores';
+	import { Stage, Layer, Shape } from 'svelte-konva';
 
 	let images: HTMLImageElement[] = [];
 	let metadata: ImageMetadata | undefined;
@@ -45,7 +47,7 @@
 			imagesStore.update((images) => [...images, image]);
 		});
 
-		let interval: NodeJS.Timeout;
+		let interval: ReturnType<typeof setInterval>;
 
 		webSocket.addEventListener('open', () => {
 			interval = setInterval(() => {
@@ -134,12 +136,38 @@
 	on:mousedown={handleMouseDown}
 	style={`transform: translate(${offsetX}px, ${offsetY}px) scale(${scale})`}
 >
+	<div id="annotation-canvas">
+		<Stage
+			config={browser
+				? { width: window.innerWidth, height: window.innerHeight }
+				: { width: 0, height: 0 }}
+		>
+			<Layer>
+				<Shape
+					config={{
+						sceneFunc: function (context, shape) {
+							context.beginPath();
+							context.moveTo(20, 50);
+							context.lineTo(220, 80);
+							context.quadraticCurveTo(150, 100, 260, 170);
+							context.closePath();
+
+							// special Konva.js method
+							context.fillStrokeShape(shape);
+						},
+						fill: '#00D2FF',
+						stroke: 'black',
+						strokeWidth: 4
+					}}
+				/>
+			</Layer>
+		</Stage>
+	</div>
 	<div id="image-grid" style="--no-of-columns:{metadata?.cols}">
 		{#each images as image, index (image.src)}
 			<img src={image.src} alt="Image {index}" class="image" />
 		{/each}
 	</div>
-	<div id="annotation-canvas" />
 </div>
 
 <style>
@@ -147,6 +175,10 @@
 		cursor: grab;
 		height: auto;
 	}
+
+	/* #polygon {
+		border: thick solid red;
+	} */
 
 	#image-grid {
 		display: grid;
