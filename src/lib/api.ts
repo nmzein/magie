@@ -2,7 +2,54 @@ import { metadataURL, processURL, listURL } from '$lib/urls';
 import { metadataStore } from '$lib/stores';
 import type { ImageMetadata } from './types';
 
-export async function sendListRequest(): Promise<string[]> {
+export async function SendImage(Image: File) {
+	const formData = new FormData();
+	formData.append('image', Image);
+
+	try {
+		const response = await fetch(processURL, { method: 'POST', body: formData });
+
+		if (response.ok) {
+			console.log('Success: Sent image to server for processing.');
+		} else {
+			console.error(
+				'Error: Could not send image to the server: ',
+				response.status,
+				response.statusText
+			);
+		}
+	} catch (error) {
+		console.error('Error: Could not reach server: ', error);
+	}
+}
+
+export async function SendFiles(Image: File, AnnotationFile: File) {
+	const formData = new FormData();
+	formData.append('image', Image);
+	formData.append('annotation', AnnotationFile);
+
+	try {
+		const response = await fetch(processURL, { method: 'POST', body: formData });
+
+		if (response.ok) {
+			console.log('Success: Sent files to server for processing.');
+		} else {
+			console.error(
+				'Error: Could not send files to the server: ',
+				response.status,
+				response.statusText
+			);
+		}
+	} catch (error) {
+		console.error('Error: Could not reach server: ', error);
+	}
+}
+
+export async function GetAnnotationGenerators(): Promise<string[]> {
+	return ['TIA Toolbox'];
+}
+
+export async function GetImagesList(): Promise<string[]> {
 	try {
 		const response = await fetch(listURL, { method: 'POST' });
 
