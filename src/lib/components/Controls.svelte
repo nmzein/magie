@@ -9,6 +9,7 @@
 	let ShowLargePanel = false;
 	let socket: WebSocket;
 	let selection: ImageSelection = { start: { x: 0, y: 0 }, end: { x: 2, y: 2 } };
+	$: rotation = ShowLargePanel ? '180deg' : '0deg';
 
 	onMount(() => {
 		const UnsubscribeWebSocketStore = WebSocketStore.subscribe((value) => {
@@ -19,23 +20,6 @@
 			UnsubscribeWebSocketStore();
 		};
 	});
-
-	function OpenLargePanel() {
-		ShowLargePanel = !ShowLargePanel;
-		const arrowIcon = document.getElementById('arrow-icon');
-
-		if (arrowIcon) {
-			if (ShowLargePanel) {
-				arrowIcon.style.transform = 'translateY(1px) rotate(0deg)';
-			} else {
-				arrowIcon.style.transform = 'translateY(1px) rotate(180deg)';
-			}
-		}
-	}
-
-	function GetSelection() {
-		socket.send(JSON.stringify(selection));
-	}
 </script>
 
 <nav>
@@ -57,10 +41,15 @@
 		{/if}
 
 		<div class="panel small">
-			<div class="placeholder" />
-			<button id="show-panel" on:click={() => GetSelection()}>S</button>
-			<button id="show-panel" on:click={() => OpenLargePanel()}
-				><img id="arrow-icon" src="/icons8-chevron-26.png" alt="Show large panel." /></button
+			<div style="flex: 1;" />
+			<button id="show-panel" on:click={() => socket.send(JSON.stringify(selection))}>IMG</button>
+			<button id="show-panel" on:click={() => (ShowLargePanel = !ShowLargePanel)}
+				><img
+					id="arrow-icon"
+					src="/icons8-chevron-26.png"
+					alt="Show large panel."
+					style="--rotation:{rotation}"
+				/></button
 			>
 		</div>
 	</div>
@@ -109,7 +98,7 @@
 		backdrop-filter: blur(15px);
 		background: rgba(255, 255, 255, 0.15);
 		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-
+		font-family: 'JetBrains Mono', monospace;
 		&:hover {
 			background-color: rgba(255, 255, 255, 0.1);
 		}
@@ -123,7 +112,7 @@
 	#show-panel > img {
 		width: 20px;
 		height: 20px;
-		transform: translateY(1px) rotate(180deg);
+		transform: translateY(2px) rotate(var(--rotation));
 	}
 
 	#container {
@@ -164,10 +153,6 @@
 		button {
 			height: 100%;
 		}
-	}
-
-	.placeholder {
-		flex: 1;
 	}
 
 	// dialog {

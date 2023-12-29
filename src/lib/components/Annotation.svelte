@@ -48,7 +48,7 @@
 				},
 				fill: '#00D2FF',
 				stroke: 'black',
-				strokeWidth: 4
+				strokeWidth: 1
 			}}
 		/>
 	</Layer>
