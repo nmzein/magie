@@ -1,11 +1,26 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import FileExplorer from './FileExplorer.svelte';
 	import FinetuneControls from './FinetuneControls.svelte';
+	import { WebSocketStore } from '$lib/stores';
+	import type { ImageSelection } from '$lib/types';
 
 	let View = 'FileExplorer';
 	let ShowLargePanel = false;
+	let socket: WebSocket;
+	let selection: ImageSelection = { start: { x: 0, y: 0 }, end: { x: 2, y: 2 } };
 
-	function openLargePanel() {
+	onMount(() => {
+		const UnsubscribeWebSocketStore = WebSocketStore.subscribe((value) => {
+			socket = value as WebSocket;
+		});
+
+		return () => {
+			UnsubscribeWebSocketStore();
+		};
+	});
+
+	function OpenLargePanel() {
 		ShowLargePanel = !ShowLargePanel;
 		const arrowIcon = document.getElementById('arrow-icon');
 
@@ -16,6 +31,10 @@
 				arrowIcon.style.transform = 'translateY(1px) rotate(180deg)';
 			}
 		}
+	}
+
+	function GetSelection() {
+		socket.send(JSON.stringify(selection));
 	}
 </script>
 
@@ -39,7 +58,8 @@
 
 		<div class="panel small">
 			<div class="placeholder" />
-			<button id="show-panel" on:click={() => openLargePanel()}
+			<button id="show-panel" on:click={() => GetSelection()}>S</button>
+			<button id="show-panel" on:click={() => OpenLargePanel()}
 				><img id="arrow-icon" src="/icons8-chevron-26.png" alt="Show large panel." /></button
 			>
 		</div>
@@ -98,6 +118,56 @@
 		// 	display: inline-block;
 		// 	transform: translateY(-18.75px);
 		// }
+	}
+
+	#show-panel > img {
+		width: 20px;
+		height: 20px;
+		transform: translateY(1px) rotate(180deg);
+	}
+
+	#container {
+		display: flex;
+		flex-direction: column;
+
+		height: 100%;
+		gap: 10px;
+	}
+
+	.panel {
+		color: white;
+		border: 1px solid rgba(255, 255, 255, 0.125);
+		border-radius: 10px;
+		backdrop-filter: blur(15px);
+		background: rgba(0, 0, 0, 0.75);
+		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+		-webkit-backdrop-filter: blur(16px) saturate(180%);
+		pointer-events: all;
+	}
+
+	.hidden {
+		visibility: hidden;
+	}
+
+	.large {
+		flex: 96;
+		padding: 8px;
+	}
+
+	.small {
+		flex: 4;
+		min-height: 40px;
+		padding: 5px;
+		display: flex;
+		gap: 5px;
+
+		button {
+			height: 100%;
+		}
+	}
+
+	.placeholder {
+		flex: 1;
 	}
 
 	// dialog {
@@ -200,20 +270,6 @@
 	// 	}
 	// }
 
-	#show-panel > img {
-		width: 20px;
-		height: 20px;
-		transform: translateY(1px) rotate(180deg);
-	}
-
-	#container {
-		display: flex;
-		flex-direction: column;
-
-		height: 100%;
-		gap: 10px;
-	}
-
 	// #target {
 	// 	display: flex;
 	// 	width: 100%;
@@ -241,41 +297,6 @@
 	// 	font-size: 24px;
 	// 	flex: 1;
 	// }
-
-	.panel {
-		color: white;
-		border: 1px solid rgba(255, 255, 255, 0.125);
-		border-radius: 10px;
-		backdrop-filter: blur(15px);
-		background: rgba(0, 0, 0, 0.75);
-		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-		-webkit-backdrop-filter: blur(16px) saturate(180%);
-		pointer-events: all;
-	}
-
-	.hidden {
-		visibility: hidden;
-	}
-
-	.large {
-		flex: 96;
-		padding: 8px;
-	}
-
-	.small {
-		flex: 4;
-		min-height: 40px;
-		padding: 5px;
-		display: flex;
-
-		button {
-			height: 100%;
-		}
-	}
-
-	.placeholder {
-		flex: 1;
-	}
 
 	// .first {
 	// 	border-radius: 8px 0 0 8px;

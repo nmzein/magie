@@ -80,24 +80,6 @@ export async function GetImagesList(): Promise<string[]> {
 	return [];
 }
 
-// export async function sendProcessRequest() {
-// 	try {
-// 		const response = await fetch(processURL, { method: 'POST' });
-
-// 		if (response.ok) {
-// 			GetMetadata();
-// 		} else {
-// 			console.error(
-// 				'Error: Process API call returned bad status code: ',
-// 				response.status,
-// 				response.statusText
-// 			);
-// 		}
-// 	} catch (error) {
-// 		console.error('Error during Process API call: ', error);
-// 	}
-// }
-
 export async function GetMetadata() {
 	try {
 		const response = await fetch(MetadataURL, { method: 'POST' });

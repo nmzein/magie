@@ -130,8 +130,7 @@
 						SendFiles(Image, AnnotationFile, SelectedAnnotationGenerator);
 					}
 				}
-
-				// Output error message
+				// TODO: Output error message for other cases.
 			}}>UPLOAD</button
 		>
 	</div>

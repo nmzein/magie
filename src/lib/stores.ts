@@ -1,5 +1,5 @@
 import { writable, readable } from 'svelte/store';
-import type { ImageMetadata, ImageSelection } from '$lib/types';
+import type { ImageMetadata } from '$lib/types';
 import { WebSocketURL } from '$lib/urls';
 
 export const ImageStore = writable<HTMLImageElement[]>([]);
