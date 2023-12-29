@@ -1,5 +1,5 @@
-import { metadataURL, ProcessImageURL, ProcessImageAnnotationsURL, listURL } from '$lib/urls';
-import { metadataStore } from '$lib/stores';
+import { MetadataURL, ProcessImageURL, ProcessImageAnnotationsURL, ImageListURL } from '$lib/urls';
+import { MetadataStore } from '$lib/stores';
 import type { ImageMetadata } from './types';
 
 export async function SendImage(Image: File, AnnotationGenerator: string) {
@@ -8,7 +8,11 @@ export async function SendImage(Image: File, AnnotationGenerator: string) {
 	formData.append('annotation_generator', AnnotationGenerator);
 
 	try {
-		const response = await fetch(ProcessImageURL, { method: 'POST', body: formData });
+		console.log('Sending image to server for processing {}.', formData);
+		const response = await fetch(ProcessImageURL, {
+			method: 'POST',
+			body: formData
+		});
 
 		if (response.ok) {
 			console.log('Success: Sent image to server for processing.');
@@ -53,7 +57,7 @@ export async function GetAnnotationGenerators(): Promise<string[]> {
 
 export async function GetImagesList(): Promise<string[]> {
 	try {
-		const response = await fetch(listURL, { method: 'POST' });
+		const response = await fetch(ImageListURL, { method: 'POST' });
 
 		if (response.ok) {
 			try {
@@ -76,32 +80,32 @@ export async function GetImagesList(): Promise<string[]> {
 	return [];
 }
 
-export async function sendProcessRequest() {
-	try {
-		const response = await fetch(processURL, { method: 'POST' });
+// export async function sendProcessRequest() {
+// 	try {
+// 		const response = await fetch(processURL, { method: 'POST' });
 
-		if (response.ok) {
-			sendMetadataRequest();
-		} else {
-			console.error(
-				'Error: Process API call returned bad status code: ',
-				response.status,
-				response.statusText
-			);
-		}
-	} catch (error) {
-		console.error('Error during Process API call: ', error);
-	}
-}
+// 		if (response.ok) {
+// 			GetMetadata();
+// 		} else {
+// 			console.error(
+// 				'Error: Process API call returned bad status code: ',
+// 				response.status,
+// 				response.statusText
+// 			);
+// 		}
+// 	} catch (error) {
+// 		console.error('Error during Process API call: ', error);
+// 	}
+// }
 
-export async function sendMetadataRequest() {
+export async function GetMetadata() {
 	try {
-		const response = await fetch(metadataURL, { method: 'POST' });
+		const response = await fetch(MetadataURL, { method: 'POST' });
 
 		if (response.ok) {
 			try {
 				const data: ImageMetadata = await response.json();
-				metadataStore.set(data);
+				MetadataStore.set(data);
 			} catch (error) {
 				console.error("Error: Couldn't parse metadata: ", error);
 			}

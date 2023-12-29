@@ -2,14 +2,14 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { ImageMetadata, ImageSelection } from '$lib/types';
-	import { webSocketURL } from '$lib/urls';
-	import { sendMetadataRequest } from '$lib/api';
-	import { imagesStore, metadataStore } from '$lib/stores';
+	import { WebSocketURL } from '$lib/urls';
+	import { GetMetadata } from '$lib/api';
+	import { WebSocketStore, ImageStore, MetadataStore } from '$lib/stores';
 	import { Stage, Layer, Shape } from 'svelte-konva';
 
+	let socket: WebSocket;
 	let images: HTMLImageElement[] = [];
 	let metadata: ImageMetadata | undefined;
-	let requests: ImageSelection[] = [];
 
 	let isDragging = false;
 	let mouseStartX: number;
@@ -18,54 +18,46 @@
 	let offsetY = 0;
 	let scale = 1;
 
-	// Bind stores to local vars.
-	const unsubscribeImagesStore = imagesStore.subscribe((values) => {
+	$: selection = { start: { x: 0, y: 0 }, end: { x: 2, y: 2 } } as ImageSelection;
+
+	const UnsubscribeImageStore = ImageStore.subscribe((values) => {
 		images = values;
 	});
 
-	const unsubscribeMetadataStore = metadataStore.subscribe((values) => {
+	const UnsubscribeMetadataStore = MetadataStore.subscribe((values) => {
 		metadata = values;
 	});
 
 	onMount(() => {
-		// Send metadata request to the server.
-		sendMetadataRequest();
+		// Get image metadata from the server.
+		GetMetadata();
 
-		const webSocket = new WebSocket(webSocketURL);
-
-		// Handle messages received from the server
-		webSocket.addEventListener('message', (event: MessageEvent) => {
-			// Assuming each message is an image binary data.
-			// Read binary data from the Blob.
-			const imageData: Blob = event.data;
-
-			// Convert Blob to HTMLImageElement.
-			const image = new Image();
-			image.src = URL.createObjectURL(imageData);
-
-			// Update the images store.
-			imagesStore.update((images) => [...images, image]);
+		const UnsubscribeWebSocketStore = WebSocketStore.subscribe((value) => {
+			socket = value as WebSocket;
 		});
 
-		let interval: ReturnType<typeof setInterval>;
+		// socket = new WebSocket(WebSocketURL);
 
-		webSocket.addEventListener('open', () => {
-			interval = setInterval(() => {
-				// Iterate over all pending requests and send them to the server.
-				while (requests.length > 0) {
-					webSocket?.send(JSON.stringify(requests[0]));
-					requests.shift();
-				}
-			}, 100);
-		});
+		// socket.addEventListener('message', (event: MessageEvent) => {
+		// 	// Assuming each message is an image binary data.
+		// 	// Read binary data from the Blob.
+		// 	const imageData: Blob = event.data;
+
+		// 	// Convert Blob to HTMLImageElement.
+		// 	const image = new Image();
+		// 	image.src = URL.createObjectURL(imageData);
+
+		// 	// Update the images store.
+		// 	ImageStore.update((images) => [...images, image]);
+		// });
 
 		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('mouseup', handleMouseUp);
 		document.addEventListener('wheel', handleWheel);
 
 		return () => {
-			webSocket?.close();
-			clearInterval(interval);
+			// socket.close();
+			UnsubscribeWebSocketStore();
 			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('mouseup', handleMouseUp);
 			document.removeEventListener('wheel', handleWheel);
@@ -116,20 +108,18 @@
 		container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 	}
 
-	// Add selection request to RequestsStore.
-	requests.push({ start: { x: 0, y: 0 }, end: { x: 2, y: 2 } });
-	// requests.push({ start: { x: 0, y: 0 }, end: { x: 2, y: 2 } });
-	// requests.push({ start: { x: 0, y: 0 }, end: { x: 5, y: 5 } });
-	// requests.push({ start: { x: 0, y: 0 }, end: { x: 34, y: 46 } });
-	console.log(requests);
+	function GetSelection() {
+		socket.send(JSON.stringify(selection));
+	}
 
 	// Unsubscribe from stores when the component is destroyed.
 	onDestroy(() => {
-		unsubscribeImagesStore();
-		unsubscribeMetadataStore();
+		UnsubscribeImageStore();
+		UnsubscribeMetadataStore();
 	});
 </script>
 
+<button style="height: 100px; width: 100px; z-index: 100;" on:click={() => GetSelection()} />
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
 	id="container"
@@ -175,10 +165,6 @@
 		cursor: grab;
 		height: auto;
 	}
-
-	/* #polygon {
-		border: thick solid red;
-	} */
 
 	#image-grid {
 		display: grid;
