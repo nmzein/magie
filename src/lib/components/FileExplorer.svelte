@@ -7,8 +7,11 @@
 	let Image: File | undefined;
 	let AnnotationFile: File | undefined;
 	let ImagesList: string[] = [];
+
 	let AnnotationGenerators: string[] = [];
 	let AutogenerateAnnotations = true;
+
+	let SelectedAnnotationGenerator = '';
 
 	const UnsubscribeImageUploadStore = ImageUploadStore.subscribe((value) => {
 		Image = value;
@@ -45,6 +48,7 @@
 
 		GetAnnotationGenerators().then((generators) => {
 			AnnotationGenerators = generators;
+			SelectedAnnotationGenerator = generators[0];
 		});
 	});
 
@@ -68,7 +72,7 @@
 					AUTOGENERATE
 					<Switch bind:checked={AutogenerateAnnotations} />
 				</div>
-				<select style="flex: 1;">
+				<select style="flex: 1;" bind:value={SelectedAnnotationGenerator}>
 					{#each AnnotationGenerators as AnnotationGenerator}
 						<option value={AnnotationGenerator}>{AnnotationGenerator}</option>
 					{/each}
@@ -121,9 +125,9 @@
 			on:click={() => {
 				if (Image) {
 					if (AutogenerateAnnotations) {
-						SendImage(Image);
+						SendImage(Image, SelectedAnnotationGenerator);
 					} else if (AnnotationFile) {
-						SendFiles(Image, AnnotationFile);
+						SendFiles(Image, AnnotationFile, SelectedAnnotationGenerator);
 					}
 				}
 

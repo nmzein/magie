@@ -21,6 +21,12 @@ static CHUNK_SIZE: u32 = 1024;
 static RGB_CHANNELS: u64 = 3;
 static GROUP_PATH: &str = "/group";
 
+pub fn save_image(image_path: &PathBuf, image_content: &Vec<u8>) -> Result<()> {
+    fs::write(image_path, image_content)?;
+
+    Ok(())
+}
+
 pub fn remove(image_name: &str) -> bool {
     let dir_path = PathBuf::from("store/".to_owned() + image_name);
 

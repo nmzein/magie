@@ -1,13 +1,14 @@
-import { metadataURL, processURL, listURL } from '$lib/urls';
+import { metadataURL, ProcessImageURL, ProcessImageAnnotationsURL, listURL } from '$lib/urls';
 import { metadataStore } from '$lib/stores';
 import type { ImageMetadata } from './types';
 
-export async function SendImage(Image: File) {
+export async function SendImage(Image: File, AnnotationGenerator: string) {
 	const formData = new FormData();
 	formData.append('image', Image);
+	formData.append('annotation_generator', AnnotationGenerator);
 
 	try {
-		const response = await fetch(processURL, { method: 'POST', body: formData });
+		const response = await fetch(ProcessImageURL, { method: 'POST', body: formData });
 
 		if (response.ok) {
 			console.log('Success: Sent image to server for processing.');
@@ -23,13 +24,14 @@ export async function SendImage(Image: File) {
 	}
 }
 
-export async function SendFiles(Image: File, AnnotationFile: File) {
+export async function SendFiles(Image: File, AnnotationFile: File, AnnotationGenerator: string) {
 	const formData = new FormData();
 	formData.append('image', Image);
-	formData.append('annotation', AnnotationFile);
+	formData.append('annotations', AnnotationFile);
+	formData.append('annotation_generator', AnnotationGenerator);
 
 	try {
-		const response = await fetch(processURL, { method: 'POST', body: formData });
+		const response = await fetch(ProcessImageAnnotationsURL, { method: 'POST', body: formData });
 
 		if (response.ok) {
 			console.log('Success: Sent files to server for processing.');
@@ -46,7 +48,7 @@ export async function SendFiles(Image: File, AnnotationFile: File) {
 }
 
 export async function GetAnnotationGenerators(): Promise<string[]> {
-	return ['TIA Toolbox'];
+	return ['TIA Toolbox', 'Example 2'];
 }
 
 export async function GetImagesList(): Promise<string[]> {

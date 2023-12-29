@@ -44,3 +44,24 @@ pub struct Address {
     pub x: u32,
     pub y: u32,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ImageProcessRequest {
+    pub image: FileData,
+    pub annotation_generator: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ImageAnnotationsProcessRequest {
+    pub image: FileData,
+    pub annotations: FileData,
+    pub annotation_generator: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct FileData {
+    pub name: String,
+    pub size: u64,
+    #[serde(with = "serde_bytes")]
+    pub content: Vec<u8>,
+}

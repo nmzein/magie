@@ -4,7 +4,7 @@ mod structs;
 mod traits;
 mod decoders;
 
-use crate::structs::{AppState, ImageState, ImageSelection};
+use crate::structs::{AppState, ImageState, ImageSelection, ImageProcessRequest, ImageAnnotationsProcessRequest, FileData};
 
 use std::path::PathBuf;
 use std::fmt::Display;
@@ -12,7 +12,7 @@ use std::fmt::Display;
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        Extension, WebSocketUpgrade
+        Extension, WebSocketUpgrade,
     },
     response::{Json, IntoResponse, Response},
     http::StatusCode,
@@ -26,7 +26,7 @@ use tower_http::{
 };
 
 static IMAGE_NAME: &str = "image-1";
-static IMAGE_NAME_EXT: &str = "image-1.tiff";
+// static IMAGE_NAME_EXT: &str = "image-1.tiff";
 
 #[tokio::main]
 async fn main() {
@@ -39,7 +39,8 @@ async fn main() {
     let app = Router::new()
         .route("/api/list", post(list))
         .route("/api/connect", get(connect))
-        .route("/api/process", post(process))
+        .route("/api/process-image", post(process_image))
+        .route("/api/process-image-annotations", post(process_image_annotations))
         .route("/api/metadata", post(metadata))
         .route("/api/delete", post(delete))
         .layer(cors)
@@ -130,27 +131,39 @@ async fn metadata(Extension(pool): Extension<AppState>) -> Response {
 //             None
 //         );
 //     }
-
-//     //****************************************/
-
-//     //****************************************/
 // }
 
-async fn process(Extension(pool): Extension<AppState>) -> Response {
-    // Strip file extension.
-    let id = IMAGE_NAME_EXT.split('.').collect::<Vec<&str>>()[0];
-    println!("Processing image with name: {}", id);
+async fn process_image(Extension(pool): Extension<AppState>, Json(payload): Json<ImageProcessRequest>) -> impl IntoResponse {
+    // TODO: Error handling.
+    handle_image(payload.image, Extension(pool)).await;
 
-    if db::contains(&id, &pool).await {
+    // TODO: Generate annotations.
+}
+
+async fn process_image_annotations(Extension(pool): Extension<AppState>, Json(payload): Json<ImageAnnotationsProcessRequest>) -> impl IntoResponse {
+    // TODO: Error handling.
+    handle_image(payload.image, Extension(pool)).await;
+
+    // TODO: Save annotation file.
+}
+
+async fn handle_image(image: FileData, Extension(pool): Extension<AppState>) -> Response {
+    // Strip file extension.
+    let name = image.name.split('.').collect::<Vec<&str>>()[0];
+    println!("Processing image with name: {}, with ext: {}", name, image.name);
+
+    if db::contains(&name, &pool).await {
         return log_respond::<String>(
             StatusCode::BAD_REQUEST,
-            format!("Image with name {} already exists. Consider deleting it from the list first.", id).as_str(),
+            format!("Image with name {} already exists. Consider deleting it from the list first.", name).as_str(),
             None
         );
     }
 
-    let image_path = PathBuf::from(format!("store/{}/{}", id, IMAGE_NAME_EXT));
-    let store_path = PathBuf::from(format!("store/{}/{}.zarr", id, id));
+    let image_path = PathBuf::from(format!("store/{}/{}", name, image.name));
+    io::save_image(&image_path, &image.content).unwrap();
+
+    let store_path = PathBuf::from(format!("store/{}/{}.zarr", name, name));
 
     // TODO: Check file extension in function and choose decoder based on this.
     match io::convert::<OpenSlide>(
@@ -159,7 +172,7 @@ async fn process(Extension(pool): Extension<AppState>) -> Response {
     ) {
         Ok(metadata) => {
             // TODO: Error handling.
-            let _ = db::insert(id, &ImageState { image_path, store_path, metadata }, &pool).await;
+            let _ = db::insert(name, &ImageState { image_path, store_path, metadata }, &pool).await;
             log_respond::<String>(StatusCode::OK, "Successfully processed image.", None)
         },
         Err(err) => log_respond(StatusCode::INTERNAL_SERVER_ERROR, "Failed to process the image.", Some(err))
