@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import type { ImageMetadata } from '$lib/types';
+	import type { AnnotationLayer, ImageMetadata } from '$lib/types';
 	import { GetMetadata } from '$lib/api';
-	import { ImageStore, MetadataStore } from '$lib/stores';
+	import { ImageStore, MetadataStore, AnnotationsStore } from '$lib/stores';
 	import Annotation from './Annotation.svelte';
 
 	let images: HTMLImageElement[] = [];
 	let metadata: ImageMetadata | undefined;
+	let annotations: AnnotationLayer[] | undefined;
 
 	let isDragging = false;
 	let mouseStartX: number;
@@ -23,33 +24,37 @@
 		metadata = values;
 	});
 
+	const UnsubscribeAnnotationsStore = AnnotationsStore.subscribe((values) => {
+		annotations = values;
+	});
+
 	onMount(() => {
 		// Get image metadata from the server.
 		GetMetadata();
 
-		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('mouseup', handleMouseUp);
-		document.addEventListener('wheel', handleWheel);
+		document.addEventListener('mousemove', HandleMouseMove);
+		document.addEventListener('mouseup', HandleMouseUp);
+		document.addEventListener('wheel', HandleWheel);
 
 		return () => {
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', handleMouseUp);
-			document.removeEventListener('wheel', handleWheel);
+			document.removeEventListener('mousemove', HandleMouseMove);
+			document.removeEventListener('mouseup', HandleMouseUp);
+			document.removeEventListener('wheel', HandleWheel);
 		};
 	});
 
-	function handleMouseDown(event: MouseEvent) {
+	function HandleMouseDown(event: MouseEvent) {
 		event.preventDefault();
 		isDragging = true;
 		mouseStartX = event.clientX;
 		mouseStartY = event.clientY;
 	}
 
-	function handleMouseUp() {
+	function HandleMouseUp() {
 		isDragging = false;
 	}
 
-	function handleMouseMove(event: MouseEvent) {
+	function HandleMouseMove(event: MouseEvent) {
 		if (isDragging) {
 			event.preventDefault();
 
@@ -65,8 +70,8 @@
 	}
 
 	// Listen for the wheel event to handle zoom.
-	function handleWheel(event: WheelEvent) {
-		event.preventDefault();
+	function HandleWheel(event: WheelEvent) {
+		// event.preventDefault();
 
 		// Get the container.
 		let container = document.getElementById('container');
@@ -85,18 +90,28 @@
 	onDestroy(() => {
 		UnsubscribeImageStore();
 		UnsubscribeMetadataStore();
+		UnsubscribeAnnotationsStore();
 	});
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
 	id="container"
-	on:mousedown={handleMouseDown}
+	on:mousedown={HandleMouseDown}
 	style={`transform: translate(${offsetX}px, ${offsetY}px) scale(${scale})`}
 >
-	<div id="annotation-canvas">
-		<Annotation />
-	</div>
+	{#if annotations}
+		<div id="annotation-canvas">
+			{#each annotations as layer, index}
+				<div id={'annotation-layer-' + index}>
+					{#each layer.annotations as coordinates}
+						<Annotation {coordinates} colours={layer.colours} {scale} />
+					{/each}
+				</div>
+			{/each}
+		</div>
+	{/if}
+
 	<div id="image-grid" style="--no-of-columns:{metadata?.cols}">
 		{#each images as image, index (image.src)}
 			<img src={image.src} alt="Image {index}" class="image" />

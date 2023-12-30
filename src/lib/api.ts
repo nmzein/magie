@@ -1,5 +1,5 @@
 import { MetadataURL, ProcessImageURL, ProcessImageAnnotationsURL, ImageListURL } from '$lib/urls';
-import { MetadataStore } from '$lib/stores';
+import { MetadataStore, AnnotationsStore } from '$lib/stores';
 import type { ImageMetadata } from './types';
 
 export async function SendImage(Image: File, AnnotationGenerator: string) {
@@ -101,4 +101,43 @@ export async function GetMetadata() {
 	} catch (error) {
 		console.error('Error during Metadata API call: ', error);
 	}
+}
+
+export async function GetAnnotations() {
+	AnnotationsStore.set([
+		{
+			colours: {
+				fill: '#e07470',
+				stroke: '#a12c28'
+			},
+			annotations: [
+				[
+					{ x: 20, y: 50 },
+					{ x: 220, y: 80 },
+					{ x: 230, y: 160 },
+					{ x: 30, y: 170 }
+				],
+				[
+					{ x: 230, y: 200 },
+					{ x: 500, y: 200 },
+					{ x: 510, y: 300 },
+					{ x: 310, y: 300 }
+				]
+			]
+		},
+		{
+			colours: {
+				fill: '#719de3',
+				stroke: '#2961ba'
+			},
+			annotations: [
+				[
+					{ x: 230, y: 400 },
+					{ x: 500, y: 400 },
+					{ x: 510, y: 500 },
+					{ x: 310, y: 500 }
+				]
+			]
+		}
+	]);
 }

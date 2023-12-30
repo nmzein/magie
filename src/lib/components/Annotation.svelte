@@ -1,72 +1,91 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { Stage, Layer, Shape } from 'svelte-konva';
-	// export let coordinates: [number, number][] = [];
-	// export let parentElement: HTMLElement; // Reference to the parent element
-	// export let offsetX = 0;
-	// export let offsetY = 0;
+	import type { Point } from '$lib/types';
 
-	// function getRelativeCoordinates(coords: [number, number][]) {
-	// 	if (!parentElement) return '';
+	export let coordinates: Point[];
+	export let colours = { fill: '#e07470', stroke: '#a12c28' };
+	export let scale = 1;
 
-	// 	// Get the position of the parent element
-	// 	const parentRect = parentElement.getBoundingClientRect();
+	import { MetadataStore } from '$lib/stores';
+	import type { ImageMetadata } from '$lib/types';
+	import { onMount, onDestroy } from 'svelte';
 
-	// 	// Adjust coordinates relative to the parent element
-	// 	return coords
-	// 		.map((coord) => `${coord[0] - parentRect.left},${coord[1] - parentRect.top}`)
-	// 		.join(' ');
-	// }
+	let metadata: ImageMetadata | undefined;
+
+	const UnsubscribeMetadataStore = MetadataStore.subscribe((values) => {
+		metadata = values;
+	});
+
+	let XScaler: number;
+	let YScaler: number;
+	let ImageGridWidth: number;
+	let ImageGridHeight: number;
+
+	onMount(() => {
+		window.addEventListener('resize', ResizeAnnotations);
+
+		ResizeAnnotations();
+
+		return () => {
+			window.removeEventListener('resize', ResizeAnnotations);
+		};
+	});
+
+	// coordinate * (#image-grid Width (var) / Actual Image Width)
+	const ResizeAnnotations = () => {
+		const ImageGridDimensions = document.getElementById('image-grid')?.getClientRects();
+		ImageGridWidth = ImageGridDimensions?.[0].width || 0;
+		ImageGridHeight = ImageGridDimensions?.[0].height || 0;
+
+		if (ImageGridWidth && ImageGridHeight && metadata?.cols && metadata?.rows) {
+			XScaler = ImageGridWidth / (metadata.cols * 1024 * scale);
+			YScaler = ImageGridHeight / (metadata.rows * 1024 * scale);
+		}
+	};
+
+	onDestroy(() => {
+		UnsubscribeMetadataStore();
+	});
 </script>
 
-<!-- <div
-	class="polygon"
-	style="clip-path: {`polygon(${points
-		.map((point) => `${point[0] + offsetX}px ${point[1] + offsetY}px`)
-		.join(', ')})`}"
-/> -->
-
-<!-- bind:this={polygon} -->
-
-<Stage
-	config={browser
-		? { width: window.innerWidth, height: window.innerHeight }
-		: { width: 0, height: 0 }}
->
-	<Layer>
-		<Shape
+{#if browser && document.getElementById('image-grid')}
+	<div>
+		<!-- Move out of component -->
+		<Stage
 			config={{
-				sceneFunc: function (context, shape) {
-					context.beginPath();
-					context.moveTo(20, 50);
-					context.lineTo(220, 80);
-					context.quadraticCurveTo(150, 100, 260, 170);
-					context.closePath();
-
-					// special Konva.js method
-					context.fillStrokeShape(shape);
-				},
-				fill: '#00D2FF',
-				stroke: 'black',
-				strokeWidth: 1
+				width: ImageGridWidth,
+				height: ImageGridHeight
 			}}
-		/>
-	</Layer>
-</Stage>
+		>
+			<Layer>
+				<Shape
+					config={{
+						sceneFunc: function (context, shape) {
+							context.beginPath();
 
-<!-- 
-<svg>
-	<polygon points={getRelativeCoordinates(coordinates)} />-->
-<!-- <polygon points={coordinates.map((coord) => `${coord[0]},${coord[1]}`).join(' ')} /> -->
-<!-- </svg>  -->
+							context.moveTo(coordinates[0].x * XScaler, coordinates[0].y * YScaler);
+							for (let i = 1; i < coordinates.length; i++) {
+								context.lineTo(coordinates[i].x * XScaler, coordinates[i].y * YScaler);
+							}
+
+							context.closePath();
+
+							// special Konva.js method
+							context.fillStrokeShape(shape);
+						},
+						fill: colours.fill,
+						stroke: colours.stroke,
+						strokeWidth: 1
+					}}
+				/>
+			</Layer>
+		</Stage>
+	</div>
+{/if}
 
 <style>
-	/* svg {
-		width: 100%;
-		height: 100%;
-	} */
-	/* .polygon {
+	div {
 		position: absolute;
-		border: 10px solid red;
-	} */
+	}
 </style>

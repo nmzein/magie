@@ -2,14 +2,15 @@
 	import { onMount } from 'svelte';
 	import FileExplorer from './FileExplorer.svelte';
 	import FinetuneControls from './FinetuneControls.svelte';
-	import { WebSocketStore } from '$lib/stores';
 	import type { ImageSelection } from '$lib/types';
+	import { WebSocketStore } from '$lib/stores';
+	import { GetAnnotations } from '$lib/api';
 
 	let View = 'FileExplorer';
-	let ShowLargePanel = false;
+	let ShowLargePanel = true;
 	let socket: WebSocket;
 	let selection: ImageSelection = { start: { x: 0, y: 0 }, end: { x: 2, y: 2 } };
-	$: rotation = ShowLargePanel ? '180deg' : '0deg';
+	$: rotation = ShowLargePanel ? '0deg' : '180deg';
 
 	onMount(() => {
 		const UnsubscribeWebSocketStore = WebSocketStore.subscribe((value) => {
@@ -26,10 +27,13 @@
 	<div id="container">
 		{#if ShowLargePanel}
 			<div class="panel large">
-				<div id="button-row">
-					<button class="white-small" on:click={() => (View = 'FileExplorer')}>FILES</button>
-					<button class="white-small" on:click={() => (View = 'FinetuneControls')}>IMAGE</button>
+				<div style="margin-bottom: 8px;">
+					<button class="panel-page-button" on:click={() => (View = 'FileExplorer')}>FILES</button>
+					<button class="panel-page-button" on:click={() => (View = 'FinetuneControls')}
+						>IMAGE</button
+					>
 				</div>
+
 				{#if View === 'FileExplorer'}
 					<FileExplorer />
 				{:else if View === 'FinetuneControls'}
@@ -42,7 +46,8 @@
 
 		<div class="panel small">
 			<div style="flex: 1;" />
-			<button id="show-panel" on:click={() => socket.send(JSON.stringify(selection))}>IMG</button>
+			<button on:click={() => socket.send(JSON.stringify(selection))}>IMG</button>
+			<button on:click={() => GetAnnotations()}>ANNO</button>
 			<button id="show-panel" on:click={() => (ShowLargePanel = !ShowLargePanel)}
 				><img
 					id="arrow-icon"
@@ -56,18 +61,15 @@
 </nav>
 
 <style lang="scss">
-	#button-row {
-		margin-bottom: 8px;
-	}
-
-	.white-small {
-		// color: black;
+	.panel-page-button {
 		height: 30px;
-		// width: 70px;
 		border-radius: 10px;
 		font-family: 'JetBrains Mono', monospace;
 		font-weight: 600;
 		font-size: 14px;
+
+		// color: black;
+		// width: 70px;
 		// letter-spacing: -0.01rem;
 		// background: rgba(255, 255, 255, 1);
 		// backdrop-filter: blur(15px);

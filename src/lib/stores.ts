@@ -1,9 +1,10 @@
 import { writable, readable } from 'svelte/store';
-import type { ImageMetadata } from '$lib/types';
+import type { ImageMetadata, AnnotationLayer } from '$lib/types';
 import { WebSocketURL } from '$lib/urls';
 
 export const ImageStore = writable<HTMLImageElement[]>([]);
 export const MetadataStore = writable<ImageMetadata | undefined>();
+export const AnnotationsStore = writable<AnnotationLayer[] | undefined>();
 
 export const ImageUploadStore = writable<File | undefined>();
 export const AnnotationFileUploadStore = writable<File | undefined>();

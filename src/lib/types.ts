@@ -3,7 +3,7 @@ export type ImageSelection = {
 	end: Point;
 };
 
-type Point = {
+export type Point = {
 	x: number;
 	y: number;
 };
@@ -11,4 +11,12 @@ type Point = {
 export type ImageMetadata = {
 	cols: number;
 	rows: number;
+};
+
+export type AnnotationLayer = {
+	colours: {
+		fill: string;
+		stroke: string;
+	};
+	annotations: Point[][];
 };
