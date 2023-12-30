@@ -1,6 +1,16 @@
 import { MetadataURL, ProcessImageURL, ProcessImageAnnotationsURL, ImageListURL } from '$lib/urls';
-import { MetadataStore, AnnotationsStore } from '$lib/stores';
-import type { ImageMetadata } from './types';
+import { MetadataStore, AnnotationsStore, WebSocketStore } from '$lib/stores';
+import type { ImageMetadata, ImageSelection } from './types';
+
+let socket: WebSocket;
+
+WebSocketStore.subscribe((value) => {
+	socket = value as WebSocket;
+});
+
+export async function GetImageSelection(ImageName: string, selection: ImageSelection) {
+	socket.send(JSON.stringify(selection));
+}
 
 export async function SendImage(Image: File, AnnotationGenerator: string) {
 	const formData = new FormData();
@@ -80,7 +90,7 @@ export async function GetImagesList(): Promise<string[]> {
 	return [];
 }
 
-export async function GetMetadata() {
+export async function GetMetadata(ImageName: string) {
 	try {
 		const response = await fetch(MetadataURL, { method: 'POST' });
 

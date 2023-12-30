@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import type { AnnotationLayer, ImageMetadata } from '$lib/types';
-	import { GetMetadata } from '$lib/api';
 	import { ImageStore, MetadataStore, AnnotationsStore } from '$lib/stores';
 	import Annotation from './Annotation.svelte';
 
@@ -29,9 +28,6 @@
 	});
 
 	onMount(() => {
-		// Get image metadata from the server.
-		GetMetadata();
-
 		document.addEventListener('mousemove', HandleMouseMove);
 		document.addEventListener('mouseup', HandleMouseUp);
 		document.addEventListener('wheel', HandleWheel);
