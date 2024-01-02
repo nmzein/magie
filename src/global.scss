@@ -2,9 +2,30 @@ body {
 	margin: 0;
 	background-color: #292929;
 	overflow: hidden;
+
+	font-family: 'Roboto', sans-serif;
 }
 
 button {
 	border: none;
 	cursor: pointer;
+
+	color: white;
+	font-weight: 500;
+	font-size: 15px;
 }
+
+select {
+	border: none;
+	cursor: pointer;
+
+	color: white;
+	font-weight: 500;
+	font-size: 15px;
+}
+
+h1 {
+	margin: 0;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');

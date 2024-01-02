@@ -1,12 +1,13 @@
 use crate::structs::Region;
 use crate::traits::Decoder;
-use anyhow::Result;
-use image::RgbImage;
-use openslide_rs::traits::Slide;
-use openslide_rs::OpenSlide;
+
 use std::path::PathBuf;
 
-#[cfg(feature = "zarr")]
+use anyhow::Result;
+use image::RgbImage;
+
+use openslide_rs::{traits::Slide, OpenSlide};
+
 impl Decoder for OpenSlide {
     fn open(image_path: &PathBuf) -> Result<OpenSlide> {
         let image = OpenSlide::new(image_path)?;
@@ -23,7 +24,7 @@ impl Decoder for OpenSlide {
     fn get_level_dimensions(&self, level: u32) -> Result<(u32, u32)> {
         let image_dimensions = Slide::get_level_dimensions(self, level)?;
 
-        Ok((image_dimensions.h, image_dimensions.w))
+        Ok((image_dimensions.w, image_dimensions.h))
     }
 
     fn read_region(&self, region: &Region) -> Result<RgbImage> {

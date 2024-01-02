@@ -1,14 +1,29 @@
-export type ImageSelection = {
+export type Selection = {
+	image_name: string;
+	level: number;
 	start: Point;
 	end: Point;
 };
 
-type Point = {
+export type Point = {
 	x: number;
 	y: number;
 };
 
-export type ImageMetadata = {
+export type Metadata = {
 	cols: number;
 	rows: number;
+	width: number;
+	height: number;
 };
+
+export type AnnotationLayer = {
+	tag: string;
+	colours: {
+		fill: string;
+		stroke: string;
+	};
+	annotations: Point[][];
+};
+
+export type ImageLayer = HTMLImageElement[][];
