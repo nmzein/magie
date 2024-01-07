@@ -310,7 +310,7 @@ checksum = "c688fc74432808e3eb684cae8830a86be1d66a2bd58e1f248ed0960a590baf6f"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -1130,6 +1130,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c571b676ddfc9a8c12f1f3d3085a7b163966a8fd8098a90640953ce5f6170161"
+dependencies = [
+ "cfg-if",
+ "windows-sys",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1801,7 +1811,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
-name = "rendering-engine"
+name = "rendering_engine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1810,8 +1820,9 @@ dependencies = [
  "dotenv",
  "futures-util",
  "image",
- "itertools 0.12.0",
+ "libloading 0.8.1",
  "openslide-rs",
+ "rayon",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -2810,9 +2821,9 @@ checksum = "ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538"
 
 [[package]]
 name = "zarrs"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ca4a7e945f0289862285478f92d19016780bc732c56c8c2d440c2a4a588c345"
+checksum = "4f49f53c69814784f2e4787fb0628bb1909b8074421baf7788b223090b498ba4"
 dependencies = [
  "blosc-src",
  "bytes",

@@ -1,10 +1,20 @@
 use axum_typed_multipart::{FieldData, TryFromMultipart};
 use serde::{Deserialize, Serialize};
 use sqlx::sqlite::SqlitePool;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
 
-pub type AppState = SqlitePool;
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: SqlitePool,
+    pub plugins: HashMap<String, Plugin>,
+}
+
+#[derive(Clone)]
+pub struct Plugin {
+    pub name: fn() -> String,
+}
 
 #[derive(Debug)]
 pub struct ImageState {

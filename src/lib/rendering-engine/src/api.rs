@@ -4,10 +4,11 @@ mod io;
 mod structs;
 mod traits;
 
-use crate::structs::{AppState, ImageState, Selection, UploadAssetRequest};
+use crate::structs::{AppState, ImageState, Plugin, Selection, UploadAssetRequest};
 
 use std::fmt::Display;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 
 use axum::{
     extract::{
@@ -20,16 +21,24 @@ use axum::{
     Router,
 };
 use axum_typed_multipart::TypedMultipart;
+use anyhow::Result;
 
-use tokio::fs;
 use tower_http::cors::CorsLayer;
+use libloading::{Library, Symbol};
 
 // TODO: Remove.
 use openslide_rs::OpenSlide;
 
+static PLUGIN_PATH: &str = "src/plugins";
+
 #[tokio::main]
 async fn main() {
     let pool = db::connect().await.unwrap();
+
+    let state = AppState {
+        pool,
+        plugins: load_plugins().await.unwrap_or(HashMap::new()),
+    };
 
     // TODO: Move URLs to .env file.
     let cors: CorsLayer = CorsLayer::new()
@@ -45,7 +54,7 @@ async fn main() {
         .route("/api/annotations", post(annotations))
         .route("/api/delete", post(delete))
         .layer(cors)
-        .layer(Extension(pool));
+        .layer(Extension(state));
 
     let listener = tokio::net::TcpListener::bind("localhost:3000")
         .await
@@ -54,7 +63,37 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn image_list(Extension(pool): Extension<AppState>) -> Response {
+// TODO: Load plugins based on feature flags.
+async fn load_plugins() -> Result<HashMap<String, Plugin>> {
+    let mut plugins = HashMap::new();
+
+    // Iterate over the files in the plugin directory
+    for entry in std::fs::read_dir(PLUGIN_PATH)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        // Load each dynamic library as a plugin
+        if path.is_file() && path.extension().map_or(false, |ext| ext == "so" || ext == "dylib" || ext == "dll") {
+            // Load the `name` function from the plugin
+            unsafe {
+                let library = Library::new(&path)?;
+                let name: Symbol<fn() -> String> = library.get(b"name")?;
+
+                plugins.insert(name(), Plugin { name: *name });
+            }
+        }
+    }
+
+    log::<String>(
+        StatusCode::OK,
+        &format!("Loaded plugin(s): {:?}.", plugins.keys().cloned().collect::<Vec<_>>()),
+        None,
+    ).await;
+
+    Ok(plugins)
+}
+
+async fn image_list(Extension(state): Extension<AppState>) -> Response {
     log::<String>(
         StatusCode::ACCEPTED,
         "Received request for list of images.",
@@ -62,7 +101,7 @@ async fn image_list(Extension(pool): Extension<AppState>) -> Response {
     )
     .await;
 
-    if let Ok(images) = db::list(&pool).await {
+    if let Ok(images) = db::list(&state.pool).await {
         return Json(images).into_response();
     }
 
@@ -74,8 +113,7 @@ async fn image_list(Extension(pool): Extension<AppState>) -> Response {
     .await
 }
 
-// TODO: Actually collect annotation generator names somehow.
-async fn annotation_generators() -> Response {
+async fn annotation_generators(Extension(state): Extension<AppState>) -> Response {
     log::<String>(
         StatusCode::ACCEPTED,
         "Received request for annotation generators.",
@@ -83,17 +121,17 @@ async fn annotation_generators() -> Response {
     )
     .await;
 
-    Json(["TIA Toolbox", "Example 1", "Example 2"]).into_response()
+    Json(state.plugins.keys().cloned().collect::<Vec<_>>()).into_response()
 }
 
-async fn connect(ws: WebSocketUpgrade, Extension(pool): Extension<AppState>) -> impl IntoResponse {
+async fn connect(ws: WebSocketUpgrade, Extension(state): Extension<AppState>) -> impl IntoResponse {
     ws.on_upgrade(|socket| async {
-        render(socket, pool).await;
+        render(socket, state).await;
     })
 }
 
 // TODO: Send error messages to frontend.
-async fn render(mut socket: WebSocket, pool: AppState) {
+async fn render(mut socket: WebSocket, state: AppState) {
     while let Some(Ok(Message::Text(message))) = socket.recv().await {
         if let Ok(selection) = serde_json::from_str::<Selection>(&message) {
             log::<String>(
@@ -103,7 +141,7 @@ async fn render(mut socket: WebSocket, pool: AppState) {
             )
             .await;
 
-            if let Ok(Some(image)) = db::get(&selection.image_name, &pool).await {
+            if let Ok(Some(image)) = db::get(&selection.image_name, &state.pool).await {
                 let _ = io::retrieve(&image.store_path, &selection, &mut socket)
                     .await
                     .map_err(|e| async {
@@ -139,7 +177,7 @@ async fn render(mut socket: WebSocket, pool: AppState) {
     }
 }
 
-async fn metadata(Extension(pool): Extension<AppState>, image_name: String) -> Response {
+async fn metadata(Extension(state): Extension<AppState>, image_name: String) -> Response {
     log::<String>(
         StatusCode::ACCEPTED,
         &format!(
@@ -150,7 +188,7 @@ async fn metadata(Extension(pool): Extension<AppState>, image_name: String) -> R
     )
     .await;
 
-    match db::get(&image_name, &pool).await {
+    match db::get(&image_name, &state.pool).await {
         Ok(Some(image)) => Json(image.metadata).into_response(),
         Ok(None) => {
             log_respond::<String>(
@@ -174,8 +212,8 @@ async fn metadata(Extension(pool): Extension<AppState>, image_name: String) -> R
     }
 }
 
-async fn annotations(Extension(pool): Extension<AppState>, image_name: String) -> Response {
-    if !db::contains(&image_name, &pool).await {
+async fn annotations(Extension(state): Extension<AppState>, image_name: String) -> Response {
+    if !db::contains(&image_name, &state.pool).await {
         return log_respond::<String>(
             StatusCode::BAD_REQUEST,
             &format!("Image with name {} does not exist.", image_name),
@@ -184,31 +222,57 @@ async fn annotations(Extension(pool): Extension<AppState>, image_name: String) -
         .await;
     }
 
-    if let Ok(annotations) = io::annotations(&image_name).await {
-        log::<String>(StatusCode::OK, "Successfully retrieved annotations.", None).await;
-        return Json(annotations).into_response();
-    }
+    let Ok(annotations) = io::annotations(&image_name).await else {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to retrieve annotations.",
+            None,
+        )
+        .await;
+    };
+    
+    log::<String>(StatusCode::OK, "Successfully retrieved annotations.", None).await;
 
-    log_respond::<String>(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "Failed to retrieve annotations.",
-        None,
-    )
-    .await
+    Json(annotations).into_response()
 }
 
-// TODO: Move functions to io.rs.
+// TODO: Move functions to io.rs and split into smaller functions.
 async fn upload(
-    Extension(pool): Extension<AppState>,
+    Extension(state): Extension<AppState>,
     TypedMultipart(UploadAssetRequest {
         image,
         annotations,
         annotation_generator,
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
-    // ! Remove unwrap.
-    let image_name = image.metadata.file_name.unwrap();
-    let image_name_no_ext = image_name.split('.').collect::<Vec<&str>>()[0];
+    // Get image name from metadata request body.
+    let Some(image_name) = image.metadata.file_name else {
+        return log_respond::<String>(
+            StatusCode::BAD_REQUEST,
+            "Failed to retrieve image name from metadata request body.",
+            None,
+        ).await;
+    };
+
+    // Strip file extension.
+    let Some(image_name_no_ext) = Path::new(&image_name).file_stem() else {
+        return log_respond::<String>(
+            StatusCode::BAD_REQUEST,
+            "Failed to remove image file extension.",
+            None,
+        ).await;
+    };
+
+    // Convert OsStr to &str.
+    let Some(image_name_no_ext) = image_name_no_ext.to_str() else {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to convert image name to string.",
+            None,
+        ).await;
+    };
+    
+    // Log successful parsing of image file name.
     log::<String>(
         StatusCode::ACCEPTED,
         &format!(
@@ -219,7 +283,8 @@ async fn upload(
     )
     .await;
 
-    if db::contains(&image_name_no_ext, &pool).await {
+    // Check if image already exists in database.
+    if db::contains(&image_name_no_ext, &state.pool).await {
         return log_respond::<String>(
             StatusCode::BAD_REQUEST,
             &format!(
@@ -231,130 +296,135 @@ async fn upload(
         .await;
     }
 
-    let directory_path = format!("store/{}/", image_name_no_ext);
-    // ! Remove unwrap.
-    fs::create_dir_all(directory_path.clone()).await.unwrap();
+    // Create a directory in store for the image.
+    let Ok(directory_path) = io::create(&image_name_no_ext).await else {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!(
+                "Failed to create directory for image with name {}.",
+                image_name_no_ext
+            ),
+            None,
+        )
+        .await;
+    };
 
-    let image_path = PathBuf::from(format!("{}{}", directory_path, image_name));
-    match image.contents.persist(image_path.clone()) {
-        Ok(_) => {
-            log::<String>(
-                StatusCode::CREATED,
-                "Successfully saved image to disk.",
-                None,
-            )
-            .await;
+    // Save image to disk.
+    let image_path = directory_path.join(&image_name);
+    let _ = image.contents.persist(&image_path).map_err(|e| async {
+        return log_respond(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("Failed to save image with name {} to disk.", image_name),
+            Some(e),
+        )
+        .await;
+    });
 
-            // Convert to ZARR.
-            let store_path = PathBuf::from(format!(
-                "store/{}/{}.zarr",
-                image_name_no_ext, image_name_no_ext
-            ));
+    // Log successful saving of image to disk.
+    log::<String>(
+        StatusCode::CREATED,
+        "Successfully saved image to disk.",
+        None,
+    )
+    .await;
 
-            // TODO: Check file extension within function and choose decoder based on this.
-            match io::convert::<OpenSlide>(&image_path, &store_path).await {
-                Ok(metadata) => {
-                    match db::insert(
-                        image_name_no_ext,
-                        &ImageState {
-                            image_path,
-                            store_path,
-                            metadata,
-                        },
-                        &pool,
-                    )
-                    .await
-                    {
-                        Ok(_) => {
-                            log::<String>(
-                                StatusCode::CREATED,
-                                "Successfully saved image metadata to database.",
-                                None,
-                            )
-                            .await
-                        }
-                        Err(e) => {
-                            return log_respond(
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                "Failed to save image metadata to database.",
-                                Some(e),
-                            )
-                            .await
-                        }
-                    }
-                }
-                Err(e) => {
-                    return log_respond(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Failed to convert the image to zarr.",
-                        Some(e),
-                    )
-                    .await
-                }
-            }
-        }
-        Err(e) => {
-            return log_respond(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to save image to disk.",
-                Some(e),
-            )
-            .await
-        }
-    }
+    // Convert image to ZARR.
+    let store_path = PathBuf::from(format!(
+        "store/{}/{}.zarr",
+        image_name_no_ext, image_name_no_ext
+    ));
+
+    // TODO: Check file extension within function and choose decoder based on this.
+    let Ok(metadata) = io::convert::<OpenSlide>(&image_path, &store_path).await else {
+        return log_respond::<String>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to convert the image to zarr.",
+            None,
+        )
+        .await;
+    };
+
+    // Insert image into database.
+    let _ = db::insert(
+        image_name_no_ext,
+        &ImageState {
+            image_path,
+            store_path,
+            metadata,
+        },
+        &state.pool,
+    ).await.map_err(|e| async {
+        return log_respond(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to save image metadata to database.",
+            Some(e),
+        )
+        .await;
+    });
+
+    log::<String>(
+        StatusCode::CREATED,
+        "Successfully saved image metadata to database.",
+        None,
+    )
+    .await;
 
     if let Some(annotations) = annotations {
-        // ! Remove unwrap.
-        let annotations_file_name = annotations.metadata.file_name.unwrap();
+        // Get annotations file name from metadata request body.
+        let Some(annotations_file_name) = annotations.metadata.file_name else {
+            return log_respond::<String>(
+                StatusCode::BAD_REQUEST,
+                "Failed to retrieve annotations file name from metadata request body.",
+                None,
+            ).await;
+        };
+    
+        // Save annotations to disk.
+        let annotations_file_path = directory_path.join(&annotations_file_name);
+        let _ = annotations.contents.persist(&annotations_file_path).map_err(|e| async {
+            return log_respond(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to save annotations with name {} to disk.", annotations_file_name),
+                Some(e),
+            )
+            .await;
+        });
 
-        let annotations_file_path =
-            PathBuf::from(format!("{}{}", directory_path, annotations_file_name));
-
-        match annotations.contents.persist(annotations_file_path) {
-            Ok(_) => {
-                return log_respond::<String>(
-                    StatusCode::CREATED,
-                    "Successfully saved annotations to disk.",
-                    None,
-                )
-                .await;
-            }
-            Err(e) => {
-                return log_respond(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to save annotations to disk.",
-                    Some(e),
-                )
-                .await;
-            }
-        }
+        // TODO: Check that file is in correct format given annotation generator.
+        // Log successful saving of annotations to disk.
+        log_respond::<String>(
+            StatusCode::CREATED,
+            "Successfully saved annotations to disk.",
+            None,
+        )
+        .await
     } else {
         // TODO: Generate annotations.
-        return log_respond::<String>(
+        log_respond::<String>(
             StatusCode::CREATED,
             "No annotations provided. TODO: Generate annotations.",
             None,
         )
-        .await;
+        .await
     }
 }
 
-async fn delete(Extension(pool): Extension<AppState>, image_name: String) -> Response {
+async fn delete(Extension(state): Extension<AppState>, image_name: String) -> Response {
     // Remove from fs.
-    if !io::remove(&image_name).await {
-        return log_respond::<String>(
+    let _ = io::remove(&image_name).await.map_err(|e| async {
+        return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Could not delete directory for image with name {}.",
                 image_name
             ),
-            None,
+            Some(e),
         )
         .await;
-    }
+    });
 
     // Remove entry from db.
-    let _ = db::remove(&image_name, &pool).await.map_err(|e| async {
+    let _ = db::remove(&image_name, &state.pool).await.map_err(|e| async {
         log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
