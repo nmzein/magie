@@ -30,6 +30,7 @@ pub struct Selection {
     pub start: Point,
     pub end: Point,
 }
+
 #[derive(Debug, Serialize)]
 pub struct AnnotationLayer {
     pub tag: String,

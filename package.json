@@ -35,8 +35,6 @@
 	"type": "module",
 	"dependencies": {
 		"canvas": "^2.11.2",
-		"konva": "^9.3.0",
-		"svelte-konva": "^0.3.1",
 		"ws": "^8.16.0"
 	}
 }

@@ -45,6 +45,8 @@
 		}
 		// TODO: Output error message for other cases.
 	}
+
+	const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
 </script>
 
 <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -60,7 +62,7 @@
 							<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 							<!-- svelte-ignore a11y-click-events-have-key-events -->
 							<p
-								on:click={() => {
+								on:click={async () => {
 									GetMetadata(image_name);
 									GetImageSelection({
 										image_name: image_name,
@@ -68,6 +70,9 @@
 										start: { x: 0, y: 0 },
 										end: { x: 2, y: 2 }
 									});
+									// TODO: figure out a way not to need this delay
+									await delay(2000);
+									GetAnnotations(image_name);
 								}}
 							>
 								{image_name}

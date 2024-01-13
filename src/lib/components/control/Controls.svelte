@@ -29,8 +29,6 @@
 
 		<div class="panel small">
 			<div style="flex: 1;" />
-			<!-- TODO: Actually fix annotation rendering. -->
-			<button on:click={() => GetAnnotations('image-test')}>ANNO</button>
 			<button id="show-panel" on:click={() => (show_large_panel = !show_large_panel)}
 				><img
 					id="arrow-icon"

@@ -81,6 +81,21 @@ pub async fn annotations(image_name: &str) -> Result<Vec<AnnotationLayer>> {
             .into()]
             .into(),
         },
+        AnnotationLayer {
+            tag: "Example 3".into(),
+            colours: Colours {
+                fill: "#e0747099".into(),
+                stroke: "#a12c28".into(),
+            },
+            annotations: [[
+                Point { x: 1800, y: 1800 },
+                Point { x: 2048, y: 1800 },
+                Point { x: 2048, y: 2048 },
+                Point { x: 1800, y: 2048 },
+            ]
+            .into()]
+            .into(),
+        },
     ];
 
     Ok(annotations)
@@ -123,6 +138,10 @@ pub async fn retrieve(
                 CHUNK_SIZE,
                 image::ColorType::Rgb8,
             )?;
+
+            // Prepend tile position.
+            jpeg_tile.insert(0, y as u8);
+            jpeg_tile.insert(0, x as u8);
 
             // Send tile.
             let _ = socket

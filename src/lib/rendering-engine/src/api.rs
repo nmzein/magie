@@ -169,7 +169,7 @@ async fn render(mut socket: WebSocket, state: AppState) {
         } else {
             log::<String>(
                 StatusCode::BAD_REQUEST,
-                "Incorrect JSON format. Expected type <Selection>.",
+                &format!("Failed to parse selection: {}.", message),
                 None,
             )
             .await;

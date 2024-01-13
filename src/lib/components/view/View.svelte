@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { image, metadata, annotations } from '$lib/stores';
 	import AnnotationCanvas from '$lib/components/view/AnnotationCanvas.svelte';
-	import ImageGrid from '$lib/components/view/ImageGrid.svelte';
+	import ImageCanvas from '$lib/components/view/ImageCanvas.svelte';
 
 	let is_dragging = false;
 	let mouse_start_x: number;
@@ -56,7 +56,7 @@
 		const new_scale = scale + event.deltaY * -0.005;
 
 		// Limit the scale factor within a reasonable range.
-		scale = Math.min(Math.max(new_scale, 0.5), 30);
+		scale = Math.min(Math.max(new_scale, 0.4), 30);
 	}
 </script>
 
@@ -64,11 +64,10 @@
 <div id="view" on:mousedown={HandleMouseDown} style={$image.length > 0 ? 'height: 100vh;' : ''}>
 	<div id="container" style="--offset-x: {offset_x}px; --offset-y: {offset_y}px; --scale: {scale};">
 		{#if $metadata && $image.length > 0}
-			<ImageGrid />
-
 			{#if $annotations}
-				<AnnotationCanvas {scale} />
+				<AnnotationCanvas />
 			{/if}
+			<ImageCanvas />
 		{/if}
 	</div>
 </div>
