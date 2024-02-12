@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT level, cols, rows, width, height FROM metadata WHERE name = $1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "level",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "cols",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "rows",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "width",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "height",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9748ff840aaedb35393204a2cfe242cbb1bf53d707d8d916e77e7dcc5215c77b"
+}

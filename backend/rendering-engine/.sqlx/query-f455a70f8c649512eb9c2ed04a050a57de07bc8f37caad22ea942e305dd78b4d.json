@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO images (name, image_path, store_path, annotations_path) VALUES ($1, $2, $3, $4);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f455a70f8c649512eb9c2ed04a050a57de07bc8f37caad22ea942e305dd78b4d"
+}

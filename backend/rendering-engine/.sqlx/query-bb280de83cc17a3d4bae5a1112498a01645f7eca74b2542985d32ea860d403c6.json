@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT image_path, store_path, annotations_path FROM images WHERE name = $1;",
+  "describe": {
+    "columns": [
+      {
+        "name": "image_path",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "store_path",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "annotations_path",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "bb280de83cc17a3d4bae5a1112498a01645f7eca74b2542985d32ea860d403c6"
+}

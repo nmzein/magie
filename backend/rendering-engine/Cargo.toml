@@ -1,0 +1,44 @@
+[package]
+name = "rendering_engine"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "rendering_engine"
+path = "src/api.rs"
+
+[dependencies]
+tokio = { version = "1.36.0", features = ["full"] }
+axum = { version = "0.7.4", features = ["ws"] }
+axum_typed_multipart = "0.11.0"
+anyhow = "1.0.79"
+serde = { version = "1.0.196", features = ["derive"] }
+serde_json = "1.0.113"
+tower-http = { version = "0.5.1", features = ["cors"] }
+tempfile = "3.10.0"
+sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+dotenv = "0.15.0"
+rayon = "1.8.1"
+futures = "0.3.30"
+futures-util = "0.3.30"
+image = "0.24.8"
+# libloading = "0.8.1"
+# diesel = { version = "2.1.4", features = ["sqlite", "r2d2", "chrono"] }
+# Bindings for OpenSlide, used to decode many image formats like WSI
+openslide-rs = "2.0.1"
+# ZARR support
+zarrs = "0.11.6"
+
+[features]
+# Currently "openslide" and "tiatoolbox" are necessary features, do not remove.
+default = [
+    # "time", 
+    "openslide", 
+    "tiatoolbox"
+]
+
+time = []
+# Decoders
+openslide = []
+# Plugins
+tiatoolbox = []
