@@ -11,15 +11,16 @@
 		>
 			{#each layer as row, rowIndex (rowIndex)}
 				{#each row as tile, tileIndex (tileIndex)}
-					<img src={tile.src || '/placeholder.png'} alt="Tile ({rowIndex}, {tileIndex})" />
+					<img
+						src={tile.src || '/placeholder.png'}
+						alt="Tile ({rowIndex}, {tileIndex})"
+						on:error={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
+					/>
 				{/each}
 			{/each}
 		</div>
 	{/each}
 </div>
-
-<!-- on:load={() => console.log('Image loaded')} -->
-<!-- on:error={() => console.error('Image failed to load')} -->
 
 <style lang="scss">
 	.image-grid {
