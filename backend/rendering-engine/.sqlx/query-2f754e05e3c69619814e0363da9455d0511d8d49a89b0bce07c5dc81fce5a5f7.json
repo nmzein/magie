@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO metadata (name, level, cols, rows, width, height)\n                VALUES ($1, $2, $3, $4, $5, $6);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "2f754e05e3c69619814e0363da9455d0511d8d49a89b0bce07c5dc81fce5a5f7"
+}

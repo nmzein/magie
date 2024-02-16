@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT name FROM images;",
+  "query": "\n            SELECT name FROM images;\n        ",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "570d04c1ace59465448cac9837461c7f01e4d70544bd4f01190ad3ae4158a267"
+  "hash": "52a393f8a3fbb8911cb5a6e5f8821ca1ca5deb5dc0502f69b3ebda19b194d745"
 }

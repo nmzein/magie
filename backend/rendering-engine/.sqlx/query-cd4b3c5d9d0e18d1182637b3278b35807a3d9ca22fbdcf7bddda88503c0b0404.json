@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT level, cols, rows, width, height FROM metadata WHERE name = $1;",
+  "query": "\n            SELECT level, cols, rows, width, height\n            FROM metadata\n            WHERE name = $1\n            ORDER BY level ASC;\n        ",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "9748ff840aaedb35393204a2cfe242cbb1bf53d707d8d916e77e7dcc5215c77b"
+  "hash": "cd4b3c5d9d0e18d1182637b3278b35807a3d9ca22fbdcf7bddda88503c0b0404"
 }
