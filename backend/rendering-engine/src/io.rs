@@ -2,9 +2,9 @@ use crate::structs::{Address, AnnotationLayer, Metadata, Region, Selection, Size
 use crate::traits::Decoder;
 use crate::mpsc::Sender;
 
-use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::{Arc, Mutex}};
+#[cfg(feature = "time")]
+use std::time::Instant;
 
 use anyhow::Result;
 use axum::extract::ws::Message;
@@ -17,9 +17,6 @@ use zarrs::{
     storage::store::FilesystemStore,
 };
 use futures::future::join_all;
-
-#[cfg(feature = "time")]
-use std::time::Instant;
 
 static CHUNK_SIZE: u32 = 1024;
 static CHUNK_LENGTH: usize = (CHUNK_SIZE * CHUNK_SIZE) as usize;
@@ -36,7 +33,7 @@ pub async fn create(image_name: &str) -> Result<PathBuf> {
     Ok(directory_path)
 }
 
-pub async fn remove(image_name: &str) -> Result<()> {
+pub async fn delete(image_name: &str) -> Result<()> {
     let directory_path = PathBuf::from(STORE_PATH).join(image_name);
 
     // Remove directory.
@@ -45,11 +42,22 @@ pub async fn remove(image_name: &str) -> Result<()> {
     Ok(())
 }
 
+// TODO: Generate using macros.
+// TODO: Add extension checking function to Decoder to query decoders for supported extensions.
+async fn decode(image_path: &PathBuf) -> Result<impl Decoder> {
+    if let Ok(image) = openslide_rs::OpenSlide::open(image_path) {
+        return Ok(image);
+    }
+
+    Err(anyhow::anyhow!("Image could not be opened using any of the available decoders."))
+}
+
 // TODO: Run annotation generator translation interface.
 pub async fn annotations(annotations_path: &str) -> Result<Vec<AnnotationLayer>> {
     Ok(crate::generators::tiatoolbox::read_annotations(annotations_path).await?)
 }
 
+// TODO: Selection bound checks.
 pub async fn retrieve(
     store_path: &PathBuf,
     selection: Selection,
@@ -147,7 +155,7 @@ pub async fn retrieve(
                     .send(Message::Binary(jpeg_chunk))
                     .await
                     .map_err(|err| {
-                        eprintln!("Error sending chunk(s): {}", err);
+                        eprintln!("Error sending chunk <{}:{}, {}>: {}", selection_arc.level, x, y, err);
                     });
 
                 #[cfg(feature = "time")]
@@ -170,26 +178,13 @@ pub async fn retrieve(
     Ok(())
 }
 
-// TODO: Generate using macros.
-// TODO: Add extension checking function to Decoder to query decoders for supported extensions.
-async fn open(image_path: &PathBuf) -> Result<impl Decoder> {
-    if let Ok(image) = openslide_rs::OpenSlide::open(image_path) {
-        return Ok(image);
-    }
 
-    Err(anyhow::anyhow!("Image could not be opened using any of the available decoders."))
-}
-
-// TODO: Don't cut out last row and column.
 pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<Metadata>> {
-    let image = open(image_path).await?;
-
+    let image = decode(image_path).await?;
     // One store per image.
     let store = Arc::new(FilesystemStore::new(store_path)?);
-
     // One group per image.
     let group = GroupBuilder::new().build(store.clone(), GROUP_PATH)?;
-
     // Write group metadata to store.
     // ! Remove group and make it so better adheres to OME-ZARR.
     group.store_metadata()?;
@@ -198,19 +193,20 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
     if levels == 0 {
         return Err(anyhow::anyhow!("Image has no levels."));
     }
-
-    println!("Levels: {}", levels);
+    let (level_0_width, level_0_height) = image.get_level_dimensions(0)?;
 
     let mut metadata: Vec<Metadata> = Vec::new(); 
 
     for level in 0..levels {
-        println!("Level: {}", level);
         // Get image dimensions.
         let (width, height) = image.get_level_dimensions(level)?;
 
         // Calculate number of chunks per row and column.
-        let cols = width / CHUNK_SIZE;
-        let rows = height / CHUNK_SIZE;
+        let cols = width.div_ceil(CHUNK_SIZE);
+        let rows = height.div_ceil(CHUNK_SIZE);
+
+        let width_ratio = (level_0_width as f64 / width as f64) as u32;
+        let height_ratio = (level_0_height as f64 / height as f64) as u32;
 
         // One array per image level.
         let array_path = format!("{}/{}", GROUP_PATH, level);
@@ -225,14 +221,14 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
             // Define initial fill value.
             FillValue::from(0u8),
         )
-        // Define compression algorithm and strength.
-        .bytes_to_bytes_codecs(vec![
-            #[cfg(feature = "lz4")]
-            Box::new(codec::Lz4Codec::new(9)?),
-        ])
-        // Define dimension names - time, RGB channel, z, y, x axis.
-        .dimension_names(vec!["t".into(), "c".into(), "z".into(), "y".into(), "x".into()].into())
-        .build(store.clone(), &array_path)?;
+            // Define compression algorithm and strength.
+            .bytes_to_bytes_codecs(vec![
+                #[cfg(feature = "lz4")]
+                Box::new(codec::Lz4Codec::new(9)?),
+            ])
+            // Define dimension names - time, RGB channel, z, y, x axis.
+            .dimension_names(vec!["t".into(), "c".into(), "z".into(), "y".into(), "x".into()].into())
+            .build(store.clone(), &array_path)?;
 
         // Write array metadata to store.
         array.store_metadata()?;
@@ -240,8 +236,6 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
         // Write chunk data.
         for y in 0..rows {
             for x in 0..cols {
-                let chunk_grid: &Box<dyn ChunkGridTraits> = array.chunk_grid();
-
                 // Read chunk region and split into separate RGB channels.
                 let tile_split_channel: Vec<Vec<u8>> = image
                     .read_region(&Region {
@@ -251,11 +245,10 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                         },
                         level: level,
                         address: Address {
-                            x: (x * CHUNK_SIZE),
-                            y: (y * CHUNK_SIZE),
+                            x: (x * CHUNK_SIZE * width_ratio),
+                            y: (y * CHUNK_SIZE * height_ratio),
                         },
-                    })
-                    .unwrap()
+                    })?
                     .chunks(3)
                     .fold(
                         vec![Vec::new(), Vec::new(), Vec::new()],
@@ -267,6 +260,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                         },
                     );
 
+                let chunk_grid: &Box<dyn ChunkGridTraits> = array.chunk_grid();
                 for c in 0..RGB_CHANNELS {
                     let chunk_indices: Vec<u64> = vec![0, c, 0, y.into(), x.into()];
 

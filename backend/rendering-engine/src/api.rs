@@ -450,8 +450,8 @@ async fn delete(Extension(state): Extension<AppState>, image_name: String) -> Re
     )
     .await;
 
-    // Remove from fs.
-    let _ = io::remove(&image_name).await.map_err(|e| async {
+    // Delete directory from fs.
+    let _ = io::delete(&image_name).await.map_err(|e| async {
         return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
