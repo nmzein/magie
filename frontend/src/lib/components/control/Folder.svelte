@@ -14,8 +14,7 @@
 </div>
 
 <style lang="scss">
-	.grey-heading {
-		color: rgba(255, 255, 255, 0.6);
+	span {
 		cursor: pointer;
 		user-select: none;
 	}

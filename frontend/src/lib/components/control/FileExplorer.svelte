@@ -5,41 +5,36 @@
 
 	let showFilesystem = true;
 
-	// const delay = (ms: any) => new Promise((res) => setTimeout(res, ms));
-
 	async function testSelection(image_name: string) {
 		$metadata = undefined;
 		$image = [[]];
 		$annotations = undefined;
 
 		GetMetadata(image_name);
-		// await delay(3000);
 		GetImageSelection({
 			image_name: image_name,
 			level: 0,
 			start: { x: 0, y: 0 },
-			end: { x: 11, y: 11 }
+			end: { x: 12, y: 12 }
 		});
 		GetImageSelection({
 			image_name: image_name,
 			level: 1,
 			start: { x: 0, y: 0 },
-			end: { x: 2, y: 2 }
+			end: { x: 3, y: 3 }
 		});
+		// GetImageSelection({
+		// 	image_name: image_name,
+		// 	level: 0,
+		// 	start: { x: 30, y: 30 },
+		// 	end: { x: 40, y: 40 }
+		// });
 		// GetImageSelection({
 		// 	image_name: image_name,
 		// 	level: 0,
 		// 	start: { x: 0, y: 0 },
 		// 	end: { x: 2, y: 2 }
 		// });
-		// GetImageSelection({
-		// 	image_name: image_name,
-		// 	level: 1,
-		// 	start: { x: 0, y: 0 },
-		// 	end: { x: 2, y: 2 }
-		// });
-		// TODO: figure out a way not to need this delay.
-		// await delay(2000);
 		GetAnnotations(image_name);
 	}
 </script>
@@ -78,28 +73,6 @@
 </div>
 
 <style lang="scss">
-	.outer-container {
-		backdrop-filter: blur(15px);
-		background: rgba(255, 255, 255, 0.15);
-		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-		font-size: 14px;
-		border-radius: 10px;
-		font-family: 'JetBrains Mono', monospace;
-	}
-
-	.inner-container {
-		background-color: rgba(0, 0, 0, 0.2);
-		padding: 10px;
-		border-radius: 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
-	// .grey-heading {
-	// 	color: rgba(255, 255, 255, 0.6);
-	// }
-
 	p {
 		margin: 0;
 		cursor: pointer;

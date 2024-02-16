@@ -6,7 +6,6 @@
 	import { metadata } from '$lib/stores';
 
 	export let id: string;
-	export let level: number;
 	export let coordinates: number[][];
 	export let colours = { fill: '#e0747099', stroke: '#a12c28' };
 
@@ -82,59 +81,18 @@
 				return;
 			}
 
-			// let imageWidth = $metadata[level].width;
-			// let imageHeight = $metadata[level].height;
-
-			// console.log(coordinates);
-			// const scaleWidth = (x: number) => {
-			// 	// console.log(
-			// 	// 	'x: ',
-			// 	// 	x,
-			// 	// 	', canvas width: ',
-			// 	// 	canvas.width,
-			// 	// 	', metadata width: ',
-			// 	// 	imageWidth,
-			// 	// 	', scaled: ',
-			// 	// 	Math.floor((x * canvas.width) / imageWidth)
-			// 	// );
-			// 	return Math.floor((x * canvas.width) / imageWidth);
-			// };
-
-			// const scaleHeight = (y: number) => {
-			// 	// console.log(
-			// 	// 	'y: ',
-			// 	// 	y,
-			// 	// 	', canvas height: ',
-			// 	// 	canvas.height,
-			// 	// 	', metadata height: ',
-			// 	// 	imageHeight,
-			// 	// 	', scaled: ',
-			// 	// 	Math.floor((y * canvas.height) / imageHeight)
-			// 	// );
-			// 	return Math.floor((y * canvas.height) / imageHeight);
-			// };
-			let imageWidth = $metadata[level].cols * 1024;
-			let imageHeight = $metadata[level].rows * 1024;
+			let imageWidth = $metadata[0].width;
+			let imageHeight = $metadata[0].height;
 
 			const scale = (coordinate: number[]) => {
-				return [
-					Math.floor((coordinate[0] * canvas.width) / imageWidth),
-					Math.floor((coordinate[1] * canvas.height) / imageHeight)
-				];
-			};
-
-			const scale2 = (coordinate: number[]) => {
 				return [
 					(coordinate[0] * canvas.width) / imageWidth,
 					(coordinate[1] * canvas.height) / imageHeight
 				];
 			};
 
-			// console.log('Scale no floor: ', coordinates.map(scale2));
-			// console.log('Scale: ', coordinates.map(scale));
-
 			// Scale coordinates so that they are between 0 and 1.
-			coordinates = coordinates.map(scale2);
+			coordinates = coordinates.map(scale);
 			// Sort the coordinates
 			polySort(coordinates);
 

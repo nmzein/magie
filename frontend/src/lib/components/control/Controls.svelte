@@ -2,29 +2,26 @@
 	import FileControls from '$lib/components/control/FileControls.svelte';
 	import ImageControls from '$lib/components/control/ImageControls.svelte';
 
-	let view = 'FileControls';
+	let pages = ['FILES', 'IMAGE'];
+	let currentView = pages[0];
 	let showLargePanel = true;
-	$: rotation = showLargePanel ? '0deg' : '180deg';
 </script>
 
 <nav>
 	<div id="container">
-		{#if showLargePanel}
-			<div class="panel large">
-				<div style="margin-bottom: 15px;">
-					<button class="panel-page-button" on:click={() => (view = 'FileControls')}>FILES</button>
-					<button class="panel-page-button" on:click={() => (view = 'ImageControls')}>IMAGE</button>
-				</div>
-
-				{#if view === 'FileControls'}
-					<FileControls />
-				{:else if view === 'ImageControls'}
-					<ImageControls />
-				{/if}
+		<div class="{showLargePanel ? 'panel' : 'hidden'} large">
+			<div style="display: flex; gap: 6px; margin-bottom: 15px;">
+				{#each pages as page}
+					<button class="panel-page-button" on:click={() => (currentView = page)}>{page}</button>
+				{/each}
 			</div>
-		{:else}
-			<div class="hidden large" />
-		{/if}
+
+			{#if currentView === 'FILES'}
+				<FileControls />
+			{:else if currentView === 'IMAGE'}
+				<ImageControls />
+			{/if}
+		</div>
 
 		<div class="panel small">
 			<div style="flex: 1;" />
@@ -33,7 +30,7 @@
 					id="arrow-icon"
 					src="/arrow.png"
 					alt="Show large panel."
-					style="--rotation:{rotation}"
+					style="--rotation:{showLargePanel ? '0deg' : '180deg'}"
 				/></button
 			>
 		</div>
@@ -88,17 +85,6 @@
 
 		height: 100%;
 		gap: 10px;
-	}
-
-	.panel {
-		color: white;
-		border: 1px solid rgba(255, 255, 255, 0.125);
-		border-radius: 10px;
-		backdrop-filter: blur(15px);
-		background: rgba(0, 0, 0, 0.75);
-		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-		-webkit-backdrop-filter: blur(16px) saturate(180%);
-		pointer-events: all;
 	}
 
 	.hidden {

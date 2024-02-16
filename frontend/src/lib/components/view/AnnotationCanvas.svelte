@@ -11,7 +11,6 @@
 					{#each layer.annotations as coordinates, annotationIndex}
 						<Annotation
 							{coordinates}
-							level={layerIndex}
 							id={'annotation-' + layerIndex + '-' + annotationIndex}
 							colours={layer.colours}
 						/>

@@ -1,195 +1,218 @@
-<script>
-	var canvas = document.getElementsByTagName('canvas')[0];
-	canvas.width = 800;
-	canvas.height = 600;
-	var gkhead = new Image();
-	var ball = new Image();
-	window.onload = function () {
-		var ctx = canvas.getContext('2d');
-		trackTransforms(ctx);
-		function redraw() {
-			if (!ctx) {
-				return;
+<script lang="ts">
+	import { SendUploadAssets } from '$lib/api';
+	import { image_upload, annotations_upload, annotation_generator_list } from '$lib/stores';
+	import Switch from '$lib/components/control/Switch.svelte';
+	import UploadAsset from '$lib/components/view/UploadAsset.svelte';
+
+	// TODO: Cache settings choices locally.
+	let selectedAnnotationGenerator = $annotation_generator_list?.[0];
+	let autogenerateAnnotations = true;
+
+	function handleImage(event: DragEvent) {
+		event.preventDefault();
+
+		let file = event.dataTransfer?.files[0];
+		$image_upload = file;
+
+		let imageInput = document.getElementById('image-input');
+		// imageInput?.setAttribute('readonly', 'true');
+		imageInput?.setAttribute('placeholder', ' ');
+	}
+
+	function handleAnnotationFile(event: DragEvent) {
+		event.preventDefault();
+
+		let file = event.dataTransfer?.files[0];
+		$annotations_upload = file;
+
+		let annotationInput = document.getElementById('annotation-input');
+		// annotationInput?.setAttribute('readonly', 'true');
+		annotationInput?.setAttribute('placeholder', ' ');
+	}
+
+	function handleUpload() {
+		if ($image_upload && selectedAnnotationGenerator) {
+			// Still need to do this check as the user may have
+			// uploaded an annotation file earlier and then
+			// switched to autogeneration.
+			if (autogenerateAnnotations) {
+				SendUploadAssets($image_upload, undefined, selectedAnnotationGenerator);
+				resetImageField();
+			} else if (annotations_upload) {
+				console.log('got here');
+				SendUploadAssets($image_upload, $annotations_upload, selectedAnnotationGenerator);
+				resetImageField();
+				resetAnnotationField();
 			}
-			// Clear the entire canvas
-			var p1 = ctx.transformedPoint(0, 0);
-			var p2 = ctx.transformedPoint(canvas.width, canvas.height);
-			ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
-
-			// Alternatively:
-			// ctx.save();
-			// ctx.setTransform(1,0,0,1,0,0);
-			// ctx.clearRect(0,0,canvas.width,canvas.height);
-			// ctx.restore();
-
-			ctx.drawImage(gkhead, 200, 50);
-
-			ctx.beginPath();
-			ctx.lineWidth = 6;
-			ctx.moveTo(399, 250);
-			ctx.lineTo(474, 256);
-			ctx.stroke();
-
-			ctx.save();
-			ctx.translate(4, 2);
-			ctx.beginPath();
-			ctx.lineWidth = 1;
-			ctx.moveTo(436, 253);
-			ctx.lineTo(437.5, 233);
-			ctx.stroke();
-
-			ctx.save();
-			ctx.translate(438.5, 223);
-			ctx.strokeStyle = '#06c';
-			ctx.beginPath();
-			ctx.lineWidth = 0.05;
-			for (var i = 0; i < 60; ++i) {
-				ctx.rotate((6 * i * Math.PI) / 180);
-				ctx.moveTo(9, 0);
-				ctx.lineTo(10, 0);
-				ctx.rotate((-6 * i * Math.PI) / 180);
-			}
-			ctx.stroke();
-			ctx.restore();
-
-			ctx.beginPath();
-			ctx.lineWidth = 0.2;
-			ctx.arc(438.5, 223, 10, 0, Math.PI * 2);
-			ctx.stroke();
-			ctx.restore();
-
-			ctx.drawImage(ball, 379, 233, 40, 40);
-			ctx.drawImage(ball, 454, 239, 40, 40);
-			ctx.drawImage(ball, 310, 295, 20, 20);
-			ctx.drawImage(ball, 314.5, 296.5, 5, 5);
-			ctx.drawImage(ball, 319, 297.2, 5, 5);
 		}
-		redraw();
+		// TODO: Output error message for other cases.
+	}
 
-		var lastX = canvas.width / 2,
-			lastY = canvas.height / 2;
-		var dragStart, dragged;
-		canvas.addEventListener(
-			'mousedown',
-			function (evt) {
-				document.body.style.mozUserSelect =
-					document.body.style.webkitUserSelect =
-					document.body.style.userSelect =
-						'none';
-				lastX = evt.offsetX || evt.pageX - canvas.offsetLeft;
-				lastY = evt.offsetY || evt.pageY - canvas.offsetTop;
-				dragStart = ctx.transformedPoint(lastX, lastY);
-				dragged = false;
-			},
-			false
-		);
-		canvas.addEventListener(
-			'mousemove',
-			function (evt) {
-				lastX = evt.offsetX || evt.pageX - canvas.offsetLeft;
-				lastY = evt.offsetY || evt.pageY - canvas.offsetTop;
-				dragged = true;
-				if (dragStart) {
-					var pt = ctx.transformedPoint(lastX, lastY);
-					ctx.translate(pt.x - dragStart.x, pt.y - dragStart.y);
-					redraw();
-				}
-			},
-			false
-		);
-		canvas.addEventListener(
-			'mouseup',
-			function (evt) {
-				dragStart = null;
-				if (!dragged) zoom(evt.shiftKey ? -1 : 1);
-			},
-			false
-		);
+	function resetImageField() {
+		$image_upload = undefined;
+		(document.getElementById('image-input') as HTMLInputElement).placeholder =
+			'Drop image here or browse your filesystem.';
+	}
 
-		var scaleFactor = 1.1;
-		var zoom = function (clicks) {
-			var pt = ctx.transformedPoint(lastX, lastY);
-			ctx.translate(pt.x, pt.y);
-			var factor = Math.pow(scaleFactor, clicks);
-			ctx.scale(factor, factor);
-			ctx.translate(-pt.x, -pt.y);
-			redraw();
-		};
-
-		var handleScroll = function (evt) {
-			var delta = evt.wheelDelta ? evt.wheelDelta / 40 : evt.detail ? -evt.detail : 0;
-			if (delta) zoom(delta);
-			return evt.preventDefault() && false;
-		};
-		canvas.addEventListener('DOMMouseScroll', handleScroll, false);
-		canvas.addEventListener('mousewheel', handleScroll, false);
-	};
-	gkhead.src = 'http://phrogz.net/tmp/gkhead.jpg';
-	ball.src = 'http://phrogz.net/tmp/alphaball.png';
-
-	// Adds ctx.getTransform() - returns an SVGMatrix
-	// Adds ctx.transformedPoint(x,y) - returns an SVGPoint
-	function trackTransforms(ctx) {
-		var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-		var xform = svg.createSVGMatrix();
-		ctx.getTransform = function () {
-			return xform;
-		};
-
-		var savedTransforms = [];
-		var save = ctx.save;
-		ctx.save = function () {
-			savedTransforms.push(xform.translate(0, 0));
-			return save.call(ctx);
-		};
-		var restore = ctx.restore;
-		ctx.restore = function () {
-			xform = savedTransforms.pop();
-			return restore.call(ctx);
-		};
-
-		var scale = ctx.scale;
-		ctx.scale = function (sx, sy) {
-			xform = xform.scaleNonUniform(sx, sy);
-			return scale.call(ctx, sx, sy);
-		};
-		var rotate = ctx.rotate;
-		ctx.rotate = function (radians) {
-			xform = xform.rotate((radians * 180) / Math.PI);
-			return rotate.call(ctx, radians);
-		};
-		var translate = ctx.translate;
-		ctx.translate = function (dx, dy) {
-			xform = xform.translate(dx, dy);
-			return translate.call(ctx, dx, dy);
-		};
-		var transform = ctx.transform;
-		ctx.transform = function (a, b, c, d, e, f) {
-			var m2 = svg.createSVGMatrix();
-			m2.a = a;
-			m2.b = b;
-			m2.c = c;
-			m2.d = d;
-			m2.e = e;
-			m2.f = f;
-			xform = xform.multiply(m2);
-			return transform.call(ctx, a, b, c, d, e, f);
-		};
-		var setTransform = ctx.setTransform;
-		ctx.setTransform = function (a, b, c, d, e, f) {
-			xform.a = a;
-			xform.b = b;
-			xform.c = c;
-			xform.d = d;
-			xform.e = e;
-			xform.f = f;
-			return setTransform.call(ctx, a, b, c, d, e, f);
-		};
-		var pt = svg.createSVGPoint();
-		ctx.transformedPoint = function (x, y) {
-			pt.x = x;
-			pt.y = y;
-			return pt.matrixTransform(xform.inverse());
-		};
+	function resetAnnotationField() {
+		$annotations_upload = undefined;
+		(document.getElementById('annotation-input') as HTMLInputElement).placeholder =
+			'Drop annotation file here or browse your fs.';
 	}
 </script>
+
+<div>
+	<div class="outer-container">
+		<div class="inner-container" style="border-radius: 10px 10px 0 0;">
+			<span class="grey-heading"> ANNOTATIONS </span>
+			<div style="display: flex;">
+				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
+					AUTOGENERATE
+					<Switch bind:checked={autogenerateAnnotations} />
+				</div>
+				{#if $annotation_generator_list}
+					<select style="flex: 1;" bind:value={selectedAnnotationGenerator}>
+						{#each $annotation_generator_list as annotation_generator}
+							<option value={annotation_generator}>{annotation_generator}</option>
+						{/each}
+					</select>
+				{/if}
+			</div>
+		</div>
+
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div class="input" style="display: flex;" on:drop={(e) => handleImage(e)}>
+			<input
+				id="image-input"
+				type="text"
+				placeholder="Drop image here or browse your filesystem."
+				style={autogenerateAnnotations ? 'border-radius: 0 0 10px 10px' : ''}
+				on:dragover={(e) => e.preventDefault()}
+				readonly
+			/>
+			{#if $image_upload}
+				<!-- svelte-ignore a11y-click-events-have-key-events -->
+				<div on:click={() => resetImageField()} style="position: absolute; width: 100%;">
+					<UploadAsset name={$image_upload?.name} />
+				</div>
+			{/if}
+
+			<label style={autogenerateAnnotations ? 'border-radius: 0 0 10px 0' : ''}>
+				<div class="divider" />
+				<img src="/folder.svg" alt="Browse filesystem." />
+				<input type="file" accept="image/*" />
+			</label>
+		</div>
+
+		{#if !autogenerateAnnotations}
+			<!-- svelte-ignore a11y-no-static-element-interactions -->
+			<div class="input" style="display: flex;" on:drop={(e) => handleAnnotationFile(e)}>
+				<input
+					id="annotation-input"
+					type="text"
+					placeholder="Drop annotation file here or browse your fs."
+					value={$annotations_upload?.name || ''}
+					style="border-radius: 0 0 10px 10px;"
+					on:dragover={(e) => e.preventDefault()}
+					readonly
+				/>
+
+				{#if $annotations_upload}
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<div on:click={() => resetAnnotationField()} style="position: absolute; width: 100%;">
+						<UploadAsset name={$annotations_upload?.name} />
+					</div>
+				{/if}
+
+				<label style="border-radius: 0 0 10px 0;">
+					<div class="divider" />
+					<img src="/folder.svg" alt="Browse filesystem." />
+					<input type="file" accept="image/*" />
+				</label>
+			</div>
+		{/if}
+	</div>
+
+	<div style="display: flex;">
+		<div style="flex: 1;" />
+		<button type="submit" on:click={() => handleUpload()}>UPLOAD</button>
+	</div>
+</div>
+
+<style lang="scss">
+	select {
+		width: 130px;
+		border-radius: 5px;
+		font-family: 'JetBrains Mono', monospace;
+		letter-spacing: -0.01rem;
+		font-size: 13px;
+		padding: 3px 7px;
+		background-color: rgba(255, 255, 255, 0.2);
+	}
+
+	button {
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 14px;
+		background-color: rgba(255, 255, 255, 0.2);
+		border-radius: 8px;
+		margin-top: 8px;
+		width: 70px;
+
+		&:hover {
+			background-color: rgba(255, 255, 255, 0.15);
+		}
+	}
+
+	.divider {
+		position: absolute;
+		height: 30px;
+		top: 10%;
+		left: -2%;
+		z-index: 1;
+		border-left: 2px solid rgba(255, 255, 255, 0.2);
+		pointer-events: none;
+	}
+
+	input[type='text'] {
+		flex: 1;
+		height: 40px;
+		padding: 0 10px;
+
+		color: white;
+		border: none;
+		font-size: 13px;
+		background: transparent;
+
+		// &:hover {
+		// 	background-color: rgba(0, 0, 0, 0.2);
+		// }
+
+		&:focus {
+			outline: none;
+			// background-color: rgba(0, 0, 0, 0.2);
+		}
+	}
+
+	label {
+		cursor: pointer;
+
+		height: 40px;
+		width: 40px;
+		position: absolute;
+		right: 0;
+
+		&:hover {
+			background-color: rgba(0, 0, 0, 0.2);
+		}
+	}
+
+	input[type='file'] {
+		display: none;
+	}
+
+	img {
+		width: 20px;
+		height: 20px;
+		margin: 10px;
+	}
+</style>

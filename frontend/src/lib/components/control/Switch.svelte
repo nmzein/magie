@@ -1,4 +1,5 @@
 <script lang="ts">
+	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
 	export let checked: boolean;
 </script>
 
@@ -14,7 +15,7 @@
 		width: 30px;
 		height: 17px;
 
-		// Hide default HTML checkbox
+		// Hide default HTML checkbox.
 		& input {
 			opacity: 0;
 			width: 0;
@@ -22,7 +23,6 @@
 		}
 	}
 
-	/* The slider */
 	.slider {
 		position: absolute;
 		cursor: pointer;
@@ -61,7 +61,6 @@
 		transform: translateX(13px);
 	}
 
-	/* Rounded sliders */
 	.slider.round {
 		border-radius: 34px;
 	}
