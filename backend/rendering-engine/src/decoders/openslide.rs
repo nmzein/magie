@@ -1,10 +1,4 @@
-use crate::structs::Region;
-use crate::traits::Decoder;
-
-use std::path::PathBuf;
-
-use anyhow::Result;
-use image::RgbImage;
+use crate::decoders::common::*;
 
 use openslide_rs::{traits::Slide, OpenSlide};
 

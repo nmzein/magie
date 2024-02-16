@@ -1,10 +1,9 @@
+use std::{collections::HashMap, path::PathBuf};
+
 use anyhow::Result;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqlitePool;
-use sqlx::FromRow;
-use std::collections::HashMap;
-use std::path::PathBuf;
+use sqlx::{sqlite::SqlitePool, FromRow};
 use tempfile::NamedTempFile;
 
 #[derive(Clone)]

@@ -1,15 +1,12 @@
 use crate::structs::{ImageState, Metadata};
+
+use std::{fmt::Debug, path::PathBuf};
+
 use anyhow::Result;
-use dotenv::dotenv;
 use sqlx::sqlite::SqlitePool;
-use std::{env, fmt::Debug, path::PathBuf};
 
-pub async fn connect() -> Result<SqlitePool> {
-    // Load environment variables from .env file.
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL")?;
-    let pool = SqlitePool::connect(&database_url).await?;
+pub async fn connect(database_url: &str) -> Result<SqlitePool> {
+    let pool = SqlitePool::connect(database_url).await?;
     sqlx::migrate!().run(&pool).await?;
 
     Ok(pool)

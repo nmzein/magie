@@ -1,9 +1,7 @@
-use crate::structs::{AnnotationLayer, Colours};
+use crate::generators::common::*;
 
-use anyhow::Result;
-use sqlx::sqlite::SqlitePool;
-use sqlx::FromRow;
 use std::collections::HashMap;
+use sqlx::{FromRow, sqlite::SqlitePool};
 
 #[derive(Debug, Clone, FromRow)]
 struct Node {

@@ -1,6 +1,5 @@
 use crate::structs::{Address, AnnotationLayer, Metadata, Region, Selection, Size};
 use crate::traits::Decoder;
-use crate::mpsc::Sender;
 
 use std::{path::PathBuf, sync::{Arc, Mutex}};
 #[cfg(feature = "time")]
@@ -8,15 +7,15 @@ use std::time::Instant;
 
 use anyhow::Result;
 use axum::extract::ws::Message;
+use futures::future::join_all;
 use image::codecs::jpeg::JpegEncoder;
-use tokio::{fs, task::JoinHandle};
+use tokio::{fs, sync::mpsc::Sender, task::JoinHandle};
 use zarrs::{
     array::{chunk_grid::ChunkGridTraits, Array, ArrayBuilder, DataType, FillValue},
     array_subset::ArraySubset,
     group::GroupBuilder,
     storage::store::FilesystemStore,
 };
-use futures::future::join_all;
 
 static CHUNK_SIZE: u32 = 1024;
 static CHUNK_LENGTH: usize = (CHUNK_SIZE * CHUNK_SIZE) as usize;
