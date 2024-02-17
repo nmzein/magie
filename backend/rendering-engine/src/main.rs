@@ -1,3 +1,11 @@
+#![deny(clippy::all)]
+#![warn(
+    clippy::restriction,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::cargo,
+)]
+
 mod api;
 mod db;
 mod decoders;
@@ -64,34 +72,3 @@ async fn main() {
 
     axum::serve(listener, app).await.unwrap();
 }
-
-// TODO: Load generators based on feature flags.
-// async fn load_generators() -> Result<HashMap<String, Generator>> {
-//     let mut generators = HashMap::new();
-
-//     // Iterate over the files in the Generator directory
-//     for entry in std::fs::read_dir(GENERATORS_PATH)? {
-//         let entry = entry?;
-//         let path = entry.path();
-
-//         // Load each dynamic library as a Generator
-//         if path.is_file() && path.extension().map_or(false, |ext| ext == "so" || ext == "dylib" || ext == "dll") {
-//             // Load the `name` and `read_annotations` function from the Generator.
-//             unsafe {
-//                 let library = Library::new(&path)?;
-//                 let name: Symbol<fn() -> String> = library.get(b"name")?;
-//                 let read_annotations: Symbol<fn(image_path: &str) -> Vec<AnnotationLayer>> = library.get(b"read_annotations")?;
-
-//                 generators.insert(name(), Generator { name: name(), read_annotations: *read_annotations});
-//             }
-//         }
-//     }
-
-//     log::<String>(
-//         StatusCode::OK,
-//         &format!("Loaded Generator(s): {:?}.", generators.keys().cloned().collect::<Vec<_>>()),
-//         None,
-//     ).await;
-
-//     Ok(generators)
-// }

@@ -13,34 +13,22 @@ pub async fn upload(
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
     // Get image name from metadata request body.
-    let Some(image_name) = image.metadata.file_name else {
-        return log_respond::<String>(
-            StatusCode::BAD_REQUEST,
-            "Failed to retrieve image name from metadata request body.",
-            None,
-        ).await;
-    };
-
-    // Strip file extension.
-    let Some(image_name_no_ext) = Path::new(&image_name).file_stem() else {
-        return log_respond::<String>(
-            StatusCode::BAD_REQUEST,
-            "Failed to remove image file extension.",
-            None,
-        ).await;
-    };
-
-    // Convert OsStr to &str.
-    let Some(image_name_no_ext) = image_name_no_ext.to_str() else {
-        return log_respond::<String>(
+    let Some((image_name, image_name_no_ext)) = image.metadata.file_name
+        .as_ref()
+        .and_then(|name| {
+            Some((name, Path::new(name).file_stem()?.to_str()?))
+        })
+    else {
+        return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to convert image name to string.",
+            "Failed to retrieve image name or convert to string.",
             None,
         ).await;
     };
     
     // Log successful parsing of image file name.
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::ACCEPTED,
         &format!(
             "Received request to process image with name: {}.",
@@ -52,7 +40,7 @@ pub async fn upload(
 
     // Check if image already exists in database.
     if crate::db::contains(&image_name_no_ext, &state.pool).await {
-        return log_respond::<String>(
+        return log_respond::<()>(
             StatusCode::BAD_REQUEST,
             &format!(
                 "Image with name {} already exists. Consider deleting it from the list first.",
@@ -65,7 +53,7 @@ pub async fn upload(
 
     // Create a directory in store for the image.
     let Ok(directory_path) = crate::io::create(&image_name_no_ext).await else {
-        return log_respond::<String>(
+        return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Failed to create directory for image with name {}.",
@@ -87,7 +75,8 @@ pub async fn upload(
         .await;
     });
 
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::CREATED,
         "Successfully saved image to disk.",
         None,
@@ -98,7 +87,7 @@ pub async fn upload(
     // Convert image to ZARR.
     let store_path = directory_path.join(&format!("{}.zarr", image_name_no_ext));
     let Ok(metadata) = crate::io::convert(&image_path, &store_path).await else {
-        return log_respond::<String>(
+        return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to convert the image to zarr.",
             None,
@@ -106,7 +95,8 @@ pub async fn upload(
         .await;
     };
 
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::CREATED,
         "Successfully converted image to zarr.",
         None,
@@ -116,12 +106,14 @@ pub async fn upload(
     if let Some(annotations) = annotations {
         // Get annotations file name from metadata request body.
         let Some(annotations_file_name) = annotations.metadata.file_name else {
-            return log_respond::<String>(
+            return log_respond::<()>(
                 StatusCode::BAD_REQUEST,
                 "Failed to retrieve annotations file name from metadata request body.",
                 None,
             ).await;
         };
+
+        // TODO: Check that file is in correct format given annotation generator.
     
         // Save annotations to disk.
         annotations_path = annotations_path.join(&annotations_file_name);
@@ -134,9 +126,9 @@ pub async fn upload(
             .await;
         });
 
-        // TODO: Check that file is in correct format given annotation generator.
         // Log successful saving of annotations to disk.
-        log::<String>(
+        #[cfg(feature = "log")]
+        log::<()>(
             StatusCode::CREATED,
             "Successfully saved annotations to disk.",
             None,
@@ -144,7 +136,8 @@ pub async fn upload(
         .await;
     } else {
         // TODO: Generate annotations.
-        log::<String>(
+        #[cfg(feature = "log")]
+        log::<()>(
             StatusCode::CREATED,
             "No annotations provided. TODO: Generate annotations.",
             None,
@@ -154,7 +147,7 @@ pub async fn upload(
 
     // Insert into database.
     let _ = crate::db::insert(
-        image_name_no_ext,
+        &image_name_no_ext,
         &ImageState {
             image_path,
             store_path,
@@ -171,7 +164,7 @@ pub async fn upload(
         .await;
     });
 
-    log_respond::<String>(
+    log_respond::<()>(
         StatusCode::CREATED,
         "Successfully saved image metadata to database.",
         None,

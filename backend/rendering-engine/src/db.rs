@@ -13,25 +13,24 @@ pub async fn connect(database_url: &str) -> Result<SqlitePool> {
 }
 
 pub async fn list(pool: &SqlitePool) -> Result<Vec<String>> {
-    let query = sqlx::query!(
+    let list = sqlx::query!(
         r#"
             SELECT name FROM images;
         "#
     )
         .fetch_all(pool)
-        .await?;
-
-    let result: Result<Vec<String>> = query
+        .await?
         .into_iter()
         .map(|row| Ok(row.name.unwrap_or_default()))
         .collect();
 
     #[cfg(feature = "log")]
-    log("LIST", &result).await;
+    log("LIST", Some(&list)).await;
 
-    result
+    list
 }
 
+// TODO: Get transactions working.
 pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> Result<()> {
     let image_path = image_state.image_path.to_str()
         .ok_or_else(|| anyhow::anyhow!("Could not convert image path to string."))?;
@@ -44,7 +43,7 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
         .map(|path| path.to_str().ok_or_else(|| anyhow::anyhow!("Could not convert annotations path to string.")))
         .transpose()?;
 
-    let image_insert = sqlx::query!(
+    sqlx::query!(
         r#"
             INSERT INTO images (name, image_path, store_path, annotations_path)
             VALUES ($1, $2, $3, $4);
@@ -58,10 +57,10 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
         .await?;
 
     #[cfg(feature = "log")]
-    log(&format!("INSERT <Image:{}>", name), &image_insert).await;
+    log::<()>(&format!("INSERT <Image:{}>", name), None).await;
 
     for metadata in &image_state.metadata {
-        let metadata_insert = sqlx::query!(
+        sqlx::query!(
             r#"
                 INSERT INTO metadata (name, level, cols, rows, width, height)
                 VALUES ($1, $2, $3, $4, $5, $6);
@@ -77,14 +76,14 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
             .await?;
 
         #[cfg(feature = "log")]
-        log(&format!("INSERT <Metadata:{}:{}>", name, metadata.level), &metadata_insert).await;
+        log::<()>(&format!("INSERT <Metadata:{}:{}>", name, metadata.level), None).await;
     }
 
     Ok(())
 }
 
 pub async fn contains(name: &str, pool: &SqlitePool) -> bool {
-    let result = sqlx::query!(
+    let contains = sqlx::query!(
         r#"
             SELECT * FROM images WHERE name = $1;
         "#,
@@ -95,9 +94,9 @@ pub async fn contains(name: &str, pool: &SqlitePool) -> bool {
         .is_ok();
 
     #[cfg(feature = "log")]
-    log(&format!("CONTAINS <Image: {}>", name), &result).await;
+    log(&format!("CONTAINS <Image: {}>", name), Some(&contains)).await;
 
-    result
+    contains
 }
 
 pub async fn get_paths(name: &str, pool: &SqlitePool) -> Result<(String, String, Option<String>)> {
@@ -113,7 +112,7 @@ pub async fn get_paths(name: &str, pool: &SqlitePool) -> Result<(String, String,
         .await?;
 
     #[cfg(feature = "log")]
-    log(&format!("GET <Paths: {}>", name), &paths).await;
+    log(&format!("GET <Paths: {}>", name), Some(&paths)).await;
 
     Ok((
         paths.image_path,
@@ -139,7 +138,8 @@ pub async fn get_metadata(name: &str, pool: &SqlitePool) -> Result<Vec<Metadata>
         .fetch_all(pool)
         .await?;
 
-    log(&format!("GET <Metadata: {}>", name), &metadata).await;
+    #[cfg(feature = "log")]
+    log(&format!("GET <Metadata: {}>", name), Some(&metadata)).await;
 
     Ok(metadata)
 }
@@ -159,21 +159,25 @@ pub async fn get(name: &str, pool: &SqlitePool) -> Result<Option<ImageState>> {
 }
 
 pub async fn remove(name: &str, pool: &SqlitePool) -> Result<()> {
-    let image_delete = sqlx::query!(
+    sqlx::query!(
         r#"
             DELETE FROM images WHERE name = $1;
         "#,
         name
     )
         .execute(pool)
-        .await;
+        .await?;
 
     #[cfg(feature = "log")]
-    log(&format!("DELETE <Image: {}>", name), &image_delete).await;
+    log::<()>(&format!("DELETE <Image: {}>", name), None).await;
 
     Ok(())
 }
 
-pub async fn log<T: Debug>(operation: &str, query: &T) {
-    println!("Database <{}>: {:?}\n", operation, query);
+async fn log<T: Debug>(operation: &str, result: Option<&T>) {
+    print!("Database <{}>", operation);
+    if let Some(result) = result {
+        println!(": {:?}", result);
+    }
+    println!();
 }

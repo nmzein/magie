@@ -1,5 +1,8 @@
 use crate::api::common::*;
 use crate::structs::Selection;
+
+use std::sync::Arc;
+
 use axum::extract::{
     ws::{Message, WebSocket},
     WebSocketUpgrade,
@@ -29,31 +32,36 @@ async fn chunks(socket: WebSocket, state: AppState) {
         }
     });
 
+    let state = Arc::new(state);
+    
     while let Some(Ok(Message::Text(message))) = stream.next().await {
-        if let Ok(selection) = serde_json::from_str::<Selection>(&message) {
-            log::<String>(
+        let state = Arc::clone(&state);
+        let sender = sender.clone();
+
+        tokio::spawn(async move {
+            let Ok(selection) = serde_json::from_str::<Selection>(&message) else {
+                #[cfg(feature = "log")]
+                log::<()>(
+                    StatusCode::BAD_REQUEST,
+                    &format!("Failed to parse selection: {}.", message),
+                    None,
+                )
+                .await;
+
+                return;
+            };
+
+            #[cfg(feature = "log")]
+            log::<()>(
                 StatusCode::ACCEPTED,
                 &format!("Received selection: {:?}.", selection),
                 None,
             )
             .await;
 
-            if let Ok((_, store_path, _)) = crate::db::get_paths(&selection.image_name, &state.pool).await {
-                let _ = crate::io::retrieve(&store_path.into(), selection.clone(), sender.clone())
-                    .await
-                    .map_err(|e| async {
-                        log(
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            &format!(
-                                "Failed to retrieve image with name: {}.",
-                                &selection.image_name
-                            ),
-                            Some(e),
-                        )
-                        .await;
-                    });
-            } else {
-                log::<String>(
+            let Ok((_, store_path, _)) = crate::db::get_paths(&selection.image_name, &state.pool).await else {
+                #[cfg(feature = "log")]
+                log::<()>(
                     StatusCode::BAD_REQUEST,
                     &format!(
                         "Couldn't find image with name: {} in the database.",
@@ -62,14 +70,28 @@ async fn chunks(socket: WebSocket, state: AppState) {
                     None,
                 )
                 .await;
-            }
-        } else {
-            log::<String>(
-                StatusCode::BAD_REQUEST,
-                &format!("Failed to parse selection: {}.", message),
-                None,
-            )
-            .await;
-        }
+
+                return;
+            };
+
+            let start = std::time::Instant::now();
+
+            let _ = crate::io::retrieve(&store_path.into(), selection.clone(), sender.clone())
+                .await
+                .map_err(|e| async {
+                    #[cfg(feature = "log")]
+                    log(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!(
+                            "Failed to retrieve image with name: {}.",
+                            &selection.image_name
+                        ),
+                        Some(e),
+                    )
+                    .await;
+                });
+
+            println!("Retrieving selection {:?} took: {:?}\n", selection, start.elapsed());
+        });
     }
 }

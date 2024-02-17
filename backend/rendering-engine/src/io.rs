@@ -11,7 +11,7 @@ use futures::future::join_all;
 use image::codecs::jpeg::JpegEncoder;
 use tokio::{fs, sync::mpsc::Sender, task::JoinHandle};
 use zarrs::{
-    array::{chunk_grid::ChunkGridTraits, Array, ArrayBuilder, DataType, FillValue},
+    array::{Array, ArrayBuilder, DataType, FillValue},
     array_subset::ArraySubset,
     group::GroupBuilder,
     storage::store::FilesystemStore,
@@ -145,6 +145,7 @@ pub async fn retrieve(
 
                 // Prepend chunk position and level
                 // (will be in this form [level, x, y, chunk...])
+                // ! FIX: x, y can be > u8.
                 jpeg_chunk.insert(0, y as u8);
                 jpeg_chunk.insert(0, x as u8);
                 jpeg_chunk.insert(0, selection_arc.level as u8);
@@ -159,7 +160,7 @@ pub async fn retrieve(
 
                 #[cfg(feature = "time")]
                 println!(
-                    "<{}:({}, {})>: Sending chunk took: {:?}\n",
+                    "<{}:({}, {})>: Sending chunk took: {:?}",
                     selection_arc.level,
                     x,
                     y,
@@ -235,8 +236,11 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
         // Write chunk data.
         for y in 0..rows {
             for x in 0..cols {
-                // Read chunk region and split into separate RGB channels.
-                let tile_split_channel: Vec<Vec<u8>> = image
+                #[cfg(feature = "time")]
+                let start = Instant::now();
+
+                // Rearrange chunk from [R,G,B,R,G,B] to [R,R,G,G,B,B].
+                let chunk: Vec<u8> = image
                     .read_region(&Region {
                         size: Size {
                             width: CHUNK_SIZE,
@@ -257,19 +261,39 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                             acc[2].push(chunk[2]);
                             acc
                         },
-                    );
+                    )
+                    .into_iter()
+                    .flatten()
+                    .collect();
 
-                let chunk_grid: &Box<dyn ChunkGridTraits> = array.chunk_grid();
-                for c in 0..RGB_CHANNELS {
-                    let chunk_indices: Vec<u64> = vec![0, c, 0, y.into(), x.into()];
+                #[cfg(feature = "time")]
+                println!(
+                    "Rearranging chunk <{}:{}, {}> took: {:?}",
+                    level,
+                    x,
+                    y,
+                    start.elapsed()
+                );
 
-                    if chunk_grid.subset(&chunk_indices, array.shape())?.is_some() {
-                        let _ = array.store_chunk_elements(
-                            &chunk_indices,
-                            tile_split_channel[c as usize].clone(),
-                        );
-                    }
-                }
+                #[cfg(feature = "time")]
+                let start = Instant::now();
+
+                array.par_store_chunks(
+                    &ArraySubset::new_with_start_end_inc(
+                        vec![0, 0, 0, y.into(), x.into()],
+                        vec![0, 2, 0, y.into(), x.into()],
+                    )?,
+                    chunk,
+                )?;
+
+                #[cfg(feature = "time")]
+                println!(
+                    "Storing chunk <{}:{}, {}> took: {:?}",
+                    level,
+                    x,
+                    y,
+                    start.elapsed()
+                );
             }
         }
 

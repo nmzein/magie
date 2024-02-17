@@ -1,7 +1,8 @@
 use crate::api::common::*;
 
 pub async fn generators(Extension(_state): Extension<AppState>) -> Response {
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::ACCEPTED,
         "Received request for annotation generators.",
         None,

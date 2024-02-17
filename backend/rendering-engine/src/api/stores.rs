@@ -2,21 +2,22 @@ use crate::api::common::*;
 
 // TODO: Retrieve cloud stores.
 pub async fn stores(Extension(state): Extension<AppState>) -> Response {
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::ACCEPTED,
         "Received request for list of images.",
         None,
     )
     .await;
 
-    if let Ok(images) = crate::db::list(&state.pool).await {
-        return Json(images).into_response();
-    }
+    let Ok(images) = crate::db::list(&state.pool).await else {
+        return log_respond::<()>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to retrieve list of images.",
+            None,
+        )
+        .await;
+    };
 
-    log_respond::<String>(
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "Failed to retrieve list of images.",
-        None,
-    )
-    .await
+    Json(images).into_response()
 }

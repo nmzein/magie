@@ -4,14 +4,14 @@ Install dependencies (Ubuntu):
 `npm install -g vite`  
 `rustup default stable`
 
-In nemato/frontend:  
-`npm install`  
-`npm run dev -- --open`
-
-In nemato/backend/rendering-engine:  
+In /backend/rendering-engine:  
 `cargo install sqlx-cli`  
 `cargo build`  
 `cargo sqlx database create`  
 `cargo sqlx migrate run`  
 `cargo sqlx prepare`  
 `cargo run`
+
+In /frontend:  
+`npm install`  
+`npm run dev -- --open`

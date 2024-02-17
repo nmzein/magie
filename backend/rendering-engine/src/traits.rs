@@ -1,13 +1,11 @@
+use crate::structs::Region;
+use anyhow::Result;
+use image::RgbImage;
+use std::path::PathBuf;
+
 pub trait Decoder: Sized {
-    fn open(image_path: &std::path::PathBuf) -> anyhow::Result<Self>;
-    fn get_level_count(&self) -> anyhow::Result<u32>;
-    fn get_level_dimensions(&self, level: u32) -> anyhow::Result<(u32, u32)>;
-    fn read_region(&self, region: &crate::structs::Region) -> anyhow::Result<image::RgbImage>;
+    fn open(image_path: &PathBuf) -> Result<Self>;
+    fn get_level_count(&self) -> Result<u32>;
+    fn get_level_dimensions(&self, level: u32) -> Result<(u32, u32)>;
+    fn read_region(&self, region: &Region) -> Result<RgbImage>;
 }
-
-// use crate::structs::AnnotationLayer;
-
-// pub trait AnnotationGenerator {
-//     fn name() -> String;
-//     fn read_annotations(image_path: &str) -> Vec<AnnotationLayer>;
-// }

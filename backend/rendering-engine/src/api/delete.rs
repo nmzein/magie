@@ -1,14 +1,18 @@
 use crate::api::common::*;
 
 pub async fn delete(Extension(state): Extension<AppState>, image_name: String) -> Response {
-    log::<String>(
+    #[cfg(feature = "log")]
+    log::<()>(
         StatusCode::ACCEPTED,
-        &format!("Received request to delete image with name: {}.", image_name),
+        &format!(
+            "Received request to delete image with name: {}.",
+            image_name
+        ),
         None,
     )
     .await;
 
-    // Delete directory from fs.
+    // Delete directory from the filesystem.
     let _ = crate::io::delete(&image_name).await.map_err(|e| async {
         return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -21,9 +25,9 @@ pub async fn delete(Extension(state): Extension<AppState>, image_name: String) -
         .await;
     });
 
-    // Remove entries from db.
+    // Remove entries from the state database.
     let _ = crate::db::remove(&image_name, &state.pool).await.map_err(|e| async {
-        log_respond(
+        return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Could not delete image with name {} from state database.",
@@ -34,6 +38,5 @@ pub async fn delete(Extension(state): Extension<AppState>, image_name: String) -
         .await;
     });
 
-    log_respond::<String>(StatusCode::OK, "Successfully deleted image entry.", None).await
+    log_respond::<()>(StatusCode::OK, "Successfully deleted image entry.", None).await
 }
-
