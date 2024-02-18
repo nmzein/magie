@@ -1,23 +1,24 @@
 use crate::api::common::*;
-use crate::structs::Selection;
-
-use std::sync::Arc;
-
+use crate::structs::{ImageState, Selection};
 use axum::extract::{
     ws::{Message, WebSocket},
     WebSocketUpgrade,
 };
 use futures_util::{SinkExt, StreamExt};
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 
-pub async fn connect(ws: WebSocketUpgrade, Extension(state): Extension<AppState>) -> impl IntoResponse {
+pub async fn websocket(
+    ws: WebSocketUpgrade,
+    Extension(AppState { current_image, .. }): Extension<AppState>,
+) -> impl IntoResponse {
     ws.on_upgrade(|socket| async {
-        chunks(socket, state).await;
+        tiles(socket, current_image).await;
     })
 }
 
 // TODO: Send error messages to frontend.
-async fn chunks(socket: WebSocket, state: AppState) {
+async fn tiles(socket: WebSocket, current_image: Arc<Mutex<Option<ImageState>>>) {
     let (mut sink, mut stream) = socket.split();
     // Credit: https://gist.github.com/hexcowboy/8ebcf13a5d3b681aa6c684ad51dd6e0c
     // Create an mpsc channel so we can send messages to the sink from multiple threads.
@@ -32,10 +33,18 @@ async fn chunks(socket: WebSocket, state: AppState) {
         }
     });
 
-    let state = Arc::new(state);
-    
     while let Some(Ok(Message::Text(message))) = stream.next().await {
-        let state = Arc::clone(&state);
+        let current_image = Arc::clone(&current_image);
+        let Some(current_image) = current_image.lock().unwrap().clone() else {
+            #[cfg(feature = "log")]
+            log::<()>(
+                StatusCode::BAD_REQUEST,
+                "Image metadata must first be fetched before requesting tiles.",
+                None,
+            );
+
+            continue;
+        };
         let sender = sender.clone();
 
         tokio::spawn(async move {
@@ -45,8 +54,7 @@ async fn chunks(socket: WebSocket, state: AppState) {
                     StatusCode::BAD_REQUEST,
                     &format!("Failed to parse selection: {}.", message),
                     None,
-                )
-                .await;
+                );
 
                 return;
             };
@@ -56,42 +64,25 @@ async fn chunks(socket: WebSocket, state: AppState) {
                 StatusCode::ACCEPTED,
                 &format!("Received selection: {:?}.", selection),
                 None,
-            )
-            .await;
+            );
 
-            let Ok((_, store_path, _)) = crate::db::get_paths(&selection.image_name, &state.pool).await else {
+            let _ = crate::io::retrieve(
+                &current_image.store_path.into(),
+                selection.clone(),
+                sender.clone(),
+            )
+            .await
+            .map_err(|e| async {
                 #[cfg(feature = "log")]
-                log::<()>(
-                    StatusCode::BAD_REQUEST,
+                log(
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(
-                        "Couldn't find image with name: {} in the database.",
+                        "Failed to retrieve image with name: {}.",
                         &selection.image_name
                     ),
-                    None,
-                )
-                .await;
-
-                return;
-            };
-
-            let start = std::time::Instant::now();
-
-            let _ = crate::io::retrieve(&store_path.into(), selection.clone(), sender.clone())
-                .await
-                .map_err(|e| async {
-                    #[cfg(feature = "log")]
-                    log(
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        &format!(
-                            "Failed to retrieve image with name: {}.",
-                            &selection.image_name
-                        ),
-                        Some(e),
-                    )
-                    .await;
-                });
-
-            println!("Retrieving selection {:?} took: {:?}\n", selection, start.elapsed());
+                    Some(e),
+                );
+            });
         });
     }
 }

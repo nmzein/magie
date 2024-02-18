@@ -1,6 +1,9 @@
 use crate::api::common::*;
 
-pub async fn annotations(Extension(state): Extension<AppState>, image_name: String) -> Response {
+pub async fn annotations(
+    Extension(AppState { pool, .. }): Extension<AppState>,
+    image_name: String,
+) -> Response {
     #[cfg(feature = "log")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -9,10 +12,9 @@ pub async fn annotations(Extension(state): Extension<AppState>, image_name: Stri
             image_name
         ),
         None,
-    )
-    .await;
+    );
 
-    let Ok((_, _, Some(annotations_path))) = crate::db::get_paths(&image_name, &state.pool).await else {
+    let Ok((_, _, Some(annotations_path))) = crate::db::get_paths(&image_name, &pool).await else {
         return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
@@ -20,8 +22,7 @@ pub async fn annotations(Extension(state): Extension<AppState>, image_name: Stri
                 image_name
             ),
             None,
-        )
-        .await;
+        );
     };
 
     let Ok(annotations) = crate::io::annotations(&annotations_path).await else {
@@ -29,12 +30,11 @@ pub async fn annotations(Extension(state): Extension<AppState>, image_name: Stri
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to retrieve annotations.",
             None,
-        )
-        .await;
+        );
     };
-    
+
     #[cfg(feature = "log")]
-    log::<()>(StatusCode::OK, "Successfully retrieved annotations.", None).await;
+    log::<()>(StatusCode::OK, "Successfully retrieved annotations.", None);
 
     Json(annotations).into_response()
 }

@@ -1,7 +1,6 @@
 use crate::generators::common::*;
-
+use sqlx::{sqlite::SqlitePool, FromRow};
 use std::collections::HashMap;
-use sqlx::{FromRow, sqlite::SqlitePool};
 
 #[derive(Debug, Clone, FromRow)]
 struct Node {
@@ -24,10 +23,10 @@ pub async fn read_annotations(annotations_path: &str) -> Result<Vec<AnnotationLa
         FROM annotations
         JOIN rtree_rowid ON annotations.id = rtree_rowid.rowid
         ORDER BY number;
-        "#
+        "#,
     )
-        .fetch_all(&pool)
-        .await?;
+    .fetch_all(&pool)
+    .await?;
 
     // Aggregate coordinates by node number
     let mut nodes_map: HashMap<u32, Annotation> = HashMap::new();
@@ -38,15 +37,13 @@ pub async fn read_annotations(annotations_path: &str) -> Result<Vec<AnnotationLa
 
     // Create a vector of annotations.
     let annotations: Vec<_> = nodes_map.values().cloned().collect();
-    
-    Ok(vec![
-        AnnotationLayer {
-            tag: "Example 1",
-            colours: Colours {
-                fill: "#e0747099",
-                stroke: "#a12c28",
-            },
-            annotations: annotations[0..10].to_vec(),
+
+    Ok(vec![AnnotationLayer {
+        tag: "Example 1",
+        colours: Colours {
+            fill: "#e0747099",
+            stroke: "#a12c28",
         },
-    ])
+        annotations: annotations[0..10].to_vec(),
+    }])
 }

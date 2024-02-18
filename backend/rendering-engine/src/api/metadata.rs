@@ -1,6 +1,13 @@
 use crate::api::common::*;
 
-pub async fn metadata(Extension(state): Extension<AppState>, image_name: String) -> Response {
+pub async fn metadata(
+    Extension(AppState {
+        pool,
+        current_image,
+        ..
+    }): Extension<AppState>,
+    image_name: String,
+) -> Response {
     #[cfg(feature = "log")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -9,10 +16,9 @@ pub async fn metadata(Extension(state): Extension<AppState>, image_name: String)
             image_name
         ),
         None,
-    )
-    .await;
+    );
 
-    let Ok(metadata) = crate::db::get_metadata(&image_name, &state.pool).await else {
+    let Ok(image) = crate::db::get(&image_name, &pool).await else {
         return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
@@ -20,9 +26,10 @@ pub async fn metadata(Extension(state): Extension<AppState>, image_name: String)
                 image_name
             ),
             None,
-        )
-        .await;
+        );
     };
 
-    Json(metadata).into_response()
+    *current_image.lock().unwrap() = Some(image.clone());
+
+    Json(image.metadata).into_response()
 }

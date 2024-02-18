@@ -1,14 +1,18 @@
-use std::{collections::HashMap, path::PathBuf};
-
 use anyhow::Result;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePool, FromRow};
+use sqlx::sqlite::SqlitePool;
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use tempfile::NamedTempFile;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: SqlitePool,
+    pub current_image: Arc<Mutex<Option<ImageState>>>,
     pub generators: HashMap<String, Generator>,
 }
 
@@ -18,12 +22,21 @@ pub struct Generator {
     pub read_annotations: fn(annotations_path: &str) -> Result<Vec<AnnotationLayer>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ImageState {
     pub image_path: PathBuf,
     pub store_path: PathBuf,
     pub annotations_path: Option<PathBuf>,
     pub metadata: Vec<Metadata>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct Metadata {
+    pub level: u32,
+    pub cols: u32,
+    pub rows: u32,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -32,6 +45,12 @@ pub struct Selection {
     pub level: u32,
     pub start: Point,
     pub end: Point,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Point {
+    pub x: usize,
+    pub y: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -45,21 +64,6 @@ pub struct AnnotationLayer<'a> {
 pub struct Colours<'a> {
     pub fill: &'a str,
     pub stroke: &'a str,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, FromRow)]
-pub struct Metadata {
-    pub level: u32,
-    pub cols: u32,
-    pub rows: u32,
-    pub width: u32,
-    pub height: u32,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Point {
-    pub x: usize,
-    pub y: usize,
 }
 
 pub struct Region {

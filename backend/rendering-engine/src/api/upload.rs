@@ -5,7 +5,7 @@ use std::path::Path;
 
 // TODO: Move functions to io.rs and split into smaller functions.
 pub async fn upload(
-    Extension(state): Extension<AppState>,
+    Extension(AppState { pool, .. }): Extension<AppState>,
     TypedMultipart(UploadAssetRequest {
         image,
         annotations,
@@ -13,19 +13,19 @@ pub async fn upload(
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
     // Get image name from metadata request body.
-    let Some((image_name, image_name_no_ext)) = image.metadata.file_name
+    let Some((image_name, image_name_no_ext)) = image
+        .metadata
+        .file_name
         .as_ref()
-        .and_then(|name| {
-            Some((name, Path::new(name).file_stem()?.to_str()?))
-        })
+        .and_then(|name| Some((name, Path::new(name).file_stem()?.to_str()?)))
     else {
         return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to retrieve image name or convert to string.",
             None,
-        ).await;
+        );
     };
-    
+
     // Log successful parsing of image file name.
     #[cfg(feature = "log")]
     log::<()>(
@@ -35,11 +35,10 @@ pub async fn upload(
             image_name
         ),
         None,
-    )
-    .await;
+    );
 
     // Check if image already exists in database.
-    if crate::db::contains(&image_name_no_ext, &state.pool).await {
+    if crate::db::contains(&image_name_no_ext, &pool).await {
         return log_respond::<()>(
             StatusCode::BAD_REQUEST,
             &format!(
@@ -47,8 +46,7 @@ pub async fn upload(
                 image_name_no_ext
             ),
             None,
-        )
-        .await;
+        );
     }
 
     // Create a directory in store for the image.
@@ -60,8 +58,7 @@ pub async fn upload(
                 image_name_no_ext
             ),
             None,
-        )
-        .await;
+        );
     };
 
     // Save image to disk.
@@ -71,8 +68,7 @@ pub async fn upload(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("Failed to save image with name {} to disk.", image_name),
             Some(e),
-        )
-        .await;
+        );
     });
 
     #[cfg(feature = "log")]
@@ -80,8 +76,7 @@ pub async fn upload(
         StatusCode::CREATED,
         "Successfully saved image to disk.",
         None,
-    )
-    .await;
+    );
 
     // TODO: Check file extension within function and choose decoder based on this.
     // Convert image to ZARR.
@@ -91,8 +86,7 @@ pub async fn upload(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to convert the image to zarr.",
             None,
-        )
-        .await;
+        );
     };
 
     #[cfg(feature = "log")]
@@ -100,9 +94,9 @@ pub async fn upload(
         StatusCode::CREATED,
         "Successfully converted image to zarr.",
         None,
-    ).await;
+    );
 
-    let mut annotations_path = directory_path;
+    let mut annotations_path = None;
     if let Some(annotations) = annotations {
         // Get annotations file name from metadata request body.
         let Some(annotations_file_name) = annotations.metadata.file_name else {
@@ -110,21 +104,27 @@ pub async fn upload(
                 StatusCode::BAD_REQUEST,
                 "Failed to retrieve annotations file name from metadata request body.",
                 None,
-            ).await;
+            );
         };
 
         // TODO: Check that file is in correct format given annotation generator.
-    
+
         // Save annotations to disk.
-        annotations_path = annotations_path.join(&annotations_file_name);
-        let _ = annotations.contents.persist(&annotations_path).map_err(|e| async {
-            return log_respond(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to save annotations with name {} to disk.", annotations_file_name),
-                Some(e),
-            )
-            .await;
-        });
+        let local_annotations_path = directory_path.join(&annotations_file_name);
+        let _ = annotations
+            .contents
+            .persist(&local_annotations_path)
+            .map_err(|e| async {
+                return log_respond(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!(
+                        "Failed to save annotations with name {} to disk.",
+                        annotations_file_name
+                    ),
+                    Some(e),
+                );
+            });
+        annotations_path = Some(local_annotations_path);
 
         // Log successful saving of annotations to disk.
         #[cfg(feature = "log")]
@@ -132,8 +132,7 @@ pub async fn upload(
             StatusCode::CREATED,
             "Successfully saved annotations to disk.",
             None,
-        )
-        .await;
+        );
     } else {
         // TODO: Generate annotations.
         #[cfg(feature = "log")]
@@ -141,8 +140,7 @@ pub async fn upload(
             StatusCode::CREATED,
             "No annotations provided. TODO: Generate annotations.",
             None,
-        )
-        .await;
+        );
     }
 
     // Insert into database.
@@ -151,17 +149,18 @@ pub async fn upload(
         &ImageState {
             image_path,
             store_path,
-            annotations_path: Some(annotations_path),
+            annotations_path,
             metadata,
         },
-        &state.pool,
-    ).await.map_err(|e| async {
+        &pool,
+    )
+    .await
+    .map_err(|e| async {
         return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to save image metadata to database.",
             Some(e),
-        )
-        .await;
+        );
     });
 
     log_respond::<()>(
@@ -169,5 +168,4 @@ pub async fn upload(
         "Successfully saved image metadata to database.",
         None,
     )
-    .await
 }

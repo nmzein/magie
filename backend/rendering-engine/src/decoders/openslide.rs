@@ -1,5 +1,4 @@
 use crate::decoders::common::*;
-
 use openslide_rs::{traits::Slide, OpenSlide};
 
 impl Decoder for OpenSlide {

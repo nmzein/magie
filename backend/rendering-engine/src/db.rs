@@ -1,9 +1,7 @@
 use crate::structs::{ImageState, Metadata};
-
-use std::{fmt::Debug, path::PathBuf};
-
 use anyhow::Result;
 use sqlx::sqlite::SqlitePool;
+use std::{fmt::Debug, path::PathBuf};
 
 pub async fn connect(database_url: &str) -> Result<SqlitePool> {
     let pool = SqlitePool::connect(database_url).await?;
@@ -18,29 +16,37 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<String>> {
             SELECT name FROM images;
         "#
     )
-        .fetch_all(pool)
-        .await?
-        .into_iter()
-        .map(|row| Ok(row.name.unwrap_or_default()))
-        .collect();
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(|row| Ok(row.name.unwrap_or_default()))
+    .collect();
 
     #[cfg(feature = "log")]
-    log("LIST", Some(&list)).await;
+    log("LIST", Some(&list));
 
     list
 }
 
 // TODO: Get transactions working.
 pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> Result<()> {
-    let image_path = image_state.image_path.to_str()
+    let image_path = image_state
+        .image_path
+        .to_str()
         .ok_or_else(|| anyhow::anyhow!("Could not convert image path to string."))?;
 
-    let store_path = image_state.store_path.to_str()
+    let store_path = image_state
+        .store_path
+        .to_str()
         .ok_or_else(|| anyhow::anyhow!("Could not convert store path to string."))?;
 
-    let annotations_path = image_state.annotations_path
+    let annotations_path = image_state
+        .annotations_path
         .as_ref()
-        .map(|path| path.to_str().ok_or_else(|| anyhow::anyhow!("Could not convert annotations path to string.")))
+        .map(|path| {
+            path.to_str()
+                .ok_or_else(|| anyhow::anyhow!("Could not convert annotations path to string."))
+        })
         .transpose()?;
 
     sqlx::query!(
@@ -53,11 +59,11 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
         store_path,
         annotations_path
     )
-        .execute(pool)
-        .await?;
+    .execute(pool)
+    .await?;
 
     #[cfg(feature = "log")]
-    log::<()>(&format!("INSERT <Image:{}>", name), None).await;
+    log::<()>(&format!("INSERT <Image:{}>", name), None);
 
     for metadata in &image_state.metadata {
         sqlx::query!(
@@ -72,11 +78,14 @@ pub async fn insert(name: &str, image_state: &ImageState, pool: &SqlitePool) -> 
             metadata.width,
             metadata.height
         )
-            .execute(pool)
-            .await?;
+        .execute(pool)
+        .await?;
 
         #[cfg(feature = "log")]
-        log::<()>(&format!("INSERT <Metadata:{}:{}>", name, metadata.level), None).await;
+        log::<()>(
+            &format!("INSERT <Metadata:{}:{}>", name, metadata.level),
+            None,
+        );
     }
 
     Ok(())
@@ -89,12 +98,12 @@ pub async fn contains(name: &str, pool: &SqlitePool) -> bool {
         "#,
         name
     )
-        .fetch_one(pool)
-        .await
-        .is_ok();
+    .fetch_one(pool)
+    .await
+    .is_ok();
 
     #[cfg(feature = "log")]
-    log(&format!("CONTAINS <Image: {}>", name), Some(&contains)).await;
+    log(&format!("CONTAINS <Image: {}>", name), Some(&contains));
 
     contains
 }
@@ -108,17 +117,13 @@ pub async fn get_paths(name: &str, pool: &SqlitePool) -> Result<(String, String,
         "#,
         name
     )
-        .fetch_one(pool)
-        .await?;
+    .fetch_one(pool)
+    .await?;
 
     #[cfg(feature = "log")]
-    log(&format!("GET <Paths: {}>", name), Some(&paths)).await;
+    log(&format!("GET <Paths: {}>", name), Some(&paths));
 
-    Ok((
-        paths.image_path,
-        paths.store_path,
-        paths.annotations_path,
-    ))
+    Ok((paths.image_path, paths.store_path, paths.annotations_path))
 }
 
 pub async fn get_metadata(name: &str, pool: &SqlitePool) -> Result<Vec<Metadata>> {
@@ -135,16 +140,16 @@ pub async fn get_metadata(name: &str, pool: &SqlitePool) -> Result<Vec<Metadata>
         "#,
         name
     )
-        .fetch_all(pool)
-        .await?;
+    .fetch_all(pool)
+    .await?;
 
     #[cfg(feature = "log")]
-    log(&format!("GET <Metadata: {}>", name), Some(&metadata)).await;
+    log(&format!("GET <Metadata: {}>", name), Some(&metadata));
 
     Ok(metadata)
 }
 
-pub async fn get(name: &str, pool: &SqlitePool) -> Result<Option<ImageState>> {
+pub async fn get(name: &str, pool: &SqlitePool) -> Result<ImageState> {
     let paths = get_paths(name, pool).await?;
     let metadata = get_metadata(name, pool).await?;
 
@@ -155,7 +160,7 @@ pub async fn get(name: &str, pool: &SqlitePool) -> Result<Option<ImageState>> {
         metadata,
     };
 
-    Ok(Some(state))
+    Ok(state)
 }
 
 pub async fn remove(name: &str, pool: &SqlitePool) -> Result<()> {
@@ -165,19 +170,20 @@ pub async fn remove(name: &str, pool: &SqlitePool) -> Result<()> {
         "#,
         name
     )
-        .execute(pool)
-        .await?;
+    .execute(pool)
+    .await?;
 
     #[cfg(feature = "log")]
-    log::<()>(&format!("DELETE <Image: {}>", name), None).await;
+    log::<()>(&format!("DELETE <Image: {}>", name), None);
 
     Ok(())
 }
 
-async fn log<T: Debug>(operation: &str, result: Option<&T>) {
+#[cfg(feature = "log")]
+fn log<T: Debug>(operation: &str, result: Option<&T>) {
     print!("Database <{}>", operation);
     if let Some(result) = result {
-        println!(": {:?}", result);
+        print!(": {:?}", result);
     }
-    println!();
+    println!("\n");
 }
