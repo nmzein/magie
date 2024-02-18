@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { image, metadata, annotations } from '$lib/stores';
+	import { metadata, annotations } from '$lib/stores';
 	import AnnotationCanvas from '$lib/components/view/AnnotationCanvas.svelte';
 	import ImageCanvas from '$lib/components/view/ImageCanvas.svelte';
 
 	let isDragging = false;
-	let mouseStartX: number;
-	let mouseStartY: number;
+	let panStartX: number;
+	let panStartY: number;
 	let offsetX = 0;
 	let offsetY = 0;
 	let scale = 1;
@@ -16,14 +16,16 @@
 
 	onMount(() => {
 		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('mouseup', handleMouseUp);
+		document.addEventListener('touchmove', handleTouchMove);
+		document.addEventListener('mouseup', handlePanEnd);
+		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
-
-		container = document.getElementById('image-grid-layer-0')?.getBoundingClientRect();
 
 		return () => {
 			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', handleMouseUp);
+			document.removeEventListener('touchmove', handleTouchMove);
+			document.removeEventListener('mouseup', handlePanEnd);
+			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('wheel', handleWheel);
 		};
 	});
@@ -32,15 +34,22 @@
 		event.preventDefault();
 
 		isDragging = true;
-		mouseStartX = event.clientX;
-		mouseStartY = event.clientY;
+		panStartX = event.clientX;
+		panStartY = event.clientY;
 	}
 
-	function handleMouseUp() {
-		isDragging = false;
+	function handleTouchStart(event: TouchEvent) {
+		event.preventDefault();
+
+		isDragging = true;
+		const touch = event.touches[0];
+		panStartX = touch.clientX;
+		panStartY = touch.clientY;
 	}
 
 	function handleMouseMove(event: MouseEvent) {
+		event.preventDefault();
+
 		if (!isDragging) {
 			const imageWidth = $metadata?.[0].width;
 			const imageHeight = $metadata?.[0].height;
@@ -51,25 +60,44 @@
 			const containerWidth = container?.width;
 			const containerHeight = container?.height;
 			if (!containerWidth || !containerHeight) {
+				container = document.getElementById('image-grid-layer-0')?.getBoundingClientRect();
 				return;
 			}
 
-			x = Math.floor((event.clientX - offsetX) * (imageWidth / containerWidth));
-			y = Math.floor((event.clientY - offsetY) * (imageHeight / containerHeight));
+			x = Math.floor((event.clientX - offsetX) * (imageWidth / (containerWidth * scale)));
+			y = Math.floor((event.clientY - offsetY) * (imageHeight / (containerHeight * scale)));
 
 			return;
 		}
 
-		event.preventDefault();
+		const deltaX = event.clientX - panStartX;
+		const deltaY = event.clientY - panStartY;
 
-		const delta_x = event.clientX - mouseStartX;
-		const delta_y = event.clientY - mouseStartY;
+		offsetX += deltaX;
+		offsetY += deltaY;
 
-		offsetX += delta_x;
-		offsetY += delta_y;
+		panStartX = event.clientX;
+		panStartY = event.clientY;
+	}
 
-		mouseStartX = event.clientX;
-		mouseStartY = event.clientY;
+	function handleTouchMove(event: TouchEvent) {
+		if (!isDragging) {
+			return;
+		}
+		const touch = event.touches[0];
+
+		const deltaX = touch.clientX - panStartX;
+		const deltaY = touch.clientY - panStartY;
+
+		offsetX += deltaX;
+		offsetY += deltaY;
+
+		panStartX = touch.clientX;
+		panStartY = touch.clientY;
+	}
+
+	function handlePanEnd() {
+		isDragging = false;
 	}
 
 	function handleWheel(event: WheelEvent) {
@@ -95,6 +123,7 @@
 <div
 	id="view"
 	on:mousedown={handleMouseDown}
+	on:touchstart={handleTouchStart}
 	style="height: 100vh; cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
@@ -103,16 +132,18 @@
 			? ''
 			: 'transition: transform 0.2s;'}"
 	>
-		{#if $metadata && $image && $image.length > 0}
+		{#if $metadata}
 			{#if $annotations}
 				<AnnotationCanvas />
 			{/if}
 			<ImageCanvas />
 		{/if}
 	</div>
-	<div id="coordinates-panel" class="panel">
-		<p><b>x:</b> {x}, <b>y:</b> {y}</p>
-	</div>
+	{#if $metadata}
+		<div id="coordinates-panel" class="panel">
+			<p><b>x:</b> {x}, <b>y:</b> {y}</p>
+		</div>
+	{/if}
 </div>
 
 <style lang="scss">
@@ -130,6 +161,13 @@
 
 		p {
 			margin: 0;
+		}
+	}
+
+	@media (hover: none) {
+		#coordinates-panel {
+			// Hide the element on touch-capable devices.
+			display: none;
 		}
 	}
 </style>

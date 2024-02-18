@@ -5,7 +5,7 @@ export type Selection = {
 	end: Point;
 };
 
-export type Point = {
+type Point = {
 	x: number;
 	y: number;
 };

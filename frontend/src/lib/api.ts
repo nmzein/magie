@@ -1,19 +1,31 @@
 import {
+	image_name,
 	metadata,
 	annotations,
 	image_list,
 	annotation_generator_list,
-	websocket
+	websocket,
+	InitImageLayers
 } from '$lib/stores';
+import {
+	PUBLIC_HTTP_SCHEME,
+	PUBLIC_DOMAIN,
+	PUBLIC_BACKEND_PORT,
+	PUBLIC_METADATA_SUBDIR,
+	PUBLIC_ANNOTATIONS_SUBDIR,
+	PUBLIC_UPLOAD_SUBDIR,
+	PUBLIC_STORES_SUBDIR,
+	PUBLIC_GENERATORS_SUBDIR
+} from '$env/static/public';
 
 import type { AnnotationLayer, Metadata, Selection } from './types';
 
-// TODO: Move to .env file.
-const METADATA_URL = 'http://127.0.0.1:3000/api/metadata';
-const ANNOTATIONS_URL = 'http://127.0.0.1:3000/api/annotations';
-const UPLOAD_URL = 'http://127.0.0.1:3000/api/upload';
-const IMAGE_LIST_URL = 'http://127.0.0.1:3000/api/image-list';
-const ANNOTATION_GENERATORS_URL = 'http://127.0.0.1:3000/api/annotation-generators';
+const URL = PUBLIC_HTTP_SCHEME + '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
+const METADATA_URL = URL + PUBLIC_METADATA_SUBDIR;
+const ANNOTATIONS_URL = URL + PUBLIC_ANNOTATIONS_SUBDIR;
+const UPLOAD_URL = URL + PUBLIC_UPLOAD_SUBDIR;
+const STORES_URL = URL + PUBLIC_STORES_SUBDIR;
+const GENERATORS_URL = URL + PUBLIC_GENERATORS_SUBDIR;
 
 let socket: WebSocket;
 
@@ -21,6 +33,12 @@ export async function ConnectWebSocket() {
 	websocket.subscribe((value) => {
 		socket = value as WebSocket;
 	});
+}
+
+export async function LoadImage(imageName: string) {
+	image_name.set(imageName);
+	GetMetadata(imageName);
+	GetAnnotations(imageName);
 }
 
 export async function GetImageSelection(selection: Selection) {
@@ -47,7 +65,7 @@ export async function SendUploadAssets(
 		});
 
 		if (response.ok) {
-			GetImageList();
+			GetStores();
 		} else {
 			console.error('Response Error <Upload>:', response.status, response.statusText);
 		}
@@ -56,9 +74,9 @@ export async function SendUploadAssets(
 	}
 }
 
-export async function GetAnnotationGenerators() {
+export async function GetGenerators() {
 	try {
-		const response = await fetch(ANNOTATION_GENERATORS_URL, { method: 'GET' });
+		const response = await fetch(GENERATORS_URL, { method: 'GET' });
 
 		if (response.ok) {
 			try {
@@ -79,9 +97,9 @@ export async function GetAnnotationGenerators() {
 	}
 }
 
-export async function GetImageList() {
+export async function GetStores() {
 	try {
-		const response = await fetch(IMAGE_LIST_URL, { method: 'GET' });
+		const response = await fetch(STORES_URL, { method: 'GET' });
 
 		if (response.ok) {
 			try {
@@ -112,6 +130,7 @@ export async function GetMetadata(imageName: string) {
 			} catch (error) {
 				console.error('Parse Error <Metadata: ' + imageName + '>:', error);
 			}
+			InitImageLayers();
 		} else {
 			console.error(
 				'Response Error <Metadata: ' + imageName + '>:',

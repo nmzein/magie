@@ -1,12 +1,20 @@
 import { writable, readable } from 'svelte/store';
 import type { Metadata, AnnotationLayer, ImageLayer } from '$lib/types';
+import {
+	PUBLIC_WS_SCHEME,
+	PUBLIC_DOMAIN,
+	PUBLIC_BACKEND_PORT,
+	PUBLIC_WEBSOCKET_SUBDIR
+} from '$env/static/public';
 
 // TODO: Investigate leakage threat of out of component stores.
 
-// TODO: Move to .env file.
-const WEBSOCKET_URL = 'ws://127.0.0.1:3000/api/connect';
+const WEBSOCKET_URL =
+	PUBLIC_WS_SCHEME + '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT + PUBLIC_WEBSOCKET_SUBDIR;
 
+export const image_name = writable<string | undefined>();
 export const image = writable<ImageLayer[]>([[]]);
+
 export const metadata = writable<Metadata[] | undefined>();
 export const annotations = writable<AnnotationLayer[] | undefined>();
 
@@ -16,15 +24,26 @@ export const annotations_upload = writable<File | undefined>();
 export const image_list = writable<string[] | undefined>();
 export const annotation_generator_list = writable<string[] | undefined>();
 
+let local_metadata: Metadata[] | undefined;
+metadata.subscribe((value) => (local_metadata = value));
+
+export function InitImageLayers() {
+	let layers = new Array(local_metadata?.length).fill([]);
+	for (let level = 0; level < layers.length; level++) {
+		layers[level] = new Array(local_metadata?.[level].rows)
+			.fill(0)
+			.map(() => new Array(local_metadata?.[level].cols).fill(new Image()));
+	}
+
+	image.set(layers);
+}
+
 export const websocket = readable({}, (set) => {
 	const socket = new WebSocket(WEBSOCKET_URL);
 
-	let local_metadata: Metadata[] | undefined;
-	metadata.subscribe((value) => (local_metadata = value));
-
 	socket.addEventListener('message', (event: MessageEvent) => {
 		processTile(event).catch((error) => {
-			console.error('Error processing tile:', error);
+			console.error('Tile Processing Error:', error);
 		});
 	});
 
@@ -42,18 +61,6 @@ export const websocket = readable({}, (set) => {
 		}
 
 		image.update((layers) => {
-			// Initialize with correct number of rows if not already done.
-			if (layers.length !== local_metadata?.length) {
-				layers = new Array(local_metadata?.length).fill([]);
-			}
-
-			// Initialize with correct number of cols for specific level.
-			if (layers[level].length === 0) {
-				layers[level] = new Array(local_metadata?.[level].rows)
-					.fill(0)
-					.map(() => new Array(local_metadata?.[level].cols).fill(new Image()));
-			}
-
 			const newTile = new Image();
 
 			// Remove position and level values from start of array.

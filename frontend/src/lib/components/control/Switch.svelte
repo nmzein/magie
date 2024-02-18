@@ -1,6 +1,8 @@
 <script lang="ts">
 	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
 	export let checked: boolean;
+
+	// TODO: Transition delays disappearance when control panel minimised.
 </script>
 
 <label class="switch">
@@ -31,7 +33,6 @@
 		right: 0;
 		bottom: 0;
 		background-color: rgba(255, 255, 255, 0.4);
-		-webkit-transition: 0.4s;
 		transition: 0.4s;
 
 		&:before {
@@ -42,7 +43,6 @@
 			left: 2px;
 			bottom: 2px;
 			background-color: white;
-			-webkit-transition: 0.4s;
 			transition: 0.4s;
 		}
 	}
@@ -56,16 +56,14 @@
 	}
 
 	input:checked + .slider:before {
-		-webkit-transform: translateX(13px);
-		-ms-transform: translateX(13px);
 		transform: translateX(13px);
 	}
 
 	.slider.round {
 		border-radius: 34px;
-	}
 
-	.slider.round:before {
-		border-radius: 50%;
+		&:before {
+			border-radius: 50%;
+		}
 	}
 </style>

@@ -2,7 +2,7 @@
 	import { SendUploadAssets } from '$lib/api';
 	import { image_upload, annotations_upload, annotation_generator_list } from '$lib/stores';
 	import Switch from '$lib/components/control/Switch.svelte';
-	import UploadAsset from '$lib/components/view/UploadAsset.svelte';
+	import UploadAsset from '$lib/components/control/UploadAsset.svelte';
 
 	// TODO: Cache settings choices locally.
 	let selectedAnnotationGenerator = $annotation_generator_list?.[0];
@@ -39,7 +39,6 @@
 				SendUploadAssets($image_upload, undefined, selectedAnnotationGenerator);
 				resetImageField();
 			} else if (annotations_upload) {
-				console.log('got here');
 				SendUploadAssets($image_upload, $annotations_upload, selectedAnnotationGenerator);
 				resetImageField();
 				resetAnnotationField();
