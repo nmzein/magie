@@ -4,6 +4,7 @@
 	import AnnotationCanvas from '$lib/components/view/AnnotationCanvas.svelte';
 	import ImageCanvas from '$lib/components/view/ImageCanvas.svelte';
 
+	$: currentLevel = 1;
 	let isDragging = false;
 	let panStartX: number;
 	let panStartY: number;
@@ -116,6 +117,51 @@
 		offsetY += (event.clientY - offsetY) * ratio;
 
 		scale = newScale;
+
+		if (!$metadata) {
+			return;
+		}
+
+		// If at highest detail level and zooming in,
+		// or if at lowest detail level and zooming out, do nothing.
+		// if (
+		// 	(currentLevel === 0 && event.deltaY < 0) ||
+		// 	(currentLevel === $metadata.length - 1 && event.deltaY > 0)
+		// ) {
+		// 	let s = event.deltaY < 0 ? 'in' : 'out';
+		// 	console.log('currentLevel', currentLevel, 'and zooming', s);
+		// 	return;
+		// }
+
+		const currentLayer = document
+			.getElementById('image-grid-layer-' + currentLevel)
+			?.getBoundingClientRect();
+
+		if (!currentLayer || !currentLayer.width) {
+			return;
+		}
+
+		const viewportWidth = window.innerWidth;
+		if (!currentLayer || !currentLayer.width) {
+			return;
+		}
+		// console.log('currentLayer', currentLayer);
+		// console.log('viewport width', viewportWidth);
+
+		// If current layer width is larger than viewport width, switch to next level.
+		if (currentLayer.width / viewportWidth > 1) {
+			if (currentLevel == 0) {
+				return;
+			}
+			currentLevel -= 1;
+			console.log('switching to next level: ', currentLevel);
+		} else if (currentLayer.width / viewportWidth < 0.9) {
+			if (currentLevel == $metadata.length - 1) {
+				return;
+			}
+			currentLevel += 1;
+			console.log('switching to prev level: ', currentLevel);
+		}
 	}
 </script>
 
@@ -136,7 +182,7 @@
 			{#if $annotations}
 				<AnnotationCanvas />
 			{/if}
-			<ImageCanvas />
+			<ImageCanvas {currentLevel} />
 		{/if}
 	</div>
 	{#if $metadata}
