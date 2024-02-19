@@ -14,15 +14,25 @@ pub async fn annotations(
         None,
     );
 
-    let Ok((_, _, Some(annotations_path))) = crate::db::get_paths(&image_name, &pool).await else {
-        return log_respond::<()>(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "Image with name {} does not exist in the database or doesn't have annotations.",
-                image_name
-            ),
-            None,
-        );
+    let annotations_path = match crate::db::get_paths(&image_name, &pool).await {
+        Ok((_, _, Some(annotations_path))) => annotations_path,
+        Ok((_, _, None)) => {
+            return log_respond::<()>(
+                StatusCode::NOT_FOUND,
+                &format!("Image with name {} does not have annotations.", image_name),
+                None,
+            );
+        }
+        Err(e) => {
+            return log_respond(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!(
+                    "Failed to retrieve annotations path for image with name {}.",
+                    image_name,
+                ),
+                Some(e),
+            );
+        }
     };
 
     let Ok(annotations) = crate::io::annotations(&annotations_path).await else {

@@ -2,18 +2,21 @@
 
 ## About
 
-Nemato is a gigapixel image & annotations rendering engine with a web interface for usage in many professional fields for the analysis of extremely large images. 
+Nemato is a gigapixel image & annotations rendering engine with a web interface for usage in many professional fields for the analysis of extremely large images.
 
 ## 💽 Installation
 
 Install the correct dependencies for your operating system.
 
 ### Ubuntu
+
 ```
 sudo apt install libclang-dev libssl-dev libopenslide-dev pkg-config npm
 snap install rustup --classic
 ```
+
 ---
+
 Install other dependencies.
 
 ```
@@ -33,7 +36,7 @@ cargo sqlx prepare
 cargo run --release
 ```
 
-Then navigate to `frontend/` and run:
+Then, in another terminal, navigate to `frontend/` and run:
 
 ```
 npm install
@@ -52,11 +55,9 @@ cargo sqlx prepare
 cargo run
 ```
 
-Then navigate to `frontend/` and run:
+Then, in another terminal, navigate to `frontend/` and run:
 
 ```
 npm install
 npm run dev -- --open
 ```
-
-

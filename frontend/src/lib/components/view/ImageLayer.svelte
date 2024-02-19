@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GetImageSelection } from '$lib/api';
+	import { GetTile } from '$lib/api';
 	import { image_name, metadata } from '$lib/stores';
 	import type { ImageLayer } from '$lib/types';
 	import { onMount } from 'svelte';
@@ -8,11 +8,11 @@
 	export let layer: ImageLayer;
 	export let display: boolean = false;
 
-	let options = {
+	const options = {
 		rootMargin: '150px'
 	};
 
-	let callback = (entries: IntersectionObserverEntry[], observer: IntersectionObserver) => {
+	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach((entry) => {
 			if (!$image_name) {
 				return;
@@ -29,25 +29,23 @@
 				let x = parseInt(xString);
 				let y = parseInt(yString);
 
-				GetImageSelection({
+				const ready = GetTile({
 					image_name: $image_name,
 					level,
-					start: {
-						x,
-						y
-					},
-					end: {
-						x: x + 1,
-						y: y + 1
-					}
+					x,
+					y
 				});
+
+				if (!ready) {
+					return;
+				}
 
 				observer.unobserve(entry.target);
 				(entry.target as HTMLElement).dataset.level = '-1';
 				console.log('Unobserving', level);
 			}
 		});
-	};
+	}
 
 	let observer = new IntersectionObserver(callback, options);
 

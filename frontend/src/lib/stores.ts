@@ -55,11 +55,6 @@ export const websocket = readable({}, (set) => {
 		let x = arr[1];
 		let y = arr[2];
 
-		// Wait for metadata to be set before updating image array.
-		while (local_metadata === undefined) {
-			await new Promise((resolve) => setTimeout(resolve, 100));
-		}
-
 		image.update((layers) => {
 			const newTile = new Image();
 

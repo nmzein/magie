@@ -84,5 +84,7 @@ async fn main() {
         .layer(DefaultBodyLimit::disable())
         .layer(Extension(state));
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .await
+        .expect("Could not serve the backend.");
 }

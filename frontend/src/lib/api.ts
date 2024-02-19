@@ -18,7 +18,7 @@ import {
 	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
 
-import type { AnnotationLayer, Metadata, Selection } from './types';
+import type { AnnotationLayer, Metadata, TileRequest } from './types';
 
 const URL = PUBLIC_HTTP_SCHEME + '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const METADATA_URL = URL + PUBLIC_METADATA_SUBDIR;
@@ -41,8 +41,12 @@ export async function LoadImage(imageName: string) {
 	GetAnnotations(imageName);
 }
 
-export async function GetImageSelection(selection: Selection) {
-	socket.send(JSON.stringify(selection));
+export async function GetTile(tile: TileRequest): Promise<boolean> {
+	if (!metadata) {
+		return false;
+	}
+	socket.send(JSON.stringify(tile));
+	return true;
 }
 
 export async function SendUploadAssets(

@@ -1,11 +1,6 @@
-export type Selection = {
+export type TileRequest = {
 	image_name: string;
 	level: number;
-	start: Point;
-	end: Point;
-};
-
-type Point = {
 	x: number;
 	y: number;
 };

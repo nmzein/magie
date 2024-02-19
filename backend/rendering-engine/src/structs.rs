@@ -40,17 +40,11 @@ pub struct Metadata {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Selection {
+pub struct TileRequest {
     pub image_name: String,
     pub level: u32,
-    pub start: Point,
-    pub end: Point,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct Point {
-    pub x: usize,
-    pub y: usize,
+    pub x: u32,
+    pub y: u32,
 }
 
 #[derive(Debug, Serialize)]

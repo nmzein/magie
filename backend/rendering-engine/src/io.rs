@@ -1,16 +1,11 @@
-use crate::structs::{Address, AnnotationLayer, Metadata, Region, Selection, Size};
+use crate::structs::{Address, AnnotationLayer, Metadata, Region, Size, TileRequest};
 use crate::traits::Decoder;
 use anyhow::Result;
-use axum::extract::ws::Message;
-use futures::future::join_all;
 use image::codecs::jpeg::JpegEncoder;
 #[cfg(feature = "time")]
 use std::time::Instant;
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-use tokio::{fs, sync::mpsc::Sender, task::JoinHandle};
+use std::{path::PathBuf, sync::Arc};
+use tokio::fs;
 use zarrs::{
     array::{Array, ArrayBuilder, DataType, FillValue},
     array_subset::ArraySubset,
@@ -59,129 +54,78 @@ pub async fn annotations(annotations_path: &str) -> Result<Vec<AnnotationLayer>>
     Ok(crate::generators::tiatoolbox::read_annotations(annotations_path).await?)
 }
 
-// TODO: Selection bound checks.
-pub async fn retrieve(
-    store_path: &PathBuf,
-    selection: Selection,
-    sender: Sender<Message>,
-) -> Result<()> {
+pub async fn retrieve(store_path: &PathBuf, tile_request: TileRequest) -> Result<Vec<u8>> {
     // TODO: Store these in AppState to save time.
     let store = Arc::new(FilesystemStore::new(store_path)?);
-    let array = Arc::new(Mutex::new(
-        (Array::new(store, &format!("{GROUP_PATH}/{}", selection.level)))?,
-    ));
-    let selection_arc = Arc::new(selection.clone());
-    let mut tasks: Vec<JoinHandle<Result<()>>> = vec![];
+    let array = Arc::new(Array::new(
+        store,
+        &format!("{GROUP_PATH}/{}", tile_request.level),
+    )?);
 
-    for y in selection.start.y..selection.end.y {
-        for x in selection.start.x..selection.end.x {
-            let array = Arc::clone(&array);
-            let selection_arc = Arc::clone(&selection_arc);
-            let sender = sender.clone();
+    #[cfg(feature = "time")]
+    let start = Instant::now();
 
-            tasks.push(tokio::spawn(async move {
-                #[cfg(feature = "time")]
-                let start = Instant::now();
+    // Retrieve tile for each RGB channel.
+    let channels = array.par_retrieve_chunks(&ArraySubset::new_with_start_end_inc(
+        vec![0, 0, 0, tile_request.y.into(), tile_request.x.into()],
+        vec![0, 2, 0, tile_request.y.into(), tile_request.x.into()],
+    )?)?;
 
-                // Retrieve tile for each RGB channel.
-                let channels = array.lock().unwrap().par_retrieve_chunks(
-                    &ArraySubset::new_with_start_end_inc(
-                        vec![0, 0, 0, y as u64, x as u64],
-                        vec![0, 2, 0, y as u64, x as u64],
-                    )?,
-                )?;
+    #[cfg(feature = "time")]
+    println!(
+        "<{}:({}, {})>: Retrieving tile took: {:?}",
+        tile_request.level,
+        tile_request.x,
+        tile_request.y,
+        start.elapsed()
+    );
 
-                #[cfg(feature = "time")]
-                println!(
-                    "<{}:({}, {})>: Retrieving tile took: {:?}",
-                    selection_arc.level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
+    #[cfg(feature = "time")]
+    let start = Instant::now();
 
-                #[cfg(feature = "time")]
-                let start = Instant::now();
-
-                // TODO: Bottleneck #2.
-                // Interleave RGB channels.
-                let mut tile = Vec::with_capacity(channels.len());
-                for i in 0..TILE_LENGTH {
-                    tile.push(channels[i]);
-                    tile.push(channels[i + (TILE_LENGTH)]);
-                    tile.push(channels[i + (TILE_LENGTH * 2)]);
-                }
-
-                #[cfg(feature = "time")]
-                println!(
-                    "<{}:({}, {})>: Interleaving RGB channels took: {:?}",
-                    selection_arc.level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
-
-                #[cfg(feature = "time")]
-                let start = Instant::now();
-
-                // TODO: Bottleneck #1.
-                // Encode tile to JPEG.
-                let mut jpeg_tile = Vec::new();
-                JpegEncoder::new(&mut jpeg_tile).encode(
-                    &tile,
-                    TILE_SIZE,
-                    TILE_SIZE,
-                    image::ColorType::Rgb8,
-                )?;
-
-                #[cfg(feature = "time")]
-                println!(
-                    "<{}:({}, {})>: Encoding tile to JPEG took: {:?}",
-                    selection_arc.level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
-
-                #[cfg(feature = "time")]
-                let start = Instant::now();
-
-                // Prepend tile position and level
-                // (will be in this form [level, x, y, tile...])
-                // ! FIX: x, y can be > u8.
-                jpeg_tile.insert(0, y as u8);
-                jpeg_tile.insert(0, x as u8);
-                jpeg_tile.insert(0, selection_arc.level as u8);
-
-                // Send tile.
-                let _ = sender
-                    .send(Message::Binary(jpeg_tile))
-                    .await
-                    .map_err(|err| {
-                        eprintln!(
-                            "Error sending tile <{}:{}, {}>: {}",
-                            selection_arc.level, x, y, err
-                        );
-                    });
-
-                #[cfg(feature = "time")]
-                println!(
-                    "<{}:({}, {})>: Sending tile took: {:?}",
-                    selection_arc.level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
-
-                Ok(())
-            }));
-        }
+    // TODO: Bottleneck #2.
+    // Interleave RGB channels.
+    let mut tile = Vec::with_capacity(channels.len());
+    for i in 0..TILE_LENGTH {
+        tile.push(channels[i]);
+        tile.push(channels[i + (TILE_LENGTH)]);
+        tile.push(channels[i + (TILE_LENGTH * 2)]);
     }
 
-    // Await all tasks to complete
-    join_all(tasks).await;
+    #[cfg(feature = "time")]
+    println!(
+        "<{}:({}, {})>: Interleaving RGB channels took: {:?}",
+        tile_request.level,
+        tile_request.x,
+        tile_request.y,
+        start.elapsed()
+    );
 
-    Ok(())
+    #[cfg(feature = "time")]
+    let start = Instant::now();
+
+    // TODO: Bottleneck #1.
+    // Encode tile to JPEG.
+    let mut jpeg_tile = Vec::new();
+    JpegEncoder::new(&mut jpeg_tile).encode(&tile, TILE_SIZE, TILE_SIZE, image::ColorType::Rgb8)?;
+
+    #[cfg(feature = "time")]
+    println!(
+        "<{}:({}, {})>: Encoding tile to JPEG took: {:?}",
+        tile_request.level,
+        tile_request.x,
+        tile_request.y,
+        start.elapsed()
+    );
+
+    // Prepend tile position and level
+    // (will be in this form [level, x, y, tile...])
+    // ! FIX: x, y can be > u8.
+    jpeg_tile.insert(0, tile_request.y as u8);
+    jpeg_tile.insert(0, tile_request.x as u8);
+    jpeg_tile.insert(0, tile_request.level as u8);
+
+    Ok(jpeg_tile)
 }
 
 pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<Metadata>> {
@@ -210,6 +154,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
         let cols = width.div_ceil(TILE_SIZE);
         let rows = height.div_ceil(TILE_SIZE);
 
+        // ! Check these conversions.
         let width_ratio = (level_0_width as f64 / width as f64) as u32;
         let height_ratio = (level_0_height as f64 / height as f64) as u32;
 
@@ -258,12 +203,15 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                         },
                     })?
                     .chunks(3)
-                    .fold(vec![Vec::new(), Vec::new(), Vec::new()], |mut acc, chunk| {
-                        acc[0].push(chunk[0]);
-                        acc[1].push(chunk[1]);
-                        acc[2].push(chunk[2]);
-                        acc
-                    })
+                    .fold(
+                        vec![Vec::new(), Vec::new(), Vec::new()],
+                        |mut acc, chunk| {
+                            acc[0].push(chunk[0]);
+                            acc[1].push(chunk[1]);
+                            acc[2].push(chunk[2]);
+                            acc
+                        },
+                    )
                     .into_iter()
                     .flatten()
                     .collect();

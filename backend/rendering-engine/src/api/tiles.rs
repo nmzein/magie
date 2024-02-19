@@ -1,5 +1,5 @@
 use crate::api::common::*;
-use crate::structs::{ImageState, Selection};
+use crate::structs::{ImageState, TileRequest};
 use axum::extract::{
     ws::{Message, WebSocket},
     WebSocketUpgrade,
@@ -48,37 +48,47 @@ async fn tiles(socket: WebSocket, current_image: Arc<Mutex<Option<ImageState>>>)
         let sender = sender.clone();
 
         tokio::spawn(async move {
-            let Ok(selection) = serde_json::from_str::<Selection>(&message) else {
+            let Ok(tile_request) = serde_json::from_str::<TileRequest>(&message) else {
                 #[cfg(feature = "log")]
                 log::<()>(
                     StatusCode::BAD_REQUEST,
-                    &format!("Failed to parse selection: {}.", message),
+                    &format!("Failed to parse tile request: {}.", message),
                     None,
                 );
 
                 return;
             };
 
-            #[cfg(feature = "log")]
-            log::<()>(
-                StatusCode::ACCEPTED,
-                &format!("Received selection: {:?}.", selection),
-                None,
-            );
+            // #[cfg(feature = "log")]
+            // log::<()>(
+            //     StatusCode::ACCEPTED,
+            //     &format!("Received request for tile: {:?}.", tile_request),
+            //     None,
+            // );
 
-            let _ = crate::io::retrieve(
-                &current_image.store_path.into(),
-                selection.clone(),
-                sender.clone(),
-            )
-            .await
-            .map_err(|e| async {
+            let Ok(tile) =
+                crate::io::retrieve(&current_image.store_path.into(), tile_request.clone()).await
+            else {
+                #[cfg(feature = "log")]
+                log::<()>(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!(
+                        "Failed to retrieve tile for image with name: {}.",
+                        &tile_request.image_name
+                    ),
+                    None,
+                );
+
+                return;
+            };
+
+            let _ = sender.send(Message::Binary(tile)).await.map_err(|e| {
                 #[cfg(feature = "log")]
                 log(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(
-                        "Failed to retrieve image with name: {}.",
-                        &selection.image_name
+                        "Failed to send tile for image with name: {}.",
+                        &tile_request.image_name
                     ),
                     Some(e),
                 );
