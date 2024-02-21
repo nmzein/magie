@@ -1,12 +1,14 @@
 use crate::api::common::*;
-use crate::structs::{ImageState, UploadAssetRequest};
+use crate::structs::UploadAssetRequest;
 use axum_typed_multipart::TypedMultipart;
 use std::path::Path;
+use std::path::PathBuf;
 
-// TODO: Move functions to io.rs and split into smaller functions.
+// TODO: Split into smaller functions.
 pub async fn upload(
     Extension(AppState { pool, .. }): Extension<AppState>,
     TypedMultipart(UploadAssetRequest {
+        directory_path,
         image,
         annotations,
         annotation_generator,
@@ -37,8 +39,9 @@ pub async fn upload(
         None,
     );
 
+    let directory_path = PathBuf::from(directory_path).join(image_name_no_ext);
     // Check if image already exists in database.
-    if crate::db::contains(&image_name_no_ext, &pool).await {
+    if crate::db::contains(&directory_path.to_str().unwrap(), &pool).await {
         return log_respond::<()>(
             StatusCode::BAD_REQUEST,
             &format!(
@@ -50,26 +53,28 @@ pub async fn upload(
     }
 
     // Create a directory in store for the image.
-    let Ok(directory_path) = crate::io::create(&image_name_no_ext).await else {
-        return log_respond::<()>(
+    let _ = crate::io::create(&directory_path).await.map_err(|e| async {
+        return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Failed to create directory for image with name {}.",
                 image_name_no_ext
             ),
-            None,
-        );
-    };
-
-    // Save image to disk.
-    let image_path = directory_path.join(&image_name);
-    let _ = image.contents.persist(&image_path).map_err(|e| async {
-        return log_respond(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("Failed to save image with name {} to disk.", image_name),
             Some(e),
         );
     });
+
+    // Save image to disk.
+    let image_path = directory_path.join(&image_name);
+    let _ = crate::io::save_asset(image.contents, &image_path)
+        .await
+        .map_err(|e| async {
+            return log_respond(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to save image with name {} to disk.", image_name),
+                Some(e),
+            );
+        });
 
     #[cfg(feature = "log")]
     log::<()>(
@@ -80,11 +85,13 @@ pub async fn upload(
 
     // TODO: Check file extension within function and choose decoder based on this.
     // Convert image to ZARR.
-    let store_path = directory_path.join(&format!("{}.zarr", image_name_no_ext));
+    let store_name = format!("{image_name_no_ext}.zarr");
+    let store_path = directory_path.join(&store_name);
+    // TODO: Return if metadata length is 0
     let Ok(metadata) = crate::io::convert(&image_path, &store_path).await else {
         return log_respond::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to convert the image to zarr.",
+            "Failed to convert the image to ZARR.",
             None,
         );
     };
@@ -92,14 +99,14 @@ pub async fn upload(
     #[cfg(feature = "log")]
     log::<()>(
         StatusCode::CREATED,
-        "Successfully converted image to zarr.",
+        "Successfully converted image to ZARR.",
         None,
     );
 
-    let mut annotations_path = None;
+    let mut annotations_name = None;
     if let Some(annotations) = annotations {
         // Get annotations file name from metadata request body.
-        let Some(annotations_file_name) = annotations.metadata.file_name else {
+        let Some(local_annotations_name) = annotations.metadata.file_name else {
             return log_respond::<()>(
                 StatusCode::BAD_REQUEST,
                 "Failed to retrieve annotations file name from metadata request body.",
@@ -110,21 +117,21 @@ pub async fn upload(
         // TODO: Check that file is in correct format given annotation generator.
 
         // Save annotations to disk.
-        let local_annotations_path = directory_path.join(&annotations_file_name);
-        let _ = annotations
-            .contents
-            .persist(&local_annotations_path)
+        let annotations_path = directory_path.join(&local_annotations_name);
+        let _ = crate::io::save_asset(annotations.contents, &annotations_path)
+            .await
             .map_err(|e| async {
                 return log_respond(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(
-                        "Failed to save annotations with name {} to disk.",
-                        annotations_file_name
+                        "Failed to save annotations with name {:?} to disk.",
+                        annotations_name
                     ),
                     Some(e),
                 );
             });
-        annotations_path = Some(local_annotations_path);
+
+        annotations_name = Some(local_annotations_name);
 
         // Log successful saving of annotations to disk.
         #[cfg(feature = "log")]
@@ -145,27 +152,25 @@ pub async fn upload(
 
     // Insert into database.
     let _ = crate::db::insert(
-        &image_name_no_ext,
-        &ImageState {
-            image_path,
-            store_path,
-            annotations_path,
-            metadata,
-        },
+        &directory_path,
+        &image_name,
+        &store_name,
+        annotations_name.as_deref(),
+        metadata,
         &pool,
     )
     .await
     .map_err(|e| async {
         return log_respond(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to save image metadata to database.",
+            "Failed to save image to database.",
             Some(e),
         );
     });
 
     log_respond::<()>(
         StatusCode::CREATED,
-        "Successfully saved image metadata to database.",
+        "Successfully saved image to database.",
         None,
     )
 }

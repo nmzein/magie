@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO images (directory_path, image_name, store_name, annotations_name)\n            VALUES ($1, $2, $3, $4)\n            RETURNING id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "60a03e66416164c9b0df3dc5305c0aadec78b0e3ad3cb8d1064acfd0c2d9baa0"
+}

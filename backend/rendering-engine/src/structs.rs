@@ -16,18 +16,19 @@ pub struct AppState {
     pub generators: HashMap<String, Generator>,
 }
 
+#[derive(Clone, Debug)]
+pub struct ImageState {
+    pub directory_path: PathBuf,
+    pub image_name: String,
+    pub store_name: String,
+    pub annotations_name: Option<String>,
+    pub metadata: Vec<Metadata>,
+}
+
 #[derive(Clone)]
 pub struct Generator {
     pub name: String,
     pub read_annotations: fn(annotations_path: &str) -> Result<Vec<AnnotationLayer>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ImageState {
-    pub image_path: PathBuf,
-    pub store_path: PathBuf,
-    pub annotations_path: Option<PathBuf>,
-    pub metadata: Vec<Metadata>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -39,9 +40,15 @@ pub struct Metadata {
     pub height: u32,
 }
 
+#[derive(Debug, Serialize)]
+pub struct ImageDataResponse {
+    pub id: u32,
+    pub path: String,
+}
+
 #[derive(Clone, Debug, Deserialize)]
 pub struct TileRequest {
-    pub image_name: String,
+    pub id: u32,
     pub level: u32,
     pub x: u32,
     pub y: u32,
@@ -78,6 +85,7 @@ pub struct Address {
 
 #[derive(TryFromMultipart)]
 pub struct UploadAssetRequest {
+    pub directory_path: String,
     #[form_data(limit = "unlimited")]
     pub image: FieldData<NamedTempFile>,
     #[form_data(limit = "unlimited")]

@@ -1,6 +1,6 @@
 use crate::generators::common::*;
 use sqlx::{sqlite::SqlitePool, FromRow};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug, Clone, FromRow)]
 struct Node {
@@ -13,8 +13,8 @@ type Annotation = Vec<[u32; 2]>;
 
 // pub const name: &str = "TIAToolbox";
 
-pub async fn read_annotations(annotations_path: &str) -> Result<Vec<AnnotationLayer>> {
-    let database_url = format!("sqlite://{}", annotations_path);
+pub async fn read_annotations(annotations_path: PathBuf) -> Result<Vec<AnnotationLayer<'static>>> {
+    let database_url = format!("sqlite://{:?}", annotations_path);
     let pool = SqlitePool::connect(&database_url).await?;
 
     let result = sqlx::query_as::<_, Node>(

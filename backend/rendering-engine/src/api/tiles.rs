@@ -1,24 +1,24 @@
 use crate::api::common::*;
-use crate::structs::{ImageState, TileRequest};
+use crate::structs::TileRequest;
 use axum::extract::{
     ws::{Message, WebSocket},
     WebSocketUpgrade,
 };
 use futures_util::{SinkExt, StreamExt};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub async fn websocket(
     ws: WebSocketUpgrade,
-    Extension(AppState { current_image, .. }): Extension<AppState>,
+    Extension(state): Extension<AppState>,
 ) -> impl IntoResponse {
     ws.on_upgrade(|socket| async {
-        tiles(socket, current_image).await;
+        tiles(socket, Extension(state)).await;
     })
 }
 
 // TODO: Send error messages to frontend.
-async fn tiles(socket: WebSocket, current_image: Arc<Mutex<Option<ImageState>>>) {
+async fn tiles(socket: WebSocket, Extension(AppState { current_image, .. }): Extension<AppState>) {
     let (mut sink, mut stream) = socket.split();
     // Credit: https://gist.github.com/hexcowboy/8ebcf13a5d3b681aa6c684ad51dd6e0c
     // Create an mpsc channel so we can send messages to the sink from multiple threads.
@@ -59,22 +59,14 @@ async fn tiles(socket: WebSocket, current_image: Arc<Mutex<Option<ImageState>>>)
                 return;
             };
 
-            // #[cfg(feature = "log")]
-            // log::<()>(
-            //     StatusCode::ACCEPTED,
-            //     &format!("Received request for tile: {:?}.", tile_request),
-            //     None,
-            // );
-
-            let Ok(tile) =
-                crate::io::retrieve(&current_image.store_path.into(), tile_request.clone()).await
-            else {
+            let store_path = current_image.directory_path.join(&current_image.store_name);
+            let Ok(tile) = crate::io::retrieve(&store_path, &tile_request).await else {
                 #[cfg(feature = "log")]
                 log::<()>(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(
-                        "Failed to retrieve tile for image with name: {}.",
-                        &tile_request.image_name
+                        "Failed to retrieve tile for image with id: {}.",
+                        &tile_request.id
                     ),
                     None,
                 );
@@ -87,11 +79,13 @@ async fn tiles(socket: WebSocket, current_image: Arc<Mutex<Option<ImageState>>>)
                 log(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(
-                        "Failed to send tile for image with name: {}.",
-                        &tile_request.image_name
+                        "Failed to send tile for image with id: {}.",
+                        &tile_request.id
                     ),
                     Some(e),
                 );
+
+                return;
             });
         });
     }

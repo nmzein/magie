@@ -12,7 +12,7 @@ mod traits;
 use crate::structs::AppState;
 use axum::{
     extract::DefaultBodyLimit,
-    http::{HeaderValue, Method},
+    http::{header::CONTENT_TYPE, HeaderValue, Method},
     routing::{get, post},
     Extension, Router,
 };
@@ -70,10 +70,11 @@ async fn main() {
                 .parse::<HeaderValue>()
                 .expect("Could not parse frontend url."),
         )
-        .allow_methods([Method::GET, Method::POST]);
+        .allow_methods([Method::GET, Method::POST])
+        .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
-        .route(annotation_url, post(api::annotations::annotations))
+        .route(annotation_url, get(api::annotations::annotations))
         .route(delete_url, post(api::delete::delete))
         .route(generators_url, get(api::generators::generators))
         .route(metadata_url, post(api::metadata::metadata))

@@ -1,26 +1,31 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT * FROM images WHERE name = $1;\n        ",
+  "query": "\n            SELECT * FROM images WHERE directory_path = $1;\n        ",
   "describe": {
     "columns": [
       {
-        "name": "name",
+        "name": "id",
         "ordinal": 0,
-        "type_info": "Text"
+        "type_info": "Int64"
       },
       {
-        "name": "image_path",
+        "name": "directory_path",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "store_path",
+        "name": "image_name",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "annotations_path",
+        "name": "store_name",
         "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "annotations_name",
+        "ordinal": 4,
         "type_info": "Text"
       }
     ],
@@ -31,8 +36,9 @@
       true,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "66c4473c9d5e4820f4f5f3fc7104684ea2a61544d9a07467493e767769f7985c"
+  "hash": "48edca2633e49f0bfdd8a519a3098679e69d0e95000dc7c0d0cb63ad29bfc797"
 }

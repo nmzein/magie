@@ -1,17 +1,19 @@
 CREATE TABLE IF NOT EXISTS images (
-  name TEXT PRIMARY KEY,
-  image_path TEXT NOT NULL,
-  store_path TEXT NOT NULL,
-  annotations_path TEXT
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  directory_path TEXT UNIQUE NOT NULL,
+  image_name TEXT NOT NULL,
+  store_name TEXT NOT NULL,
+  annotations_name TEXT
 );
 
 CREATE TABLE IF NOT EXISTS metadata (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  level INTEGER UNIQUE NOT NULL,
+  image_id INTEGER NOT NULL,
+  level INTEGER NOT NULL,
   cols INTEGER NOT NULL,
   rows INTEGER NOT NULL,
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
-  FOREIGN KEY(name) REFERENCES images(name) ON DELETE CASCADE
+  FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE CASCADE,
+  UNIQUE(image_id, level)
 );

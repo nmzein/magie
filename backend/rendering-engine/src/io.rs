@@ -5,6 +5,7 @@ use image::codecs::jpeg::JpegEncoder;
 #[cfg(feature = "time")]
 use std::time::Instant;
 use std::{path::PathBuf, sync::Arc};
+use tempfile::NamedTempFile;
 use tokio::fs;
 use zarrs::{
     array::{Array, ArrayBuilder, DataType, FillValue},
@@ -19,8 +20,8 @@ static RGB_CHANNELS: u64 = 3;
 static GROUP_PATH: &str = "/group";
 static STORE_PATH: &str = "../store";
 
-pub async fn create(image_name: &str) -> Result<PathBuf> {
-    let directory_path = PathBuf::from(STORE_PATH).join(image_name);
+pub async fn create(directory_path: &PathBuf) -> Result<PathBuf> {
+    let directory_path = PathBuf::from(STORE_PATH).join(directory_path);
 
     // Create directory.
     fs::create_dir_all(&directory_path).await?;
@@ -28,11 +29,19 @@ pub async fn create(image_name: &str) -> Result<PathBuf> {
     Ok(directory_path)
 }
 
-pub async fn delete(image_name: &str) -> Result<()> {
-    let directory_path = PathBuf::from(STORE_PATH).join(image_name);
+pub async fn delete(directory_path: &PathBuf) -> Result<()> {
+    let directory_path = PathBuf::from(STORE_PATH).join(directory_path);
 
     // Remove directory.
     fs::remove_dir_all(directory_path).await?;
+
+    Ok(())
+}
+
+pub async fn save_asset(file: NamedTempFile, path: &PathBuf) -> Result<()> {
+    let path = PathBuf::from(STORE_PATH).join(path);
+
+    file.persist(path)?;
 
     Ok(())
 }
@@ -50,11 +59,14 @@ fn decode(image_path: &PathBuf) -> Result<impl Decoder> {
 }
 
 // TODO: Run annotation generator translation interface.
-pub async fn annotations(annotations_path: &str) -> Result<Vec<AnnotationLayer>> {
+pub async fn annotations(annotations_path: &PathBuf) -> Result<Vec<AnnotationLayer>> {
+    let annotations_path = PathBuf::from(STORE_PATH).join(annotations_path);
     Ok(crate::generators::tiatoolbox::read_annotations(annotations_path).await?)
 }
 
-pub async fn retrieve(store_path: &PathBuf, tile_request: TileRequest) -> Result<Vec<u8>> {
+pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Result<Vec<u8>> {
+    let store_path = PathBuf::from(STORE_PATH).join(store_path);
+
     // TODO: Store these in AppState to save time.
     let store = Arc::new(FilesystemStore::new(store_path)?);
     let array = Arc::new(Array::new(
@@ -129,7 +141,10 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: TileRequest) -> Result
 }
 
 pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<Metadata>> {
-    let image = decode(image_path)?;
+    let image_path = PathBuf::from(STORE_PATH).join(image_path);
+    let store_path = PathBuf::from(STORE_PATH).join(store_path);
+
+    let image = decode(&image_path)?;
     // One store per image.
     let store = Arc::new(FilesystemStore::new(store_path)?);
     // One group per image.
