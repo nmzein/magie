@@ -1,8 +1,13 @@
 export type TileRequest = {
-	image_name: string;
+	id: number;
 	level: number;
 	x: number;
 	y: number;
+};
+
+export type Image = {
+	id: number;
+	path: string;
 };
 
 export type Metadata = {
@@ -22,3 +27,9 @@ export type AnnotationLayer = {
 };
 
 export type ImageLayer = HTMLImageElement[][];
+
+export type DirectoryNode = {
+	name: string;
+	children: DirectoryNode[];
+	files: { name: string; metadata: Image }[];
+};

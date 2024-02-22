@@ -1,62 +1,56 @@
 <script lang="ts">
-	import { SendUploadAssets } from '$lib/api';
-	import { image_upload, annotations_upload, annotation_generator_list } from '$lib/stores';
-	import Switch from '$lib/components/control/Switch.svelte';
-	import UploadAsset from '$lib/components/control/UploadAsset.svelte';
+	import { SendUploadAssets } from '$api';
+	import { imageUpload, annotationsUpload, generators } from '$stores';
+	import Switch from '$control/Switch.svelte';
+	import UploadAsset from '$control/UploadAsset.svelte';
 
-	// TODO: Cache settings choices locally.
-	let selectedAnnotationGenerator = $annotation_generator_list?.[0];
-	let autogenerateAnnotations = true;
+	// TODO: Cache settings choices in stores.
+	let selectedGenerator = $state<string>();
+
+	$effect(() => {
+		selectedGenerator = generators.value?.[0];
+	});
+
+	let autogenerateAnnotations = $state(true);
+	// TODO: Get path from file explorer.
+	let directory_path = '';
 
 	function handleImage(event: DragEvent) {
 		event.preventDefault();
 
-		let file = event.dataTransfer?.files[0];
-		$image_upload = file;
-
-		let imageInput = document.getElementById('image-input');
-		// imageInput?.setAttribute('readonly', 'true');
-		imageInput?.setAttribute('placeholder', ' ');
+		const file = event.dataTransfer?.files[0];
+		imageUpload.value = file;
 	}
 
 	function handleAnnotationFile(event: DragEvent) {
 		event.preventDefault();
 
-		let file = event.dataTransfer?.files[0];
-		$annotations_upload = file;
-
-		let annotationInput = document.getElementById('annotation-input');
-		// annotationInput?.setAttribute('readonly', 'true');
-		annotationInput?.setAttribute('placeholder', ' ');
+		const file = event.dataTransfer?.files[0];
+		annotationsUpload.value = file;
 	}
 
 	function handleUpload() {
-		if ($image_upload && selectedAnnotationGenerator) {
-			// Still need to do this check as the user may have
-			// uploaded an annotation file earlier and then
-			// switched to autogeneration.
-			if (autogenerateAnnotations) {
-				SendUploadAssets($image_upload, undefined, selectedAnnotationGenerator);
-				resetImageField();
-			} else if (annotations_upload) {
-				SendUploadAssets($image_upload, $annotations_upload, selectedAnnotationGenerator);
-				resetImageField();
-				resetAnnotationField();
-			}
+		if (!imageUpload.value || !selectedGenerator) {
+			alert('Please provide an image and/or select an annotation generator.');
+			return;
 		}
-		// TODO: Output error message for other cases.
-	}
 
-	function resetImageField() {
-		$image_upload = undefined;
-		(document.getElementById('image-input') as HTMLInputElement).placeholder =
-			'Drop image here or browse your filesystem.';
-	}
-
-	function resetAnnotationField() {
-		$annotations_upload = undefined;
-		(document.getElementById('annotation-input') as HTMLInputElement).placeholder =
-			'Drop annotation file here or browse your fs.';
+		// Still need to do this check as the user may have
+		// uploaded an annotation file earlier and then
+		// switched to autogeneration.
+		if (autogenerateAnnotations) {
+			SendUploadAssets(directory_path, imageUpload.value, undefined, selectedGenerator);
+			imageUpload.value = undefined;
+		} else if (annotationsUpload) {
+			SendUploadAssets(
+				directory_path,
+				imageUpload.value,
+				annotationsUpload.value,
+				selectedGenerator
+			);
+			imageUpload.value = undefined;
+			annotationsUpload.value = undefined;
+		}
 	}
 </script>
 
@@ -67,74 +61,40 @@
 			<div style="display: flex;">
 				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
 					AUTOGENERATE
-					<Switch bind:checked={autogenerateAnnotations} />
+					<Switch bind:checked={autogenerateAnnotations} onclick={undefined} />
 				</div>
-				{#if $annotation_generator_list}
-					<select style="flex: 1;" bind:value={selectedAnnotationGenerator}>
-						{#each $annotation_generator_list as annotation_generator}
+				<select style="flex: 1;" bind:value={selectedGenerator}>
+					{#if generators.value}
+						{#each generators.value as annotation_generator}
 							<option value={annotation_generator}>{annotation_generator}</option>
 						{/each}
-					</select>
-				{/if}
+					{/if}
+				</select>
 			</div>
 		</div>
 
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="input" style="display: flex;" on:drop={(e) => handleImage(e)}>
-			<input
-				id="image-input"
-				type="text"
-				placeholder="Drop image here or browse your filesystem."
-				style={autogenerateAnnotations ? 'border-radius: 0 0 10px 10px' : ''}
-				on:dragover={(e) => e.preventDefault()}
-				readonly
-			/>
-			{#if $image_upload}
-				<!-- svelte-ignore a11y-click-events-have-key-events -->
-				<div on:click={() => resetImageField()} style="position: absolute; width: 100%;">
-					<UploadAsset name={$image_upload?.name} />
-				</div>
-			{/if}
-
-			<label style={autogenerateAnnotations ? 'border-radius: 0 0 10px 0' : ''}>
-				<div class="divider" />
-				<img src="/folder.svg" alt="Browse filesystem." />
-				<input type="file" accept="image/*" />
-			</label>
-		</div>
+		<UploadAsset
+			bind:assetUpload={imageUpload.value}
+			inputStyle={autogenerateAnnotations ? 'border-radius: 0 0 10px 10px' : ''}
+			labelStyle={autogenerateAnnotations ? 'border-radius: 0 0 10px 0' : ''}
+			accept="image/*"
+			handleDrop={handleImage}
+		/>
 
 		{#if !autogenerateAnnotations}
-			<!-- svelte-ignore a11y-no-static-element-interactions -->
-			<div class="input" style="display: flex;" on:drop={(e) => handleAnnotationFile(e)}>
-				<input
-					id="annotation-input"
-					type="text"
-					placeholder="Drop annotation file here or browse your fs."
-					value={$annotations_upload?.name || ''}
-					style="border-radius: 0 0 10px 10px;"
-					on:dragover={(e) => e.preventDefault()}
-					readonly
-				/>
-
-				{#if $annotations_upload}
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
-					<div on:click={() => resetAnnotationField()} style="position: absolute; width: 100%;">
-						<UploadAsset name={$annotations_upload?.name} />
-					</div>
-				{/if}
-
-				<label style="border-radius: 0 0 10px 0;">
-					<div class="divider" />
-					<img src="/folder.svg" alt="Browse filesystem." />
-					<input type="file" accept="image/*" />
-				</label>
-			</div>
+			<UploadAsset
+				bind:assetUpload={annotationsUpload.value}
+				inputStyle="border-radius: 0 0 10px 10px;"
+				labelStyle="border-radius: 0 0 10px 0;"
+				accept="json/*"
+				handleDrop={handleAnnotationFile}
+			/>
 		{/if}
 	</div>
 
 	<div style="display: flex;">
 		<div style="flex: 1;" />
-		<button type="submit" on:click={() => handleUpload()}>UPLOAD</button>
+		<button type="submit" onclick={() => handleUpload()}>UPLOAD</button>
 	</div>
 </div>
 
@@ -160,58 +120,5 @@
 		&:hover {
 			background-color: rgba(255, 255, 255, 0.15);
 		}
-	}
-
-	.divider {
-		position: absolute;
-		height: 30px;
-		top: 10%;
-		left: -2%;
-		z-index: 1;
-		border-left: 2px solid rgba(255, 255, 255, 0.2);
-		pointer-events: none;
-	}
-
-	input[type='text'] {
-		flex: 1;
-		height: 40px;
-		padding: 0 10px;
-
-		color: white;
-		border: none;
-		font-size: 13px;
-		background: transparent;
-
-		// &:hover {
-		// 	background-color: rgba(0, 0, 0, 0.2);
-		// }
-
-		&:focus {
-			outline: none;
-			// background-color: rgba(0, 0, 0, 0.2);
-		}
-	}
-
-	label {
-		cursor: pointer;
-
-		height: 40px;
-		width: 40px;
-		position: absolute;
-		right: 0;
-
-		&:hover {
-			background-color: rgba(0, 0, 0, 0.2);
-		}
-	}
-
-	input[type='file'] {
-		display: none;
-	}
-
-	img {
-		width: 20px;
-		height: 20px;
-		margin: 10px;
 	}
 </style>

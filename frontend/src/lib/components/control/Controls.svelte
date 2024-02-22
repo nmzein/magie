@@ -1,10 +1,11 @@
 <script lang="ts">
-	import FileControls from '$lib/components/control/FileControls.svelte';
-	import ImageControls from '$lib/components/control/ImageControls.svelte';
+	import FileExplorer from '$control/FileExplorer.svelte';
+	import Uploader from '$control/Uploader.svelte';
+	import ImageControls from '$control/ImageControls.svelte';
 
 	let pages = ['FILES', 'IMAGE'];
-	let currentView = pages[0];
-	let showLargePanel = true;
+	let currentView = $state(pages[0]);
+	let showLargePanel = $state(true);
 </script>
 
 <nav>
@@ -12,20 +13,23 @@
 		<div class="{showLargePanel ? 'panel' : 'hidden'} large">
 			<div style="display: flex; gap: 6px; margin-bottom: 15px;">
 				{#each pages as page}
-					<button class="panel-page-button" on:click={() => (currentView = page)}>{page}</button>
+					<button class="panel-page-button" onclick={() => (currentView = page)}>{page}</button>
 				{/each}
 			</div>
 
-			{#if currentView === 'FILES'}
-				<FileControls />
-			{:else if currentView === 'IMAGE'}
-				<ImageControls />
-			{/if}
+			<div style="display: flex; flex-direction: column; gap: 15px;">
+				{#if currentView === pages[0]}
+					<FileExplorer />
+					<Uploader />
+				{:else if currentView === pages[1]}
+					<ImageControls />
+				{/if}
+			</div>
 		</div>
 
 		<div class="panel small">
 			<div style="flex: 1;" />
-			<button id="show-panel" on:click={() => (showLargePanel = !showLargePanel)}
+			<button id="show-panel" onclick={() => (showLargePanel = !showLargePanel)}
 				><img
 					id="arrow-icon"
 					src="/arrow.png"

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import '../global.scss';
-	import View from '$lib/components/view/View.svelte';
-	import Controls from '$lib/components/control/Controls.svelte';
-	import { onMount } from 'svelte';
-	import { ConnectWebSocket, GetGenerators, GetStores } from '$lib/api';
+	import View from '$view/View.svelte';
+	import Controls from '$control/Controls.svelte';
+	import { GetGenerators, GetStores } from '$api';
+	import { ConnectWebSocket } from '$stores';
 
-	onMount(() => {
+	$effect(() => {
 		ConnectWebSocket();
 		GetStores();
 		GetGenerators();

@@ -1,12 +1,16 @@
 <script lang="ts">
-	import { GetTile } from '$lib/api';
-	import { image_name, metadata } from '$lib/stores';
-	import type { ImageLayer } from '$lib/types';
-	import { onMount } from 'svelte';
+	import { websocket, loadedImage, metadata } from '$stores';
+	import type { ImageLayer } from '$types';
 
-	export let layerIndex: number;
-	export let layer: ImageLayer;
-	export let display: boolean = false;
+	let {
+		layerIndex,
+		layer,
+		display = false
+	} = $props<{
+		layerIndex: number;
+		layer: ImageLayer;
+		display: boolean;
+	}>();
 
 	const options = {
 		rootMargin: '150px'
@@ -14,9 +18,7 @@
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach((entry) => {
-			if (!$image_name) {
-				return;
-			}
+			if (!loadedImage.value) return;
 
 			if (entry.isIntersecting) {
 				let levelString = (entry.target as HTMLElement).dataset.level;
@@ -29,16 +31,13 @@
 				let x = parseInt(xString);
 				let y = parseInt(yString);
 
-				const ready = GetTile({
-					image_name: $image_name,
+				const ready = websocket.GetTile({
+					id: loadedImage.value.id,
 					level,
 					x,
 					y
 				});
-
-				if (!ready) {
-					return;
-				}
+				if (!ready) return;
 
 				observer.unobserve(entry.target);
 				(entry.target as HTMLElement).dataset.level = '-1';
@@ -49,18 +48,22 @@
 
 	let observer = new IntersectionObserver(callback, options);
 
-	onMount(() => {
+	$effect(() => {
 		document.querySelectorAll('[data-level="' + layerIndex + '"]').forEach((tile) => {
 			console.log('Observing', layerIndex);
 			observer.observe(tile);
 		});
+
+		return () => {
+			observer.disconnect();
+		};
 	});
 </script>
 
 <div
 	id="image-grid-layer-{layerIndex}"
 	class="image-grid"
-	style="--no-of-columns: {$metadata?.[layerIndex].cols};"
+	style="--no-of-columns: {metadata.value?.[layerIndex].cols};"
 >
 	{#each layer as row, rowIndex (rowIndex)}
 		{#each row as tile, tileIndex (tileIndex)}
@@ -71,7 +74,7 @@
 				data-x={tileIndex}
 				data-y={rowIndex}
 				alt="Tile ({tileIndex}, {rowIndex})"
-				on:error={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
+				onerror={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
 			/>
 		{/each}
 	{/each}

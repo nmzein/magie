@@ -1,71 +1,86 @@
-import {
-	image_name,
-	metadata,
-	annotations,
-	image_list,
-	annotation_generator_list,
-	websocket,
-	InitImageLayers
-} from '$lib/stores';
+import { loadedImage, metadata, annotations, stores, generators, image } from '$stores';
 import {
 	PUBLIC_HTTP_SCHEME,
+	PUBLIC_WS_SCHEME,
 	PUBLIC_DOMAIN,
 	PUBLIC_BACKEND_PORT,
-	PUBLIC_METADATA_SUBDIR,
 	PUBLIC_ANNOTATIONS_SUBDIR,
-	PUBLIC_UPLOAD_SUBDIR,
+	PUBLIC_CREATE_DIR_SUBDIR,
+	PUBLIC_GENERATORS_SUBDIR,
+	PUBLIC_METADATA_SUBDIR,
 	PUBLIC_STORES_SUBDIR,
-	PUBLIC_GENERATORS_SUBDIR
+	PUBLIC_WEBSOCKET_SUBDIR,
+	PUBLIC_UPLOAD_SUBDIR
 } from '$env/static/public';
 
-import type { AnnotationLayer, Metadata, TileRequest } from './types';
+import type { AnnotationLayer, Metadata, Image } from './types';
 
-const URL = PUBLIC_HTTP_SCHEME + '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
-const METADATA_URL = URL + PUBLIC_METADATA_SUBDIR;
-const ANNOTATIONS_URL = URL + PUBLIC_ANNOTATIONS_SUBDIR;
-const UPLOAD_URL = URL + PUBLIC_UPLOAD_SUBDIR;
-const STORES_URL = URL + PUBLIC_STORES_SUBDIR;
-const GENERATORS_URL = URL + PUBLIC_GENERATORS_SUBDIR;
+const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
+const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
+const WS_URL = PUBLIC_WS_SCHEME + URL;
 
-let socket: WebSocket;
+export const WEBSOCKET_URL = WS_URL + PUBLIC_WEBSOCKET_SUBDIR;
+const ANNOTATIONS_URL = HTTP_URL + PUBLIC_ANNOTATIONS_SUBDIR;
+const CREATE_DIR_URL = HTTP_URL + PUBLIC_CREATE_DIR_SUBDIR;
+const GENERATORS_URL = HTTP_URL + PUBLIC_GENERATORS_SUBDIR;
+const METADATA_URL = HTTP_URL + PUBLIC_METADATA_SUBDIR;
+const STORES_URL = HTTP_URL + PUBLIC_STORES_SUBDIR;
+const UPLOAD_URL = HTTP_URL + PUBLIC_UPLOAD_SUBDIR;
 
-export async function ConnectWebSocket() {
-	websocket.subscribe((value) => {
-		socket = value as WebSocket;
-	});
+export async function LoadImage(image: Image) {
+	console.log('Loading image:', image);
+	loadedImage.value = image;
+	GetMetadata(image.id);
+	GetAnnotations();
 }
 
-export async function LoadImage(imageName: string) {
-	image_name.set(imageName);
-	GetMetadata(imageName);
-	GetAnnotations(imageName);
-}
+export async function CreateDirectory(
+	parentDirectoryID: number | undefined,
+	directoryName: string
+) {
+	const data = {
+		parent_directory_id: parentDirectoryID,
+		directory_name: directoryName
+	};
 
-export async function GetTile(tile: TileRequest): Promise<boolean> {
-	if (!metadata) {
-		return false;
+	try {
+		const response = await fetch(CREATE_DIR_URL, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(data)
+		});
+
+		if (response.ok) {
+			GetStores();
+		} else {
+			console.error('Response Error <Create Directory>:', response.status, response.statusText);
+		}
+	} catch (error) {
+		console.error('Fetch Error <Create Directory>:', error);
 	}
-	socket.send(JSON.stringify(tile));
-	return true;
 }
 
 export async function SendUploadAssets(
-	image_file: File,
-	annotation_file: File | undefined,
-	annotation_generator: string
+	directoryPath: string,
+	imageUpload: File,
+	annotationsUpload: File | undefined,
+	generator: string
 ) {
-	const form_data = new FormData();
+	const formData = new FormData();
 
-	form_data.append('image', image_file);
-	if (annotation_file) {
-		form_data.append('annotations', annotation_file);
+	formData.append('directory_path', directoryPath);
+	formData.append('image', imageUpload);
+	if (annotationsUpload) {
+		formData.append('annotations', annotationsUpload);
 	}
-	form_data.append('annotation_generator', annotation_generator);
+	formData.append('annotation_generator', generator);
 
 	try {
 		const response = await fetch(UPLOAD_URL, {
 			method: 'POST',
-			body: form_data
+			body: formData
 		});
 
 		if (response.ok) {
@@ -85,19 +100,15 @@ export async function GetGenerators() {
 		if (response.ok) {
 			try {
 				const data: string[] = await response.json();
-				annotation_generator_list.set(data);
+				generators.value = data;
 			} catch (error) {
-				console.error('Parse Error <Annotation Generators>:', error);
+				console.error('Parse Error <Generators>:', error);
 			}
 		} else {
-			console.error(
-				'Response Error <Annotation Generators>:',
-				response.status,
-				response.statusText
-			);
+			console.error('Response Error <Generators>:', response.status, response.statusText);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Annotation Generators>:', error);
+		console.error('Fetch Error <Generators>:', error);
 	}
 }
 
@@ -107,68 +118,71 @@ export async function GetStores() {
 
 		if (response.ok) {
 			try {
-				const data: string[] = await response.json();
-				image_list.set(data);
+				const data: Image[] = await response.json();
+				stores.value = data;
 			} catch (error) {
-				console.error('Parse Error <Image List>:', error);
+				console.error('Parse Error <Stores>:', error);
 			}
 		} else {
-			console.error('Response Error <Image List>:', response.status, response.statusText);
+			console.error('Response Error <Stores>:', response.status, response.statusText);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Image List>:', error);
+		console.error('Fetch Error <Stores>:', error);
 	}
 }
 
-export async function GetMetadata(imageName: string) {
+export async function GetMetadata(id: number) {
 	try {
 		const response = await fetch(METADATA_URL, {
 			method: 'POST',
-			body: imageName
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(id)
 		});
 
 		if (response.ok) {
 			try {
 				const data: Metadata[] = await response.json();
-				metadata.set(data);
+				metadata.value = data;
 			} catch (error) {
-				console.error('Parse Error <Metadata: ' + imageName + '>:', error);
+				console.error('Parse Error <Metadata: ' + loadedImage.value?.path + '>:', error);
 			}
-			InitImageLayers();
+
+			image.initialise();
 		} else {
 			console.error(
-				'Response Error <Metadata: ' + imageName + '>:',
+				'Response Error <Metadata: ' + loadedImage.value?.path + '>:',
 				response.status,
 				response.statusText
 			);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Metadata: ' + imageName + '>:', error);
+		console.error('Fetch Error <Metadata: ' + loadedImage.value?.path + '>:', error);
 	}
 }
 
-export async function GetAnnotations(imageName: string) {
+export async function GetAnnotations() {
 	try {
 		const response = await fetch(ANNOTATIONS_URL, {
-			method: 'POST',
-			body: imageName
+			method: 'GET'
 		});
 
 		if (response.ok) {
 			try {
 				const data: AnnotationLayer[] = await response.json();
-				annotations.set(data);
+				annotations.value = data;
 			} catch (error) {
-				console.error('Parse Error <Annotations: ' + imageName + '>:', error);
+				console.error('Parse Error <Annotations: ' + loadedImage.value?.path + '>:', error);
 			}
 		} else {
 			console.error(
-				'Response Error <Annotations: ' + imageName + '>:',
+				'Response Error <Annotations: ' + loadedImage.value?.path + '>:',
 				response.status,
 				response.statusText
 			);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Annotations: ' + imageName + '>:', error);
+		console.error('Fetch Error <Annotations: ' + loadedImage.value?.path + '>:', error);
 	}
 }

@@ -1,12 +1,21 @@
 <script lang="ts">
 	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
-	export let checked: boolean;
-
+	let { checked, onclick } = $props<{
+		checked: boolean;
+		onclick: ((e: MouseEvent) => void) | undefined;
+	}>();
 	// TODO: Transition delays disappearance when control panel minimised.
 </script>
 
 <label class="switch">
-	<input type="checkbox" {checked} on:click={() => (checked = !checked)} />
+	<input
+		type="checkbox"
+		{checked}
+		onclick={(e) => {
+			if (onclick) onclick(e);
+			checked = !checked;
+		}}
+	/>
 	<span class="slider round" />
 </label>
 

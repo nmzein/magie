@@ -1,13 +1,19 @@
 <script lang="ts">
 	// Credit: https://medium.com/@doomgoober/understanding-html-canvas-scaling-and-sizing-c04925d9a830
 	// Credit: https://stackoverflow.com/questions/59287928/algorithm-to-create-a-polygon-from-points
-
-	import { onMount } from 'svelte';
-	import { metadata } from '$lib/stores';
-
-	export let id: string;
-	export let coordinates: number[][];
-	export let colours = { fill: '#e0747099', stroke: '#a12c28' };
+	let {
+		id,
+		coordinates,
+		colours = { fill: '#e0747099', stroke: '#a12c28' },
+		imageWidth,
+		imageHeight
+	} = $props<{
+		id: string;
+		coordinates: number[][];
+		colours: { fill: string; stroke: string };
+		imageWidth: number;
+		imageHeight: number;
+	}>();
 
 	function squaredPolar(coordinate: number[], centre: number[]) {
 		return [
@@ -59,55 +65,48 @@
 		};
 	}
 
-	onMount(() => {
-		if ($metadata) {
-			const canvas = document.getElementById(id) as HTMLCanvasElement;
+	$effect(() => {
+		const canvas = document.getElementById(id) as HTMLCanvasElement;
 
-			const dimensions = getObjectFitSize(
-				false,
-				canvas.clientWidth,
-				canvas.clientHeight,
-				canvas.width,
-				canvas.height
-			);
+		const dimensions = getObjectFitSize(
+			false,
+			canvas.clientWidth,
+			canvas.clientHeight,
+			canvas.width,
+			canvas.height
+		);
 
-			const dpr = window.devicePixelRatio || 1;
-			canvas.width = dimensions.width * dpr;
-			canvas.height = dimensions.height * dpr;
+		const dpr = window.devicePixelRatio || 1;
+		canvas.width = dimensions.width * dpr;
+		canvas.height = dimensions.height * dpr;
 
-			const ctx = canvas?.getContext('2d');
+		const ctx = canvas?.getContext('2d');
+		if (!ctx) return;
 
-			if (!ctx) {
-				return;
-			}
+		let scaleWidth = canvas.width / imageWidth;
+		let scaleHeight = canvas.height / imageHeight;
 
-			let imageWidth = $metadata[0].width;
-			let imageHeight = $metadata[0].height;
+		const scale = (coordinate: number[]) => [
+			coordinate[0] * scaleWidth,
+			coordinate[1] * scaleHeight
+		];
 
-			const scale = (coordinate: number[]) => {
-				return [
-					(coordinate[0] * canvas.width) / imageWidth,
-					(coordinate[1] * canvas.height) / imageHeight
-				];
-			};
+		// Scale coordinates so that they are between 0 and 1.
+		coordinates = coordinates.map(scale);
+		// Sort the coordinates
+		polySort(coordinates);
 
-			// Scale coordinates so that they are between 0 and 1.
-			coordinates = coordinates.map(scale);
-			// Sort the coordinates
-			polySort(coordinates);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.beginPath();
+		ctx.moveTo(coordinates[0][0], coordinates[0][1]);
+		for (let [x, y] of coordinates.slice(1)) ctx.lineTo(x, y);
+		ctx.closePath();
 
-			ctx.beginPath();
-			ctx.moveTo(coordinates[0][0], coordinates[0][1]);
-			for (let [x, y] of coordinates.slice(1)) ctx.lineTo(x, y);
-			ctx.closePath();
-
-			ctx.fillStyle = colours.fill;
-			ctx.strokeStyle = colours.stroke;
-			ctx.fill();
-			ctx.stroke();
-		}
+		ctx.fillStyle = colours.fill;
+		ctx.strokeStyle = colours.stroke;
+		ctx.fill();
+		ctx.stroke();
 	});
 </script>
 

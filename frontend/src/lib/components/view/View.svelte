@@ -1,26 +1,38 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { metadata, annotations } from '$lib/stores';
-	import AnnotationCanvas from '$lib/components/view/AnnotationCanvas.svelte';
-	import ImageCanvas from '$lib/components/view/ImageCanvas.svelte';
+	import { annotations, image, metadata } from '$stores';
+	import AnnotationLayer from '$view/AnnotationLayer.svelte';
+	import ImageLayer from '$view/ImageLayer.svelte';
 
-	$: currentLevel = 1;
-	let isDragging = false;
-	let panStartX: number;
-	let panStartY: number;
-	let offsetX = 0;
-	let offsetY = 0;
-	let scale = 1;
-	let x = 0;
-	let y = 0;
-	let container: DOMRect | undefined;
+	// TODO: Change how start level is chosen.
+	let currentLevel = $state(1);
+	let isDragging = $state(false);
+	let offsetX = $state(0);
+	let offsetY = $state(0);
+	let scale = $state(1);
+	let x = $state(0);
+	let y = $state(0);
+	let panStartX = $state(0);
+	let panStartY = $state(0);
 
-	onMount(() => {
+	const minScale = 0.1;
+	const maxScale = 50;
+	const minLevel = 0;
+	let maxLevel: number | undefined = $state();
+	let imageWidth: number | undefined = $state();
+	let imageHeight: number | undefined = $state();
+
+	$effect(() => {
 		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('touchmove', handleTouchMove);
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
+
+		if (metadata.value) {
+			maxLevel = metadata.value?.length - 1;
+			imageWidth = metadata.value[0].width;
+			imageHeight = metadata.value[0].height;
+		}
 
 		return () => {
 			document.removeEventListener('mousemove', handleMouseMove);
@@ -42,8 +54,8 @@
 	function handleTouchStart(event: TouchEvent) {
 		event.preventDefault();
 
-		isDragging = true;
 		const touch = event.touches[0];
+		isDragging = true;
 		panStartX = touch.clientX;
 		panStartY = touch.clientY;
 	}
@@ -52,46 +64,37 @@
 		event.preventDefault();
 
 		if (!isDragging) {
-			const imageWidth = $metadata?.[0].width;
-			const imageHeight = $metadata?.[0].height;
-			if (!imageWidth || !imageHeight) {
-				return;
-			}
+			if (!imageWidth || !imageHeight) return;
 
-			const containerWidth = container?.width;
-			const containerHeight = container?.height;
-			if (!containerWidth || !containerHeight) {
-				container = document.getElementById('image-grid-layer-0')?.getBoundingClientRect();
-				return;
-			}
+			const currentLayer = document
+				.getElementById('image-grid-layer-' + currentLevel)
+				?.getBoundingClientRect();
 
-			x = Math.floor((event.clientX - offsetX) * (imageWidth / (containerWidth * scale)));
-			y = Math.floor((event.clientY - offsetY) * (imageHeight / (containerHeight * scale)));
+			const currentLayerWidth = currentLayer?.width;
+			const currentLayerHeight = currentLayer?.height;
+
+			if (!currentLayerWidth || !currentLayerHeight) return;
+
+			x = Math.floor((event.clientX - offsetX) * (imageWidth / currentLayerWidth));
+			y = Math.floor((event.clientY - offsetY) * (imageHeight / currentLayerHeight));
 
 			return;
 		}
 
-		const deltaX = event.clientX - panStartX;
-		const deltaY = event.clientY - panStartY;
-
-		offsetX += deltaX;
-		offsetY += deltaY;
+		offsetX += event.clientX - panStartX;
+		offsetY += event.clientY - panStartY;
 
 		panStartX = event.clientX;
 		panStartY = event.clientY;
 	}
 
 	function handleTouchMove(event: TouchEvent) {
-		if (!isDragging) {
-			return;
-		}
+		if (!isDragging) return;
+
 		const touch = event.touches[0];
 
-		const deltaX = touch.clientX - panStartX;
-		const deltaY = touch.clientY - panStartY;
-
-		offsetX += deltaX;
-		offsetY += deltaY;
+		offsetX += touch.clientX - panStartX;
+		offsetY += touch.clientY - panStartY;
 
 		panStartX = touch.clientX;
 		panStartY = touch.clientY;
@@ -105,10 +108,10 @@
 		let newScale = scale * Math.exp(event.deltaY * -0.005);
 
 		// Limit the scale factor within a reasonable range.
-		if (newScale < 0.1) {
-			newScale = 0.1;
-		} else if (newScale > 50) {
-			newScale = 50;
+		if (newScale < minScale) {
+			newScale = minScale;
+		} else if (newScale > maxScale) {
+			newScale = maxScale;
 		}
 
 		let ratio = 1 - newScale / scale;
@@ -118,49 +121,37 @@
 
 		scale = newScale;
 
-		if (!$metadata) {
-			return;
-		}
-
 		// If at highest detail level and zooming in,
 		// or if at lowest detail level and zooming out, do nothing.
-		// if (
-		// 	(currentLevel === 0 && event.deltaY < 0) ||
-		// 	(currentLevel === $metadata.length - 1 && event.deltaY > 0)
-		// ) {
-		// 	let s = event.deltaY < 0 ? 'in' : 'out';
-		// 	console.log('currentLevel', currentLevel, 'and zooming', s);
-		// 	return;
-		// }
-
-		const currentLayer = document
-			.getElementById('image-grid-layer-' + currentLevel)
-			?.getBoundingClientRect();
-
-		if (!currentLayer || !currentLayer.width) {
+		if (
+			(currentLevel == minLevel && event.deltaY < 0) ||
+			(currentLevel == maxLevel && event.deltaY > 0)
+		) {
+			let s = event.deltaY < 0 ? 'in' : 'out';
+			console.log('At level', currentLevel, 'and zooming', s + '. Skip computation.');
 			return;
 		}
+
+		const currentLayerWidth = document
+			.getElementById('image-grid-layer-' + currentLevel)
+			?.getBoundingClientRect()?.width;
+
+		if (!currentLayerWidth) return;
 
 		const viewportWidth = window.innerWidth;
-		if (!currentLayer || !currentLayer.width) {
-			return;
-		}
-		// console.log('currentLayer', currentLayer);
-		// console.log('viewport width', viewportWidth);
+		const threshold = currentLayerWidth / viewportWidth;
 
 		// If current layer width is larger than viewport width, switch to next level.
-		if (currentLayer.width / viewportWidth > 1) {
-			if (currentLevel == 0) {
-				return;
-			}
+		if (threshold > 1) {
+			if (currentLevel == minLevel) return;
+
 			currentLevel -= 1;
-			console.log('switching to next level: ', currentLevel);
-		} else if (currentLayer.width / viewportWidth < 0.9) {
-			if (currentLevel == $metadata.length - 1) {
-				return;
-			}
+			console.log('Switching to next level: ', currentLevel);
+		} else if (threshold < 0.9) {
+			if (currentLevel == maxLevel) return;
+
 			currentLevel += 1;
-			console.log('switching to prev level: ', currentLevel);
+			console.log('Switching to prev level: ', currentLevel);
 		}
 	}
 </script>
@@ -168,8 +159,8 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
 	id="view"
-	on:mousedown={handleMouseDown}
-	on:touchstart={handleTouchStart}
+	onmousedown={handleMouseDown}
+	ontouchstart={handleTouchStart}
 	style="height: 100vh; cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
@@ -178,14 +169,22 @@
 			? ''
 			: 'transition: transform 0.2s;'}"
 	>
-		{#if $metadata}
-			{#if $annotations}
-				<AnnotationCanvas />
+		{#if metadata.value && image.state.value}
+			{#if annotations.value && imageWidth && imageHeight}
+				<div id="annotation-canvas">
+					{#each annotations.value as layer, layerIndex}
+						<AnnotationLayer {layer} {layerIndex} {imageWidth} {imageHeight} />
+					{/each}
+				</div>
 			{/if}
-			<ImageCanvas {currentLevel} />
+			<div id="image-canvas">
+				{#each image.state.value as layer, layerIndex}
+					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
+				{/each}
+			</div>
 		{/if}
 	</div>
-	{#if $metadata}
+	{#if metadata.value}
 		<div id="coordinates-panel" class="panel">
 			<p><b>x:</b> {x}, <b>y:</b> {y}</p>
 		</div>
@@ -215,5 +214,13 @@
 			// Hide the element on touch-capable devices.
 			display: none;
 		}
+	}
+
+	#annotation-canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
 	}
 </style>
