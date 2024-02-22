@@ -1,47 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('JetBrainsMono-2.304/fonts/variable/JetBrainsMono[wght].ttf');
+	font-weight: 100 200 300 400 500 600 700 800 900;
+}
+
+* {
+	font-family: 'JetBrains Mono', monospace;
+	color: white;
+}
 
 body {
 	margin: 0;
 	background-color: #292929;
 	overflow: hidden;
-
-	font-family: 'Roboto', sans-serif;
 }
 
 button {
+	padding: 0;
+	background: transparent;
 	border: none;
 	cursor: pointer;
-
-	color: white;
-	font-weight: 500;
-	font-size: 15px;
+	font-size: 14px;
 }
 
 select {
 	border: none;
 	cursor: pointer;
 
-	color: white;
 	font-weight: 500;
-	font-size: 15px;
 }
 
 h1 {
 	margin: 0;
 }
 
-.grey-heading {
+.secondary-text {
 	color: rgba(255, 255, 255, 0.6);
 }
 
+.hidden {
+	visibility: hidden;
+}
+
 .panel {
-	color: white;
 	border: 1px solid rgba(255, 255, 255, 0.125);
 	border-radius: 10px;
 	backdrop-filter: blur(15px);
 	background: rgba(0, 0, 0, 0.75);
 	box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-	-webkit-backdrop-filter: blur(16px) saturate(180%);
 	pointer-events: all;
 }
 
@@ -49,15 +55,16 @@ h1 {
 	backdrop-filter: blur(15px);
 	background: rgba(255, 255, 255, 0.15);
 	box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+
 	font-size: 14px;
 	border-radius: 10px;
-	font-family: 'JetBrains Mono', monospace;
 }
 
 .inner-container {
 	background-color: rgba(0, 0, 0, 0.2);
 	padding: 10px;
 	border-radius: 10px;
+
 	display: flex;
 	flex-direction: column;
 	gap: 10px;

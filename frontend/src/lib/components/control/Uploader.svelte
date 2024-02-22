@@ -15,20 +15,6 @@
 	// TODO: Get path from file explorer.
 	let directory_path = '';
 
-	function handleImage(event: DragEvent) {
-		event.preventDefault();
-
-		const file = event.dataTransfer?.files[0];
-		imageUpload.value = file;
-	}
-
-	function handleAnnotationFile(event: DragEvent) {
-		event.preventDefault();
-
-		const file = event.dataTransfer?.files[0];
-		annotationsUpload.value = file;
-	}
-
 	function handleUpload() {
 		if (!imageUpload.value || !selectedGenerator) {
 			alert('Please provide an image and/or select an annotation generator.');
@@ -57,7 +43,7 @@
 <div>
 	<div class="outer-container">
 		<div class="inner-container" style="border-radius: 10px 10px 0 0;">
-			<span class="grey-heading"> ANNOTATIONS </span>
+			<span class="secondary-text"> ANNOTATION GENERATION </span>
 			<div style="display: flex;">
 				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
 					AUTOGENERATE
@@ -73,23 +59,21 @@
 			</div>
 		</div>
 
-		<UploadAsset
-			bind:assetUpload={imageUpload.value}
-			inputStyle={autogenerateAnnotations ? 'border-radius: 0 0 10px 10px' : ''}
-			labelStyle={autogenerateAnnotations ? 'border-radius: 0 0 10px 0' : ''}
-			accept="image/*"
-			handleDrop={handleImage}
-		/>
+		<div style="display: flex;">
+			<UploadAsset bind:assetUpload={imageUpload.value} placeholder="Image" />
 
-		{#if !autogenerateAnnotations}
-			<UploadAsset
-				bind:assetUpload={annotationsUpload.value}
-				inputStyle="border-radius: 0 0 10px 10px;"
-				labelStyle="border-radius: 0 0 10px 0;"
-				accept="json/*"
-				handleDrop={handleAnnotationFile}
-			/>
-		{/if}
+			{#if !autogenerateAnnotations}
+				<div class="divider" />
+				<UploadAsset bind:assetUpload={annotationsUpload.value} placeholder="Annotations" />
+			{/if}
+		</div>
+
+		<div
+			class="inner-container secondary-text"
+			style="padding: 5px 10px; font-size: 12px; border-radius: 0 0 10px 10px;"
+		>
+			Drag file onto/click on icon to browse fs.
+		</div>
 	</div>
 
 	<div style="display: flex;">
@@ -99,10 +83,15 @@
 </div>
 
 <style lang="scss">
+	.divider {
+		margin: 15px 2px;
+		border-left: 1px solid rgba(255, 255, 255, 0.2);
+		pointer-events: none;
+	}
+
 	select {
 		width: 130px;
 		border-radius: 5px;
-		font-family: 'JetBrains Mono', monospace;
 		letter-spacing: -0.01rem;
 		font-size: 13px;
 		padding: 3px 7px;
@@ -110,7 +99,6 @@
 	}
 
 	button {
-		font-family: 'JetBrains Mono', monospace;
 		font-size: 14px;
 		background-color: rgba(255, 255, 255, 0.2);
 		border-radius: 8px;

@@ -5,17 +5,13 @@
 	import { LoadImage } from '$api';
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<div style="padding: 2px {indent};" onclick={async () => LoadImage(file.metadata)}>
+<button style="padding: 4px {indent};" onclick={async () => LoadImage(file.metadata)}>
 	<img src="/default_file.svg" alt="File" />
-	<p>
-		{file.name}
-	</p>
-</div>
+	{file.name}
+</button>
 
 <style lang="scss">
-	div {
+	button {
 		display: flex;
 		cursor: pointer;
 
@@ -23,10 +19,6 @@
 			background-color: rgba(255, 255, 255, 0.1);
 			text-decoration: underline;
 		}
-	}
-
-	p {
-		margin: 0;
 	}
 
 	img {

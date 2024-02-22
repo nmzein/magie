@@ -17,23 +17,21 @@
 </script>
 
 <div>
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div
+	<button
 		id="label"
-		class="grey-heading"
-		style="padding: 2px {indent}; {depth == 1 && showContent ? 'margin-bottom: 3px;' : ''}"
+		class="secondary-text"
+		style="padding: 4px {indent}; {depth == 1 && showContent ? 'margin-bottom: 3px;' : ''}"
 		onclick={() => (showContent = !showContent)}
 	>
+		<!-- Directory icon for directories under root -->
 		{#if depth > 1}
 			<img {src} {alt} />
 		{/if}
 		{content.name}
-	</div>
+	</button>
 
 	<div style="display: {showContent ? 'visible' : 'none'};">
 		{#each content.files as file}
-			<!-- <p onclick={async () => LoadImage(image)}> -->
 			<File {file} indent={nextIndent} />
 		{/each}
 		{#each content.children as directory}
@@ -44,7 +42,6 @@
 
 <style lang="scss">
 	#label {
-		cursor: pointer;
 		user-select: none;
 		display: flex;
 		flex-direction: row;

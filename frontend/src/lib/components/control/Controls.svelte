@@ -11,13 +11,12 @@
 <nav>
 	<div id="container">
 		<div class="{showLargePanel ? 'panel' : 'hidden'} large">
-			<div style="display: flex; gap: 6px; margin-bottom: 15px;">
-				{#each pages as page}
-					<button class="panel-page-button" onclick={() => (currentView = page)}>{page}</button>
-				{/each}
-			</div>
-
-			<div style="display: flex; flex-direction: column; gap: 15px;">
+			<div style="display: flex; flex-direction: column; gap: 8px;">
+				<div style="display: flex; gap: 6px;">
+					{#each pages as page}
+						<button class="panel-page-button" onclick={() => (currentView = page)}>{page}</button>
+					{/each}
+				</div>
 				{#if currentView === pages[0]}
 					<FileExplorer />
 					<Uploader />
@@ -29,10 +28,10 @@
 
 		<div class="panel small">
 			<div style="flex: 1;" />
-			<button id="show-panel" onclick={() => (showLargePanel = !showLargePanel)}
+			<button onclick={() => (showLargePanel = !showLargePanel)}
 				><img
-					id="arrow-icon"
-					src="/arrow.png"
+					id="arrow"
+					src="arrow.png"
 					alt="Show large panel."
 					style="--rotation:{showLargePanel ? '0deg' : '180deg'}"
 				/></button
@@ -45,7 +44,6 @@
 	.panel-page-button {
 		height: 30px;
 		border-radius: 10px;
-		font-family: 'JetBrains Mono', monospace;
 		font-weight: 600;
 		font-size: 14px;
 	}
@@ -71,15 +69,18 @@
 		backdrop-filter: blur(15px);
 		background: rgba(255, 255, 255, 0.15);
 		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-		font-family: 'JetBrains Mono', monospace;
+
 		&:hover {
 			background-color: rgba(255, 255, 255, 0.1);
 		}
 	}
 
-	#show-panel > img {
+	.small img {
 		width: 20px;
 		height: 20px;
+	}
+
+	#arrow {
 		transform: translateY(2px) rotate(var(--rotation));
 	}
 
@@ -89,10 +90,6 @@
 
 		height: 100%;
 		gap: 10px;
-	}
-
-	.hidden {
-		visibility: hidden;
 	}
 
 	.large {

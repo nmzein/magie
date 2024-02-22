@@ -26,7 +26,6 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div style="display: flex; gap: 10px;">
 	<input
 		type="color"

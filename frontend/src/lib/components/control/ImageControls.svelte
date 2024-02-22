@@ -6,13 +6,12 @@
 <div class="outer-container">
 	<div class="inner-container">
 		<div style="display: flex; flex-direction: column; gap: 10px;">
-			<span class="grey-heading"> ANNOTATIONS </span>
+			<span class="secondary-text"> ANNOTATIONS </span>
 			{#if annotations.value}
 				{#each annotations.value as annotation}
 					<AnnotationVisibilityControls {annotation} />
 				{/each}
 			{:else}
-				<!-- Turn page controller to store so link here can auto switch pages. -->
 				Load an image to control annotations.
 			{/if}
 		</div>

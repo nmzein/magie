@@ -45,7 +45,7 @@
 </script>
 
 <div class="outer-container">
-	<div class="inner-container" style="padding: 10px 0 !important;">
+	<div class="inner-container" style="padding: 5px 0 !important;">
 		{#if stores.value}
 			{#if stores.value.length === 0}
 				Upload an image to get started.
@@ -55,14 +55,3 @@
 		{/if}
 	</div>
 </div>
-
-<style lang="scss">
-	p {
-		margin: 0;
-		cursor: pointer;
-
-		&:hover {
-			text-decoration: underline;
-		}
-	}
-</style>

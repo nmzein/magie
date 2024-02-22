@@ -156,9 +156,10 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
 	id="view"
+	role="img"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
 	style="height: 100vh; cursor: {isDragging ? 'grab' : 'crosshair'};"
@@ -201,7 +202,6 @@
 		position: absolute;
 		bottom: 10px;
 		left: 10px;
-		font-family: 'JetBrains Mono', monospace;
 		padding: 3px 7px;
 
 		p {

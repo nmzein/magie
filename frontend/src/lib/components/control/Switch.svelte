@@ -7,7 +7,7 @@
 	// TODO: Transition delays disappearance when control panel minimised.
 </script>
 
-<label class="switch">
+<label id="switch">
 	<input
 		type="checkbox"
 		{checked}
@@ -16,11 +16,11 @@
 			checked = !checked;
 		}}
 	/>
-	<span class="slider round" />
+	<span id="slider" />
 </label>
 
 <style lang="scss">
-	.switch {
+	#switch {
 		position: relative;
 		display: inline-block;
 		width: 30px;
@@ -34,7 +34,7 @@
 		}
 	}
 
-	.slider {
+	#slider {
 		position: absolute;
 		cursor: pointer;
 		top: 0;
@@ -42,7 +42,8 @@
 		right: 0;
 		bottom: 0;
 		background-color: rgba(255, 255, 255, 0.4);
-		transition: 0.4s;
+		transition: 0.3s;
+		border-radius: 34px;
 
 		&:before {
 			position: absolute;
@@ -52,27 +53,20 @@
 			left: 2px;
 			bottom: 2px;
 			background-color: white;
-			transition: 0.4s;
+			transition: 0.3s;
+			border-radius: 34px;
 		}
 	}
 
-	input:checked + .slider {
+	input:checked + #slider {
 		background-color: #2196f3;
 	}
 
-	input:focus + .slider {
+	input:focus + #slider {
 		box-shadow: 0 0 1px #2196f3;
 	}
 
-	input:checked + .slider:before {
+	input:checked + #slider:before {
 		transform: translateX(13px);
-	}
-
-	.slider.round {
-		border-radius: 34px;
-
-		&:before {
-			border-radius: 50%;
-		}
 	}
 </style>
