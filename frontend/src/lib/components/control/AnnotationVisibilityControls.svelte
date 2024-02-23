@@ -1,5 +1,8 @@
 <script lang="ts">
-	let { annotation } = $props<{ annotation: AnnotationLayer }>();
+	let { annotationLayer, annotationLayerIndex } = $props<{
+		annotationLayer: AnnotationLayer;
+		annotationLayerIndex: number;
+	}>();
 
 	import type { AnnotationLayer } from '$types';
 	import Switch from '$control/Switch.svelte';
@@ -8,13 +11,13 @@
 
 	function toggleAnnotationLayer(event: MouseEvent) {
 		event.preventDefault();
-		let annotationLayer = document.getElementById('annotation-layer-' + annotation.tag)?.style;
+		const layer = document.getElementById('annotation-layer-' + annotationLayerIndex)?.style;
 
-		if (annotationLayer?.visibility === 'hidden') {
-			annotationLayer?.setProperty('visibility', 'visible');
+		if (layer?.visibility === 'hidden') {
+			layer?.setProperty('visibility', 'visible');
 			checked = true;
 		} else {
-			annotationLayer?.setProperty('visibility', 'hidden');
+			layer?.setProperty('visibility', 'hidden');
 			checked = false;
 		}
 	}
@@ -22,7 +25,7 @@
 	// TODO: Fix
 	function updateAnnotationColour(event: Event) {
 		event.preventDefault();
-		annotation.colours.fill = (event.target as HTMLInputElement)?.value + '99';
+		annotationLayer.colours.fill = (event.target as HTMLInputElement)?.value + '99';
 	}
 </script>
 
@@ -30,11 +33,15 @@
 	<input
 		type="color"
 		onchange={(e) => updateAnnotationColour(e)}
-		value={annotation.colours.fill.slice(0, -2)}
-		style="--border: {annotation.colours.stroke};"
+		value={annotationLayer.colours.fill.slice(0, -2)}
+		style="--border: {annotationLayer.colours.stroke};"
 	/>
-	{annotation.tag}
-	<Switch bind:checked onclick={(e) => toggleAnnotationLayer(e)} />
+	{annotationLayer.tag}
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div onclick={(e) => toggleAnnotationLayer(e)}>
+		<Switch bind:checked />
+	</div>
 </div>
 
 <style lang="scss">

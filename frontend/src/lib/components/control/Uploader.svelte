@@ -45,7 +45,7 @@
 			<div style="display: flex;">
 				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
 					AUTOGENERATE
-					<Switch bind:checked={autogenerateAnnotations.value} onclick={undefined} />
+					<Switch bind:checked={autogenerateAnnotations.value} />
 				</div>
 				<select style="flex: 1;" bind:value={selectedGenerator.value}>
 					{#if generators.value}

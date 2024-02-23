@@ -36,7 +36,6 @@ const STORES_URL = HTTP_URL + PUBLIC_STORES_SUBDIR;
 const UPLOAD_URL = HTTP_URL + PUBLIC_UPLOAD_SUBDIR;
 
 export async function LoadImage(image: Image) {
-	console.log('Loading image:', image);
 	loadedImage.value = image;
 	GetMetadata(image.id);
 	GetAnnotations();
@@ -190,6 +189,31 @@ export async function GetAnnotations() {
 				response.status,
 				response.statusText
 			);
+
+			// Example values.
+			annotations.value = [
+				{
+					tag: 'Example 1',
+					colours: {
+						fill: '#00D2FF99',
+						stroke: '#000'
+					},
+					annotations: [
+						[
+							[0, 0],
+							[0, 1000],
+							[1000, 1000],
+							[1000, 0]
+						],
+						[
+							[3000, 3000],
+							[3000, 4000],
+							[4000, 4000],
+							[4000, 3000]
+						]
+					]
+				}
+			];
 		}
 	} catch (error) {
 		console.error('Fetch Error <Annotations: ' + loadedImage.value?.path + '>:', error);

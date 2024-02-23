@@ -1,20 +1,10 @@
 <script lang="ts">
 	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
-	let { checked, onclick } = $props<{
-		checked: boolean;
-		onclick: ((e: MouseEvent) => void) | undefined;
-	}>();
+	let { checked } = $props<{ checked: boolean }>();
 </script>
 
 <label id="switch">
-	<input
-		type="checkbox"
-		{checked}
-		onclick={(e) => {
-			if (onclick) onclick(e);
-			checked = !checked;
-		}}
-	/>
+	<input type="checkbox" {checked} onclick={() => (checked = !checked)} />
 	<span id="slider" />
 </label>
 

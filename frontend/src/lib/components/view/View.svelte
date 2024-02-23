@@ -66,7 +66,7 @@
 			if (!imageWidth || !imageHeight) return;
 
 			const currentLayer = document
-				.getElementById('image-grid-layer-' + currentLevel)
+				.getElementById('image-layer-' + currentLevel)
 				?.getBoundingClientRect();
 
 			const currentLayerWidth = currentLayer?.width;
@@ -126,7 +126,7 @@
 		}
 
 		const currentLayerWidth = document
-			.getElementById('image-grid-layer-' + currentLevel)
+			.getElementById('image-layer-' + currentLevel)
 			?.getBoundingClientRect()?.width;
 
 		if (!currentLayerWidth) return;
@@ -169,13 +169,13 @@
 	>
 		{#if metadata.value && image.state.value}
 			{#if annotations.value && imageWidth && imageHeight}
-				<div id="annotation-canvas">
+				<div id="annotation-layers">
 					{#each annotations.value as layer, layerIndex}
 						<AnnotationLayer {layer} {layerIndex} {imageWidth} {imageHeight} />
 					{/each}
 				</div>
 			{/if}
-			<div id="image-canvas">
+			<div id="image-layers">
 				{#each image.state.value as layer, layerIndex}
 					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
 				{/each}
@@ -217,13 +217,5 @@
 			// Hide the element on touch-capable devices.
 			display: none;
 		}
-	}
-
-	#annotation-canvas {
-		position: absolute;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
 	}
 </style>

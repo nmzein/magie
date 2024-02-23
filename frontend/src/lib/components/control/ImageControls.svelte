@@ -8,8 +8,8 @@
 		<div style="display: flex; flex-direction: column; gap: 10px;">
 			<span class="secondary-text"> ANNOTATIONS </span>
 			{#if annotations.value}
-				{#each annotations.value as annotation}
-					<AnnotationVisibilityControls {annotation} />
+				{#each annotations.value as annotationLayer, annotationLayerIndex}
+					<AnnotationVisibilityControls {annotationLayer} {annotationLayerIndex} />
 				{/each}
 			{:else}
 				Load an image to control annotations.

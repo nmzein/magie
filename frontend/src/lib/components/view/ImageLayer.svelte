@@ -59,8 +59,8 @@
 </script>
 
 <div
-	id="image-grid-layer-{layerIndex}"
-	class="image-grid"
+	id="image-layer-{layerIndex}"
+	class="image-layer"
 	style="--no-of-columns: {metadata.value?.[layerIndex].cols};"
 >
 	{#each layer as row, rowIndex (rowIndex)}
@@ -79,7 +79,7 @@
 </div>
 
 <style lang="scss">
-	.image-grid {
+	.image-layer {
 		width: 100vw;
 		display: grid;
 		grid-template-columns: repeat(var(--no-of-columns), 1fr);
