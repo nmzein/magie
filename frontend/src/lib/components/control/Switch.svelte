@@ -4,7 +4,6 @@
 		checked: boolean;
 		onclick: ((e: MouseEvent) => void) | undefined;
 	}>();
-	// TODO: Transition delays disappearance when control panel minimised.
 </script>
 
 <label id="switch">
@@ -42,7 +41,7 @@
 		right: 0;
 		bottom: 0;
 		background-color: rgba(255, 255, 255, 0.4);
-		transition: 0.3s;
+		transition: transform 0.3s;
 		border-radius: 34px;
 
 		&:before {
@@ -53,8 +52,8 @@
 			left: 2px;
 			bottom: 2px;
 			background-color: white;
-			transition: 0.3s;
-			border-radius: 34px;
+			transition: transform 0.3s;
+			border-radius: 50%;
 		}
 	}
 

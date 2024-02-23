@@ -3,37 +3,42 @@
 	import Uploader from '$control/Uploader.svelte';
 	import ImageControls from '$control/ImageControls.svelte';
 
-	let pages = ['FILES', 'IMAGE'];
-	let currentView = $state(pages[0]);
+	let views = ['FILES', 'IMAGE'];
+	let currentView = $state(views[0]);
 	let showLargePanel = $state(true);
+
+	let hidden = $derived(showLargePanel ? 'panel' : 'hidden');
+	let rotation = $derived(showLargePanel ? '0deg' : '180deg');
 </script>
 
 <nav>
 	<div id="container">
-		<div class="{showLargePanel ? 'panel' : 'hidden'} large">
+		<div class="large {hidden}">
 			<div style="display: flex; flex-direction: column; gap: 8px;">
 				<div style="display: flex; gap: 6px;">
-					{#each pages as page}
-						<button class="panel-page-button" onclick={() => (currentView = page)}>{page}</button>
+					{#each views as view}
+						<button class="panel-view-button" onclick={() => (currentView = view)}>{view}</button>
 					{/each}
 				</div>
-				{#if currentView === pages[0]}
+				{#if currentView === views[0]}
 					<FileExplorer />
 					<Uploader />
-				{:else if currentView === pages[1]}
+				{:else if currentView === views[1]}
 					<ImageControls />
 				{/if}
 			</div>
 		</div>
 
 		<div class="panel small">
+			<button><img class="zoom" src="plus.svg" alt="Zoom in." /></button>
+			<button><img class="zoom" src="minus.svg" alt="Zoom out." /></button>
 			<div style="flex: 1;" />
 			<button onclick={() => (showLargePanel = !showLargePanel)}
 				><img
 					id="arrow"
 					src="arrow.png"
 					alt="Show large panel."
-					style="--rotation:{showLargePanel ? '0deg' : '180deg'}"
+					style="--rotation: {rotation}"
 				/></button
 			>
 		</div>
@@ -41,7 +46,7 @@
 </nav>
 
 <style lang="scss">
-	.panel-page-button {
+	.panel-view-button {
 		height: 30px;
 		border-radius: 10px;
 		font-weight: 600;
@@ -75,13 +80,20 @@
 		}
 	}
 
-	.small img {
-		width: 20px;
-		height: 20px;
+	// .small img {
+	// }
+
+	.zoom {
+		width: 15px;
+		height: 15px;
+		padding: 2.5px;
+		filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(188deg) brightness(101%) contrast(101%);
 	}
 
 	#arrow {
-		transform: translateY(2px) rotate(var(--rotation));
+		width: 20px;
+		height: 20px;
+		transform: rotate(var(--rotation));
 	}
 
 	#container {
@@ -98,14 +110,15 @@
 	}
 
 	.small {
+		display: flex;
 		flex: 4;
 		min-height: 40px;
 		padding: 5px;
-		display: flex;
 		gap: 5px;
 
 		button {
 			height: 100%;
+			padding: 10px;
 		}
 	}
 </style>

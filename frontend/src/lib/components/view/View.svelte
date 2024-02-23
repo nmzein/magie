@@ -5,14 +5,15 @@
 
 	// TODO: Change how start level is chosen.
 	let currentLevel = $state(1);
+	let panStartX = $state(0);
+	let panStartY = $state(0);
 	let isDragging = $state(false);
 	let offsetX = $state(0);
 	let offsetY = $state(0);
 	let scale = $state(1);
+	// Still some clunky behaviour.
 	let x = $state(0);
 	let y = $state(0);
-	let panStartX = $state(0);
-	let panStartY = $state(0);
 
 	const minScale = 0.1;
 	const maxScale = 50;
@@ -45,19 +46,17 @@
 
 	function handleMouseDown(event: MouseEvent) {
 		event.preventDefault();
-
-		isDragging = true;
-		panStartX = event.clientX;
-		panStartY = event.clientY;
+		handlePanStart(event);
 	}
 
 	function handleTouchStart(event: TouchEvent) {
-		event.preventDefault();
+		handlePanStart(event.touches[0]);
+	}
 
-		const touch = event.touches[0];
+	function handlePanStart(event: MouseEvent | Touch) {
 		isDragging = true;
-		panStartX = touch.clientX;
-		panStartY = touch.clientY;
+		panStartX = event.clientX;
+		panStartY = event.clientY;
 	}
 
 	function handleMouseMove(event: MouseEvent) {
@@ -81,6 +80,15 @@
 			return;
 		}
 
+		handlePan(event);
+	}
+
+	function handleTouchMove(event: TouchEvent) {
+		if (!isDragging) return;
+		handlePan(event.touches[0]);
+	}
+
+	function handlePan(event: MouseEvent | Touch) {
 		offsetX += event.clientX - panStartX;
 		offsetY += event.clientY - panStartY;
 
@@ -88,24 +96,12 @@
 		panStartY = event.clientY;
 	}
 
-	function handleTouchMove(event: TouchEvent) {
-		if (!isDragging) return;
-
-		const touch = event.touches[0];
-
-		offsetX += touch.clientX - panStartX;
-		offsetY += touch.clientY - panStartY;
-
-		panStartX = touch.clientX;
-		panStartY = touch.clientY;
-	}
-
 	function handlePanEnd() {
 		isDragging = false;
 	}
 
-	function handleWheel(event: WheelEvent) {
-		let newScale = scale * Math.exp(event.deltaY * -0.005);
+	function zoom(delta: number, mouseX: number | 0, mouseY: number | 0) {
+		let newScale = scale * Math.exp(delta * -0.005);
 
 		// Limit the scale factor within a reasonable range.
 		if (newScale < minScale) {
@@ -116,18 +112,15 @@
 
 		let ratio = 1 - newScale / scale;
 
-		offsetX += (event.clientX - offsetX) * ratio;
-		offsetY += (event.clientY - offsetY) * ratio;
+		offsetX += (mouseX - offsetX) * ratio;
+		offsetY += (mouseY - offsetY) * ratio;
 
 		scale = newScale;
 
 		// If at highest detail level and zooming in,
 		// or if at lowest detail level and zooming out, do nothing.
-		if (
-			(currentLevel == minLevel && event.deltaY < 0) ||
-			(currentLevel == maxLevel && event.deltaY > 0)
-		) {
-			let s = event.deltaY < 0 ? 'in' : 'out';
+		if ((currentLevel == minLevel && delta < 0) || (currentLevel == maxLevel && delta > 0)) {
+			let s = delta < 0 ? 'in' : 'out';
 			console.log('At level', currentLevel, 'and zooming', s + '. Skip computation.');
 			return;
 		}
@@ -146,13 +139,17 @@
 			if (currentLevel == minLevel) return;
 
 			currentLevel -= 1;
-			console.log('Switching to next level: ', currentLevel);
+			console.log('Switching to next level:', currentLevel + '.');
 		} else if (threshold < 0.9) {
 			if (currentLevel == maxLevel) return;
 
 			currentLevel += 1;
-			console.log('Switching to prev level: ', currentLevel);
+			console.log('Switching to previous level:', currentLevel + '.');
 		}
+	}
+
+	function handleWheel(event: WheelEvent) {
+		zoom(event.deltaY, event.clientX, event.clientY);
 	}
 </script>
 
@@ -162,7 +159,7 @@
 	role="img"
 	onmousedown={handleMouseDown}
 	ontouchstart={handleTouchStart}
-	style="height: 100vh; cursor: {isDragging ? 'grab' : 'crosshair'};"
+	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
 		id="container"
@@ -187,12 +184,18 @@
 	</div>
 	{#if metadata.value}
 		<div id="coordinates-panel" class="panel">
-			<p><b>x:</b> {x}, <b>y:</b> {y}</p>
+			<span>x:</span>
+			{x}, <span>y:</span>
+			{y}
 		</div>
 	{/if}
 </div>
 
 <style lang="scss">
+	#view {
+		height: 100vh;
+	}
+
 	#container {
 		height: auto;
 		transform-origin: 0 0;
@@ -204,8 +207,8 @@
 		left: 10px;
 		padding: 3px 7px;
 
-		p {
-			margin: 0;
+		span {
+			font-weight: bold;
 		}
 	}
 

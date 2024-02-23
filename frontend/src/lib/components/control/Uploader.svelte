@@ -1,22 +1,20 @@
 <script lang="ts">
 	import { SendUploadAssets } from '$api';
-	import { imageUpload, annotationsUpload, generators } from '$stores';
+	import {
+		imageUpload,
+		annotationsUpload,
+		generators,
+		selectedGenerator,
+		autogenerateAnnotations
+	} from '$stores';
 	import Switch from '$control/Switch.svelte';
 	import UploadAsset from '$control/UploadAsset.svelte';
 
-	// TODO: Cache settings choices in stores.
-	let selectedGenerator = $state<string>();
-
-	$effect(() => {
-		selectedGenerator = generators.value?.[0];
-	});
-
-	let autogenerateAnnotations = $state(true);
 	// TODO: Get path from file explorer.
 	let directory_path = '';
 
 	function handleUpload() {
-		if (!imageUpload.value || !selectedGenerator) {
+		if (!imageUpload.value || !selectedGenerator.value) {
 			alert('Please provide an image and/or select an annotation generator.');
 			return;
 		}
@@ -24,15 +22,15 @@
 		// Still need to do this check as the user may have
 		// uploaded an annotation file earlier and then
 		// switched to autogeneration.
-		if (autogenerateAnnotations) {
-			SendUploadAssets(directory_path, imageUpload.value, undefined, selectedGenerator);
+		if (autogenerateAnnotations.value) {
+			SendUploadAssets(directory_path, imageUpload.value, undefined, selectedGenerator.value);
 			imageUpload.value = undefined;
 		} else if (annotationsUpload) {
 			SendUploadAssets(
 				directory_path,
 				imageUpload.value,
 				annotationsUpload.value,
-				selectedGenerator
+				selectedGenerator.value
 			);
 			imageUpload.value = undefined;
 			annotationsUpload.value = undefined;
@@ -47,9 +45,9 @@
 			<div style="display: flex;">
 				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
 					AUTOGENERATE
-					<Switch bind:checked={autogenerateAnnotations} onclick={undefined} />
+					<Switch bind:checked={autogenerateAnnotations.value} onclick={undefined} />
 				</div>
-				<select style="flex: 1;" bind:value={selectedGenerator}>
+				<select style="flex: 1;" bind:value={selectedGenerator.value}>
 					{#if generators.value}
 						{#each generators.value as annotation_generator}
 							<option value={annotation_generator}>{annotation_generator}</option>
@@ -62,7 +60,7 @@
 		<div style="display: flex;">
 			<UploadAsset bind:assetUpload={imageUpload.value} placeholder="Image" />
 
-			{#if !autogenerateAnnotations}
+			{#if !autogenerateAnnotations.value}
 				<div class="divider" />
 				<UploadAsset bind:assetUpload={annotationsUpload.value} placeholder="Annotations" />
 			{/if}

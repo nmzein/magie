@@ -1,18 +1,26 @@
 import type { Metadata, AnnotationLayer, ImageLayer, Image, TileRequest } from '$types';
 import { WEBSOCKET_URL } from '$api';
 
-const state = <T>() => {
-	let state = $state<{ value: T | undefined }>({ value: undefined });
+const state = <T>(initial: T | undefined = undefined) => {
+	let state = $state({ value: initial });
+	return state;
+};
+
+const definedState = <T>(initial: T) => {
+	let state = $state({ value: initial });
 	return state;
 };
 
 export const loadedImage = state<Image>();
 export const stores = state<Image[]>();
 export const generators = state<string[]>();
+export const selectedGenerator = state<string>();
 export const metadata = state<Metadata[]>();
 export const annotations = state<AnnotationLayer[]>();
 export const imageUpload = state<File>();
 export const annotationsUpload = state<File>();
+
+export const autogenerateAnnotations = definedState<boolean>(true);
 
 const _image = () => {
 	let state = $state<{ value: ImageLayer[] | undefined }>({ value: undefined });

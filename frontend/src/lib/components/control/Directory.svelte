@@ -14,6 +14,7 @@
 
 	let src = showContent ? '/default_folder_opened.svg' : '/default_folder.svg';
 	let alt = showContent ? 'Open Directory' : 'Directory';
+	let displayContent = showContent ? 'visible' : 'none';
 </script>
 
 <div>
@@ -30,7 +31,7 @@
 		{content.name}
 	</button>
 
-	<div style="display: {showContent ? 'visible' : 'none'};">
+	<div style="display: {displayContent};">
 		{#each content.files as file}
 			<File {file} indent={nextIndent} />
 		{/each}

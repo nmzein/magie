@@ -32,19 +32,19 @@
 			<span>{assetUpload.name}</span>
 		</button>
 	{:else}
-		<input
-			id={'browse-input' + placeholder}
-			type="file"
-			style="display: none"
-			onchange={(e) => handleBrowse(e)}
-		/>
-
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
 		<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 		<label id="asset" for={'browse-input' + placeholder} onclick={async (e) => handleBrowse(e)}>
 			<img src="default_file.svg" alt="" />
 			<span class="secondary-text">{placeholder}</span>
 		</label>
+
+		<input
+			id={'browse-input' + placeholder}
+			type="file"
+			style="display: none"
+			onchange={(e) => handleBrowse(e)}
+		/>
 	{/if}
 </div>
 
@@ -69,9 +69,11 @@
 		flex: 1;
 		flex-direction: column;
 		align-items: center;
+
 		padding: 10px;
 		border-radius: 5px;
 		margin: 5px;
+
 		cursor: pointer;
 	}
 

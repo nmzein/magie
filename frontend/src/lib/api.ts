@@ -1,4 +1,12 @@
-import { loadedImage, metadata, annotations, stores, generators, image } from '$stores';
+import {
+	loadedImage,
+	metadata,
+	annotations,
+	stores,
+	generators,
+	selectedGenerator,
+	image
+} from '$stores';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
@@ -101,6 +109,7 @@ export async function GetGenerators() {
 			try {
 				const data: string[] = await response.json();
 				generators.value = data;
+				selectedGenerator.value = generators.value?.[0];
 			} catch (error) {
 				console.error('Parse Error <Generators>:', error);
 			}

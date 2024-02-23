@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { websocket, loadedImage, metadata } from '$stores';
-	import type { ImageLayer } from '$types';
-
 	let {
 		layerIndex,
 		layer,
@@ -11,6 +8,9 @@
 		layer: ImageLayer;
 		display: boolean;
 	}>();
+
+	import { websocket, loadedImage, metadata } from '$stores';
+	import type { ImageLayer } from '$types';
 
 	const options = {
 		rootMargin: '150px'
@@ -24,9 +24,8 @@
 				let levelString = (entry.target as HTMLElement).dataset.level;
 				let xString = (entry.target as HTMLElement).dataset.x;
 				let yString = (entry.target as HTMLElement).dataset.y;
-				if (!levelString || !xString || !yString) {
-					return;
-				}
+				if (!levelString || !xString || !yString) return;
+
 				let level = parseInt(levelString);
 				let x = parseInt(xString);
 				let y = parseInt(yString);
@@ -40,7 +39,6 @@
 				if (!ready) return;
 
 				observer.unobserve(entry.target);
-				(entry.target as HTMLElement).dataset.level = '-1';
 				console.log('Unobserving', level);
 			}
 		});
@@ -82,6 +80,7 @@
 
 <style lang="scss">
 	.image-grid {
+		width: 100vw;
 		display: grid;
 		grid-template-columns: repeat(var(--no-of-columns), 1fr);
 		position: absolute;
