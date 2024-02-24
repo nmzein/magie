@@ -22,7 +22,6 @@
 		}
 	}
 
-	// TODO: Fix
 	function updateAnnotationColour(event: Event) {
 		event.preventDefault();
 		annotationLayer.colours.fill = (event.target as HTMLInputElement)?.value + '99';

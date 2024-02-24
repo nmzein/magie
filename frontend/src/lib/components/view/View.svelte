@@ -21,6 +21,15 @@
 	let maxLevel: number | undefined = $state();
 	let imageWidth: number | undefined = $state();
 	let imageHeight: number | undefined = $state();
+	let imageLayersDiv: HTMLDivElement | undefined = $state();
+
+	$effect(() => {
+		if (!metadata.value) return;
+
+		maxLevel = metadata.value.length - 1;
+		imageWidth = metadata.value[0].width;
+		imageHeight = metadata.value[0].height;
+	});
 
 	$effect(() => {
 		document.addEventListener('mousemove', handleMouseMove);
@@ -28,12 +37,6 @@
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
-
-		if (metadata.value) {
-			maxLevel = metadata.value?.length - 1;
-			imageWidth = metadata.value[0].width;
-			imageHeight = metadata.value[0].height;
-		}
 
 		return () => {
 			document.removeEventListener('mousemove', handleMouseMove);
@@ -125,14 +128,11 @@
 			return;
 		}
 
-		const currentLayerWidth = document
-			.getElementById('image-layer-' + currentLevel)
-			?.getBoundingClientRect()?.width;
-
-		if (!currentLayerWidth) return;
+		const imageLayersWidth = imageLayersDiv?.getBoundingClientRect()?.width;
+		if (!imageLayersWidth) return;
 
 		const viewportWidth = window.innerWidth;
-		const threshold = currentLayerWidth / viewportWidth;
+		const threshold = imageLayersWidth / viewportWidth;
 
 		// If current layer width is larger than viewport width, switch to next level.
 		if (threshold > 1) {
@@ -168,14 +168,14 @@
 			: 'transition: transform 0.2s;'}"
 	>
 		{#if metadata.value && image.state.value}
-			{#if annotations.value && imageWidth && imageHeight}
+			{#if annotations.value && imageWidth && imageHeight && imageLayersDiv}
 				<div id="annotation-layers">
 					{#each annotations.value as layer, layerIndex}
-						<AnnotationLayer {layer} {layerIndex} {imageWidth} {imageHeight} />
+						<AnnotationLayer {imageLayersDiv} {layer} {layerIndex} {imageWidth} {imageHeight} />
 					{/each}
 				</div>
 			{/if}
-			<div id="image-layers">
+			<div id="image-layers" bind:this={imageLayersDiv}>
 				{#each image.state.value as layer, layerIndex}
 					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
 				{/each}

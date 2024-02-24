@@ -1,5 +1,6 @@
 <script lang="ts">
-	let { layer, layerIndex, imageWidth, imageHeight } = $props<{
+	let { imageLayersDiv, layer, layerIndex, imageWidth, imageHeight } = $props<{
+		imageLayersDiv: HTMLDivElement;
 		layer: AnnotationLayer;
 		layerIndex: number;
 		imageWidth: number;
@@ -8,25 +9,21 @@
 
 	import type { AnnotationLayer } from '$types';
 
-	let context: CanvasRenderingContext2D | null | undefined = $state();
-	let canvasWidth: number | undefined = $state();
-	let canvasHeight: number | undefined = $state();
-	let scaler: number | undefined = $state();
-
-	let id = 'annotation-layer-' + layerIndex;
-	let fill = layer.colours.fill;
-	let stroke = layer.colours.stroke;
+	let canvas: HTMLCanvasElement | undefined = $state();
+	let context: CanvasRenderingContext2D | null | undefined = $derived(canvas?.getContext('2d'));
+	let canvasWidth: number = $derived(imageLayersDiv.getBoundingClientRect()?.width);
+	let scaler: number = $derived(canvasWidth / imageWidth);
+	let canvasHeight: number = $derived(imageHeight * scaler);
 
 	$effect(() => {
-		context = (document.getElementById(id) as HTMLCanvasElement)?.getContext('2d');
-
-		canvasWidth = document.getElementById('image-layers')?.getBoundingClientRect()?.width;
-		if (!canvasWidth) return;
-
-		// Check logic later. Fails when resizing viewport.
-		scaler = canvasWidth / imageWidth;
-		canvasHeight = imageHeight * scaler;
+		if (!canvas) return;
+		canvas.width = canvasWidth;
+		// canvas.height = canvasHeight;
 	});
+
+	let id = 'annotation-layer-' + layerIndex;
+	let fill = $derived(layer.colours.fill);
+	let stroke = $derived(layer.colours.stroke);
 
 	function draw(annotation: number[][]) {
 		if (!context || !scaler) return;
@@ -43,7 +40,7 @@
 	}
 </script>
 
-<canvas width={canvasWidth} height={canvasHeight} {id}>
+<canvas bind:this={canvas} height={canvasHeight} {id}>
 	{#each layer.annotations as annotation}
 		{draw(annotation)}
 	{/each}
@@ -53,5 +50,6 @@
 	canvas {
 		position: absolute;
 		z-index: 1;
+		width: 100%;
 	}
 </style>
