@@ -38,14 +38,13 @@
 	<div style="display: flex; gap: 10px; align-items: center;">
 		<span style="font-size: 15px;"> α </span>
 		<Slider
-			id="opacity"
+			id={'opacity' + layer.tag}
 			min={0}
 			max={1}
 			step={0.1}
 			bind:value={layer.opacity}
 			inputStyle="flex: 9;"
 			labelStyle="flex: 1; text-align: right;"
-			colour={rgbToCss(layer.fill)}
 		/>
 	</div>
 </div>

@@ -32,14 +32,12 @@
 	});
 
 	$effect(() => {
-		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('touchmove', handleTouchMove);
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
 		return () => {
-			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('touchmove', handleTouchMove);
 			document.removeEventListener('mouseup', handlePanEnd);
 			document.removeEventListener('touchend', handlePanEnd);
@@ -158,6 +156,7 @@
 	id="view"
 	role="img"
 	onmousedown={handleMouseDown}
+	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
