@@ -200,8 +200,8 @@ export async function GetAnnotations() {
 					tag: 'Example 1',
 					visible: true,
 					opacity: 0.5,
-					fill: [0, 210, 255],
-					stroke: [0, 0, 0],
+					fill: '#00d2ff',
+					stroke: '#000000',
 					annotations: [
 						[
 							[0, 0],

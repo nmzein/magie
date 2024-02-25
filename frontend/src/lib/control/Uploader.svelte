@@ -49,8 +49,8 @@
 				</div>
 				<select style="flex: 1;" bind:value={selectedGenerator.value}>
 					{#if generators.value}
-						{#each generators.value as annotation_generator}
-							<option value={annotation_generator}>{annotation_generator}</option>
+						{#each generators.value as generator}
+							<option value={generator}>{generator}</option>
 						{/each}
 					{/if}
 				</select>

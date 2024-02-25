@@ -46,13 +46,6 @@
 </nav>
 
 <style lang="scss">
-	.panel-view-button {
-		height: 30px;
-		border-radius: 10px;
-		font-weight: 600;
-		font-size: 14px;
-	}
-
 	nav {
 		display: block;
 		position: absolute;
@@ -67,35 +60,6 @@
 		pointer-events: none;
 	}
 
-	button {
-		border-radius: 30px;
-		height: 40px;
-		padding: 0 10px;
-		backdrop-filter: blur(15px);
-		background: rgba(255, 255, 255, 0.15);
-		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
-
-		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
-	// .small img {
-	// }
-
-	.zoom {
-		width: 15px;
-		height: 15px;
-		padding: 2.5px;
-		filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(188deg) brightness(101%) contrast(101%);
-	}
-
-	#arrow {
-		width: 20px;
-		height: 20px;
-		transform: rotate(var(--rotation));
-	}
-
 	#container {
 		display: flex;
 		flex-direction: column;
@@ -107,6 +71,13 @@
 	.large {
 		flex: 96;
 		padding: 8px;
+
+		.panel-view-button {
+			height: 30px;
+			border-radius: 10px;
+			font-weight: 600;
+			font-size: 14px;
+		}
 	}
 
 	.small {
@@ -119,6 +90,33 @@
 		button {
 			height: 100%;
 			padding: 10px;
+		}
+
+		.zoom {
+			width: 15px;
+			height: 15px;
+			padding: 2.5px;
+			filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(188deg) brightness(101%)
+				contrast(101%);
+		}
+
+		#arrow {
+			width: 20px;
+			height: 20px;
+			transform: rotate(var(--rotation));
+		}
+	}
+
+	button {
+		border-radius: 30px;
+		height: 40px;
+		padding: 0 10px;
+		backdrop-filter: blur(15px);
+		background: rgba(255, 255, 255, 0.15);
+		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+
+		&:hover {
+			background-color: rgba(255, 255, 255, 0.1);
 		}
 	}
 </style>

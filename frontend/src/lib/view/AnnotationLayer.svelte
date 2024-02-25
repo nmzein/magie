@@ -8,18 +8,12 @@
 	}>();
 
 	import type { AnnotationLayer } from '$types';
-	import { rgbaToHex } from '$lib/rgb';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let context: CanvasRenderingContext2D | null | undefined = $derived(canvas?.getContext('2d'));
 	let canvasWidth: number = $derived(imageLayersDiv.getBoundingClientRect()?.width);
 	let scaler: number = $derived(canvasWidth / imageWidth);
 	let canvasHeight: number = $derived(imageHeight * scaler);
-
-	let fill = $derived(rgbaToHex(layer.fill, layer.opacity));
-	let stroke = $derived(rgbaToHex(layer.stroke, layer.opacity));
-
-	const id = 'annotation-layer-' + layerIndex;
 
 	$effect(() => {
 		if (!canvas) return;
@@ -37,8 +31,8 @@
 			for (let [x, y] of annotation.slice(1)) context.lineTo(x * scaler, y * scaler);
 			context.closePath();
 
-			context.fillStyle = fill;
-			context.strokeStyle = stroke;
+			context.fillStyle = layer.fill;
+			context.strokeStyle = layer.stroke;
 			context.fill();
 			context.stroke();
 		}
@@ -48,8 +42,8 @@
 <canvas
 	bind:this={canvas}
 	height={canvasHeight}
-	{id}
-	style="display: {layer.visible ? 'block' : 'none'}"
+	id={'annotation-layer-' + layerIndex}
+	style="display: {layer.visible ? 'block' : 'none'}; opacity: {layer.opacity};"
 >
 	{draw()}
 </canvas>
