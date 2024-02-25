@@ -179,7 +179,11 @@ export async function GetAnnotations() {
 		if (response.ok) {
 			try {
 				const data: AnnotationLayer[] = await response.json();
-				annotations.value = data;
+				// TODO: Move to server.
+				annotations.value = data.map((annotationLayer) => ({
+					...annotationLayer,
+					annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
+				}));
 			} catch (error) {
 				console.error('Parse Error <Annotations: ' + loadedImage.value?.path + '>:', error);
 			}
@@ -194,28 +198,68 @@ export async function GetAnnotations() {
 			annotations.value = [
 				{
 					tag: 'Example 1',
-					colours: {
-						fill: '#00D2FF99',
-						stroke: '#000'
-					},
+					visible: true,
+					opacity: 0.5,
+					fill: [0, 210, 255],
+					stroke: [0, 0, 0],
 					annotations: [
 						[
 							[0, 0],
-							[0, 1000],
 							[1000, 1000],
-							[1000, 0]
+							[1000, 0],
+							[0, 1000]
 						],
 						[
 							[3000, 3000],
 							[3000, 4000],
 							[4000, 4000],
 							[4000, 3000]
+						],
+						[
+							[5000, 5000],
+							[5000, 6000],
+							[6000, 6000],
+							[6000, 5000]
 						]
 					]
 				}
 			];
+
+			annotations.value = annotations.value.map((annotationLayer) => ({
+				...annotationLayer,
+				annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
+			}));
 		}
 	} catch (error) {
 		console.error('Fetch Error <Annotations: ' + loadedImage.value?.path + '>:', error);
 	}
+}
+
+// TODO: Move to server.
+// Credit: https://stackoverflow.com/questions/54719326/sorting-points-in-a-clockwise-direction
+function sort(annotation: number[][]): number[][] {
+	const length = annotation.length;
+
+	// Get the center (mean value) using reduce.
+	const center = annotation.reduce(
+		(acc, [x, y]) => {
+			acc[0] += x / length;
+			acc[1] += y / length;
+			return acc;
+		},
+		[0, 0]
+	);
+
+	return (
+		annotation
+			// Add an angle property to each point using:
+			// angle = arctan(y/x) then convert to degrees.
+			.map(([x, y]) => {
+				return [x, y, Math.atan2(y - center[1], x - center[0]) * (180 / Math.PI)];
+			})
+			// Sort by angle.
+			.sort((a, b) => a[2] - b[2])
+			// Remove the angle property.
+			.map(([x, y, _]) => [x, y])
+	);
 }

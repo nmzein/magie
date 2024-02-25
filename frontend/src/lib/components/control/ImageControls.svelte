@@ -1,19 +1,17 @@
 <script lang="ts">
 	import { annotations } from '$stores';
-	import AnnotationVisibilityControls from '$control/AnnotationVisibilityControls.svelte';
+	import AnnotationLayerControls from '$control/AnnotationLayerControls.svelte';
 </script>
 
 <div class="outer-container">
-	<div class="inner-container">
-		<div style="display: flex; flex-direction: column; gap: 10px;">
-			<span class="secondary-text"> ANNOTATIONS </span>
-			{#if annotations.value}
-				{#each annotations.value as annotationLayer, annotationLayerIndex}
-					<AnnotationVisibilityControls {annotationLayer} {annotationLayerIndex} />
-				{/each}
-			{:else}
-				Load an image to control annotations.
-			{/if}
-		</div>
+	<div class="inner-container" style="border-radius: 10px 10px 0 0;">
+		<span class="secondary-text"> ANNOTATIONS </span>
 	</div>
+	{#if annotations.value}
+		{#each annotations.value as layer}
+			<AnnotationLayerControls {layer} />
+		{/each}
+	{:else}
+		<div style="padding: 10px;">Load an image to control annotations.</div>
+	{/if}
 </div>

@@ -8,6 +8,7 @@
 	}>();
 
 	import type { AnnotationLayer } from '$types';
+	import { rgbaToHex } from '$lib/rgb';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let context: CanvasRenderingContext2D | null | undefined = $derived(canvas?.getContext('2d'));
@@ -15,35 +16,42 @@
 	let scaler: number = $derived(canvasWidth / imageWidth);
 	let canvasHeight: number = $derived(imageHeight * scaler);
 
+	let fill = $derived(rgbaToHex(layer.fill, layer.opacity));
+	let stroke = $derived(rgbaToHex(layer.stroke, layer.opacity));
+
+	const id = 'annotation-layer-' + layerIndex;
+
 	$effect(() => {
 		if (!canvas) return;
 		canvas.width = canvasWidth;
-		// canvas.height = canvasHeight;
 	});
 
-	let id = 'annotation-layer-' + layerIndex;
-	let fill = $derived(layer.colours.fill);
-	let stroke = $derived(layer.colours.stroke);
-
-	function draw(annotation: number[][]) {
+	function draw() {
 		if (!context || !scaler) return;
 
-		context.beginPath();
-		context.moveTo(annotation[0][0] * scaler, annotation[0][1] * scaler);
-		for (let [x, y] of annotation.slice(1)) context.lineTo(x * scaler, y * scaler);
-		context.closePath();
+		context.clearRect(0, 0, canvasWidth, canvasHeight);
 
-		context.fillStyle = fill;
-		context.strokeStyle = stroke;
-		context.fill();
-		context.stroke();
+		for (const annotation of layer.annotations) {
+			context.beginPath();
+			context.moveTo(annotation[0][0] * scaler, annotation[0][1] * scaler);
+			for (let [x, y] of annotation.slice(1)) context.lineTo(x * scaler, y * scaler);
+			context.closePath();
+
+			context.fillStyle = fill;
+			context.strokeStyle = stroke;
+			context.fill();
+			context.stroke();
+		}
 	}
 </script>
 
-<canvas bind:this={canvas} height={canvasHeight} {id}>
-	{#each layer.annotations as annotation}
-		{draw(annotation)}
-	{/each}
+<canvas
+	bind:this={canvas}
+	height={canvasHeight}
+	{id}
+	style="display: {layer.visible ? 'block' : 'none'}"
+>
+	{draw()}
 </canvas>
 
 <style lang="scss">

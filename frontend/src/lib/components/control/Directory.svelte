@@ -12,9 +12,9 @@
 	let indent = (depth * 10).toString() + 'px';
 	let nextIndent = ((depth + 1) * 10).toString() + 'px';
 
-	let src = showContent ? '/default_folder_opened.svg' : '/default_folder.svg';
-	let alt = showContent ? 'Open Directory' : 'Directory';
-	let displayContent = showContent ? 'visible' : 'none';
+	let src = $derived(showContent ? '/default_folder_opened.svg' : '/default_folder.svg');
+	let alt = $derived(showContent ? 'Open Directory' : 'Directory');
+	let displayContent = $derived(showContent ? 'visible' : 'none');
 </script>
 
 <div>

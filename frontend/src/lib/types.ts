@@ -19,10 +19,10 @@ export type Metadata = {
 
 export type AnnotationLayer = {
 	tag: string;
-	colours: {
-		fill: string;
-		stroke: string;
-	};
+	visible: boolean;
+	opacity: number;
+	fill: number[];
+	stroke: number[];
 	annotations: number[][][];
 };
 

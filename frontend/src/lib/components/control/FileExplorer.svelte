@@ -45,13 +45,13 @@
 </script>
 
 <div class="outer-container">
-	<div class="inner-container" style="padding: 5px 0 !important;">
-		{#if stores.value}
-			{#if stores.value.length === 0}
-				Upload an image to get started.
-			{:else}
+	{#if stores.value}
+		{#if stores.value.length === 0}
+			<div style="padding: 10px;">Upload an image to get started.</div>
+		{:else}
+			<div class="inner-container" style="padding: 5px 0 !important;">
 				<Directory content={root} bind:showContent={showFilesystem} depth={1} />
-			{/if}
+			</div>
 		{/if}
-	</div>
+	{/if}
 </div>
