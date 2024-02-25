@@ -1,7 +1,7 @@
 use crate::structs::{Address, AnnotationLayer, Metadata, Region, Size, TileRequest};
 use crate::traits::Decoder;
 use anyhow::Result;
-use image::codecs::jpeg::JpegEncoder;
+use image::{ImageBuffer, Rgb};
 #[cfg(feature = "time")]
 use std::time::Instant;
 use std::{path::PathBuf, sync::Arc};
@@ -78,9 +78,11 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     let start = Instant::now();
 
     // Retrieve tile for each RGB channel.
-    let channels = array.par_retrieve_chunks(&ArraySubset::new_with_start_end_inc(
-        vec![0, 0, 0, tile_request.y.into(), tile_request.x.into()],
-        vec![0, 2, 0, tile_request.y.into(), tile_request.x.into()],
+    let x: u64 = tile_request.x.into();
+    let y: u64 = tile_request.y.into();
+    let channels = array.retrieve_chunks(&ArraySubset::new_with_start_end_inc(
+        vec![0, 0, 0, y, x],
+        vec![0, 2, 0, y, x],
     )?)?;
 
     #[cfg(feature = "time")]
@@ -95,9 +97,9 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     #[cfg(feature = "time")]
     let start = Instant::now();
 
-    // TODO: Bottleneck #2.
+    // TODO: Bottleneck.
     // Interleave RGB channels.
-    let mut tile = Vec::with_capacity(channels.len());
+    let mut tile = Vec::with_capacity(TILE_LENGTH * 3);
     for i in 0..TILE_LENGTH {
         tile.push(channels[i]);
         tile.push(channels[i + (TILE_LENGTH)]);
@@ -116,10 +118,14 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     #[cfg(feature = "time")]
     let start = Instant::now();
 
-    // TODO: Bottleneck #1.
-    // Encode tile to JPEG.
-    let mut jpeg_tile = Vec::new();
-    JpegEncoder::new(&mut jpeg_tile).encode(&tile, TILE_SIZE, TILE_SIZE, image::ColorType::Rgb8)?;
+    let Some(image_tile) = ImageBuffer::from_raw(TILE_SIZE, TILE_SIZE, tile) else {
+        return Err(anyhow::anyhow!(
+            "Could not convert tile Vec<u8> to ImageBuffer."
+        ));
+    };
+
+    let mut jpeg_tile =
+        turbojpeg::compress_image::<Rgb<u8>>(&image_tile, 95, turbojpeg::Subsamp::Sub2x2)?.to_vec();
 
     #[cfg(feature = "time")]
     println!(
@@ -192,7 +198,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
             Box::new(codec::Lz4Codec::new(9)?),
         ])
         // Define dimension names - time, RGB channel, z, y, x axis.
-        .dimension_names(vec!["t".into(), "c".into(), "z".into(), "y".into(), "x".into()].into())
+        .dimension_names(vec!["t", "c", "z", "y", "x"].into())
         .build(store.clone(), &array_path)?;
 
         // Write array metadata to store.
@@ -243,7 +249,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                 #[cfg(feature = "time")]
                 let start = Instant::now();
 
-                array.par_store_chunks(
+                array.store_chunks(
                     &ArraySubset::new_with_start_end_inc(
                         vec![0, 0, 0, y.into(), x.into()],
                         vec![0, 2, 0, y.into(), x.into()],
