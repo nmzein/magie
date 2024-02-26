@@ -38,7 +38,6 @@ const UPLOAD_URL = HTTP_URL + PUBLIC_UPLOAD_SUBDIR;
 export async function LoadImage(image: Image) {
 	loadedImage.value = image;
 	GetMetadata(image.id);
-	GetAnnotations();
 }
 
 export async function CreateDirectory(
@@ -153,11 +152,13 @@ export async function GetMetadata(id: number) {
 			try {
 				const data: Metadata[] = await response.json();
 				metadata.value = data;
+
+				// On success, initialise the image grid and get annotations.
+				image.initialise();
+				GetAnnotations();
 			} catch (error) {
 				console.error('Parse Error <Metadata: ' + loadedImage.value?.path + '>:', error);
 			}
-
-			image.initialise();
 		} else {
 			console.error(
 				'Response Error <Metadata: ' + loadedImage.value?.path + '>:',
@@ -179,11 +180,12 @@ export async function GetAnnotations() {
 		if (response.ok) {
 			try {
 				const data: AnnotationLayer[] = await response.json();
-				// TODO: Move to server.
-				annotations.value = data.map((annotationLayer) => ({
-					...annotationLayer,
-					annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
-				}));
+				annotations.value = data;
+				// // TODO: Move to server.
+				// annotations.value = data.map((annotationLayer) => ({
+				// 	...annotationLayer,
+				// 	annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
+				// }));
 			} catch (error) {
 				console.error('Parse Error <Annotations: ' + loadedImage.value?.path + '>:', error);
 			}
@@ -193,42 +195,6 @@ export async function GetAnnotations() {
 				response.status,
 				response.statusText
 			);
-
-			// Example values.
-			annotations.value = [
-				{
-					tag: 'Example 1',
-					visible: true,
-					opacity: 0.5,
-					fill: '#00d2ff',
-					stroke: '#000000',
-					annotations: [
-						[
-							[0, 0],
-							[1000, 1000],
-							[1000, 0],
-							[0, 1000]
-						],
-						[
-							[3000, 3000],
-							[3000, 4000],
-							[4000, 4000],
-							[4000, 3000]
-						],
-						[
-							[5000, 5000],
-							[5000, 6000],
-							[6000, 6000],
-							[6000, 5000]
-						]
-					]
-				}
-			];
-
-			annotations.value = annotations.value.map((annotationLayer) => ({
-				...annotationLayer,
-				annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
-			}));
 		}
 	} catch (error) {
 		console.error('Fetch Error <Annotations: ' + loadedImage.value?.path + '>:', error);

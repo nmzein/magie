@@ -1,49 +1,73 @@
 use crate::generators::common::*;
+use flate2::read::ZlibDecoder;
+use geo_types::Geometry::Polygon;
 use sqlx::{sqlite::SqlitePool, FromRow};
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    io::{Cursor, Read},
+    path::PathBuf,
+};
+use wkb::WKBReadExt;
 
 #[derive(Debug, Clone, FromRow)]
-struct Node {
-    number: u32,
-    x: u32,
-    y: u32,
+struct Annotation {
+    cx: u32,
+    cy: u32,
+    geometry: Vec<u8>,
 }
 
-type Annotation = Vec<[u32; 2]>;
-
-// pub const name: &str = "TIAToolbox";
+// pub const name: &str = "TIAToolbox"
 
 pub async fn read_annotations(annotations_path: PathBuf) -> Result<Vec<AnnotationLayer<'static>>> {
-    let database_url = format!("sqlite://{:?}", annotations_path);
+    let database_url = format!("sqlite://{}", annotations_path.display());
     let pool = SqlitePool::connect(&database_url).await?;
 
-    let result = sqlx::query_as::<_, Node>(
+    let start = std::time::Instant::now();
+
+    let results = sqlx::query_as::<_, Annotation>(
         r#"
-        SELECT nodeno AS number, cx AS x, cy AS y
-        FROM annotations
-        JOIN rtree_rowid ON annotations.id = rtree_rowid.rowid
-        ORDER BY number;
+            SELECT cx, cy, geometry
+            FROM annotations;
         "#,
     )
     .fetch_all(&pool)
     .await?;
 
-    // Aggregate coordinates by node number
-    let mut nodes_map: HashMap<u32, Annotation> = HashMap::new();
-    for node in result {
-        let coords = nodes_map.entry(node.number).or_insert_with(Vec::new);
-        coords.push([node.x, node.y]);
+    println!("Query took: {:?}", start.elapsed());
+
+    let start = std::time::Instant::now();
+
+    let mut annotations = Vec::with_capacity(results.len());
+    for result in results {
+        let mut decoder = ZlibDecoder::new(&*result.geometry);
+        let mut wkb = Vec::new();
+        decoder.read_to_end(&mut wkb)?;
+
+        let mut cursor = Cursor::new(wkb);
+        let Polygon(polygon) = cursor.read_wkb().unwrap() else {
+            return Err(anyhow::anyhow!("Failed to read wkb."));
+        };
+
+        let (exterior, _) = polygon.into_inner();
+
+        let annotation: Vec<_> = exterior
+            .0
+            .iter()
+            .map(|coord| [coord.x as f32, coord.y as f32])
+            .collect();
+
+        annotations.push(annotation);
     }
 
-    // Create a vector of annotations.
-    let annotations: Vec<_> = nodes_map.values().cloned().collect();
+    println!("Decoding took: {:?}", start.elapsed());
+
+    let annotations = annotations[0..100000].to_vec();
 
     Ok(vec![AnnotationLayer {
-        tag: "Example 1",
-        colours: Colours {
-            fill: "#e0747099",
-            stroke: "#a12c28",
-        },
-        annotations: annotations[0..10].to_vec(),
+        tag: "Connective Cell",
+        visible: true,
+        opacity: 1.0,
+        fill: "#00d2ff",
+        stroke: "#000000",
+        annotations,
     }])
 }

@@ -57,14 +57,11 @@ pub struct TileRequest {
 #[derive(Debug, Serialize)]
 pub struct AnnotationLayer<'a> {
     pub tag: &'a str,
-    pub colours: Colours<'a>,
-    pub annotations: Vec<Vec<[u32; 2]>>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Colours<'a> {
+    pub visible: bool,
+    pub opacity: f32,
     pub fill: &'a str,
     pub stroke: &'a str,
+    pub annotations: Vec<Vec<[f32; 2]>>,
 }
 
 pub struct Region {

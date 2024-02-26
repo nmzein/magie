@@ -52,6 +52,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 
 [[package]]
+name = "approx"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -810,6 +819,17 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "geo-types"
+version = "0.7.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ff16065e5720f376fbced200a5ae0f47ace85fd70b7e54269790281353b6d61"
+dependencies = [
+ "approx",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -1826,7 +1846,9 @@ dependencies = [
  "axum",
  "axum_typed_multipart",
  "dotenv",
+ "flate2",
  "futures-util",
+ "geo-types",
  "image",
  "openslide-rs",
  "serde",
@@ -1836,6 +1858,7 @@ dependencies = [
  "tokio",
  "tower-http",
  "turbojpeg",
+ "wkb",
  "zarrs",
 ]
 
@@ -2908,10 +2931,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dff9641d1cd4be8d1a070daf9e3773c5f67e78b4d9d42263020c057706765c04"
 
 [[package]]
-name = "zarrs"
-version = "0.12.1"
+name = "wkb"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "356280266a8391150025db90be64b1a7305d2c38d599139dfa87054faf31a52e"
+checksum = "66c806dac841607a62b0e8babf620fea51429f6ea005545491198fcbfd9004a2"
+dependencies = [
+ "geo-types",
+ "num-traits",
+]
+
+[[package]]
+name = "zarrs"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "421f0cf6ea4699c7fc5684bda820167024d3fdf1c4e2bdcadf34a172289f8652"
 dependencies = [
  "blosc-src",
  "bytemuck",

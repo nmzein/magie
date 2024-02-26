@@ -20,7 +20,7 @@ impl Decoder for OpenSlide {
         Ok((image_dimensions.w, image_dimensions.h))
     }
 
-    fn read_region(&self, region: &Region) -> Result<RgbImage> {
+    fn read_region(&self, region: &Region) -> Result<Vec<u8>> {
         use openslide_rs::{Address, Region, Size};
 
         let region = Region {
@@ -35,7 +35,7 @@ impl Decoder for OpenSlide {
             },
         };
 
-        let tile = Slide::read_image_rgb(self, &region)?;
+        let tile = Slide::read_image_rgb(self, &region)?.to_vec();
 
         Ok(tile)
     }
