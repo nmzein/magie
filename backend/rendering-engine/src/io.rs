@@ -16,6 +16,7 @@ use zarrs::{
 
 static TILE_SIZE: u32 = 1024;
 static TILE_LENGTH: usize = (TILE_SIZE * TILE_SIZE) as usize;
+static TILE_SPLIT_LENGTH: usize = (TILE_SIZE * TILE_SIZE * 3) as usize;
 static RGB_CHANNELS: u64 = 3;
 static GROUP_PATH: &str = "/group";
 static STORE_PATH: &str = "../store";
@@ -61,62 +62,60 @@ fn decode(image_path: &PathBuf) -> Result<impl Decoder> {
 // TODO: Run annotation generator translation interface.
 pub async fn annotations(annotations_path: &PathBuf) -> Result<Vec<AnnotationLayer>> {
     let annotations_path = PathBuf::from(STORE_PATH).join(annotations_path);
-    Ok(crate::generators::tiatoolbox::read_annotations(annotations_path).await?)
+    Ok(crate::generators::tiatoolbox::read_annotations(&annotations_path).await?)
+}
+
+pub fn interleave<'a>(channels: &[u8], tile: &'a mut Vec<u8>) -> &'a [u8] {
+    tile.clear();
+    tile.reserve(TILE_SPLIT_LENGTH);
+
+    let rs = &channels[..TILE_LENGTH];
+    let gs = &channels[TILE_LENGTH..TILE_LENGTH * 2];
+    let bs = &channels[TILE_LENGTH * 2..];
+
+    tile.extend(
+        rs.iter()
+            .zip(gs)
+            .zip(bs)
+            .flat_map(|((&r, &g), &b)| [r, g, b]),
+    );
+
+    tile
 }
 
 pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Result<Vec<u8>> {
-    let store_path = PathBuf::from(STORE_PATH).join(store_path);
+    #[cfg(feature = "time")]
+    let start = Instant::now();
 
-    // TODO: Store these in AppState to save time.
+    let store_path = PathBuf::from(STORE_PATH).join(store_path);
     let store = Arc::new(FilesystemStore::new(store_path)?);
     let array = Arc::new(Array::new(
         store,
         &format!("{GROUP_PATH}/{}", tile_request.level),
     )?);
 
-    #[cfg(feature = "time")]
-    let start = Instant::now();
-
-    // Retrieve tile for each RGB channel.
     let x: u64 = tile_request.x.into();
     let y: u64 = tile_request.y.into();
+    let level = tile_request.level;
+
+    #[cfg(feature = "time")]
+    let start = time("Tile initialisation", level, x, y, start);
+
+    // Retrieve tile for each RGB channel.
     let channels = array.retrieve_chunks(&ArraySubset::new_with_start_end_inc(
         vec![0, 0, 0, y, x],
         vec![0, 2, 0, y, x],
     )?)?;
 
     #[cfg(feature = "time")]
-    println!(
-        "<{}:({}, {})>: Retrieving tile took: {:?}",
-        tile_request.level,
-        tile_request.x,
-        tile_request.y,
-        start.elapsed()
-    );
+    let start = time("Retrieving tile", level, x, y, start);
 
-    #[cfg(feature = "time")]
-    let start = Instant::now();
-
-    // TODO: Bottleneck.
     // Interleave RGB channels.
     let mut tile = Vec::with_capacity(TILE_LENGTH * 3);
-    for i in 0..TILE_LENGTH {
-        tile.push(channels[i]);
-        tile.push(channels[i + (TILE_LENGTH)]);
-        tile.push(channels[i + (TILE_LENGTH * 2)]);
-    }
+    interleave(&channels, &mut tile);
 
     #[cfg(feature = "time")]
-    println!(
-        "<{}:({}, {})>: Interleaving RGB channels took: {:?}",
-        tile_request.level,
-        tile_request.x,
-        tile_request.y,
-        start.elapsed()
-    );
-
-    #[cfg(feature = "time")]
-    let start = Instant::now();
+    let start = time("Interleaving RGB channels", level, x, y, start);
 
     let Some(image_tile) = ImageBuffer::from_raw(TILE_SIZE, TILE_SIZE, tile) else {
         return Err(anyhow::anyhow!(
@@ -128,20 +127,14 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
         turbojpeg::compress_image::<Rgb<u8>>(&image_tile, 95, turbojpeg::Subsamp::Sub2x2)?.to_vec();
 
     #[cfg(feature = "time")]
-    println!(
-        "<{}:({}, {})>: Encoding tile to JPEG took: {:?}",
-        tile_request.level,
-        tile_request.x,
-        tile_request.y,
-        start.elapsed()
-    );
+    time("Encoding tile to JPEG", level, x, y, start);
 
     // Prepend tile position and level
     // (will be in this form [level, x, y, tile...])
     // ! FIX: x, y can be > u8.
-    jpeg_tile.insert(0, tile_request.y as u8);
-    jpeg_tile.insert(0, tile_request.x as u8);
-    jpeg_tile.insert(0, tile_request.level as u8);
+    jpeg_tile.insert(0, y as u8);
+    jpeg_tile.insert(0, x as u8);
+    jpeg_tile.insert(0, level as u8);
 
     Ok(jpeg_tile)
 }
@@ -278,4 +271,17 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
     }
 
     Ok(metadata)
+}
+
+#[cfg(feature = "time")]
+fn time(message: &str, level: u32, x: u64, y: u64, start: Instant) -> Instant {
+    println!(
+        "<{}:({}, {})>: {} took: {:?}",
+        level,
+        x,
+        y,
+        message,
+        start.elapsed()
+    );
+    Instant::now()
 }
