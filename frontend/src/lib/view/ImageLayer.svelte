@@ -48,7 +48,7 @@
 
 	$effect(() => {
 		document.querySelectorAll('[data-level="' + layerIndex + '"]').forEach((tile) => {
-			console.log('Observing', layerIndex);
+			// console.log('Observing', layerIndex);
 			observer.observe(tile);
 		});
 
@@ -92,5 +92,7 @@
 		// Prevent image selection when dragging.
 		user-select: none;
 		object-fit: cover;
+		margin: 0;
+		padding: 0;
 	}
 </style>

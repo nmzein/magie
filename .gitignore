@@ -1,16 +1,11 @@
 /frontend/node_modules
 /frontend/.svelte-kit
-/build
-/package
-# .env
-# .env.*
-!.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .DS_Store
 
-/backend/rendering-engine/target/*
-/backend/store/*
+/backend/store
 !/backend/store/.gitkeep
-/backend/rendering-engine/state/*
+/backend/rendering-engine/target
+/backend/rendering-engine/state
 !/backend/rendering-engine/state/.gitkeep

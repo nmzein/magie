@@ -3,8 +3,6 @@
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
 
-	// TODO: Change how start level is chosen.
-	let currentLevel = $state(1);
 	let panStartX = $state(0);
 	let panStartY = $state(0);
 	let isDragging = $state(false);
@@ -18,7 +16,8 @@
 	const minScale = 0.1;
 	const maxScale = 50;
 	const minLevel = 0;
-	let maxLevel: number | undefined = $state();
+	let maxLevel: number | undefined;
+	let currentLevel: number | undefined = $state();
 	let imageWidth: number | undefined = $state();
 	let imageHeight: number | undefined = $state();
 	let imageLayersDiv: HTMLDivElement | undefined = $state();
@@ -27,6 +26,7 @@
 		if (!metadata.value) return;
 
 		maxLevel = metadata.value.length - 1;
+		currentLevel = maxLevel;
 		imageWidth = metadata.value[0].width;
 		imageHeight = metadata.value[0].height;
 	});
@@ -118,6 +118,8 @@
 
 		scale = newScale;
 
+		if (!currentLevel) return;
+
 		// If at highest detail level and zooming in,
 		// or if at lowest detail level and zooming out, do nothing.
 		if ((currentLevel == minLevel && delta < 0) || (currentLevel == maxLevel && delta > 0)) {
@@ -167,10 +169,10 @@
 			: 'transition: transform 0.2s;'}"
 	>
 		{#if metadata.value && image.state.value}
-			{#if annotations.value && imageWidth && imageHeight && imageLayersDiv}
+			{#if annotations.value && imageWidth && imageHeight}
 				<div id="annotation-layers">
 					{#each annotations.value as layer, layerIndex}
-						<AnnotationLayer {imageLayersDiv} {layer} {layerIndex} {imageWidth} {imageHeight} />
+						<AnnotationLayer {layer} {layerIndex} {imageWidth} {imageHeight} />
 					{/each}
 				</div>
 			{/if}
