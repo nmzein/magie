@@ -14,33 +14,59 @@
 	let y = $state(0);
 
 	const minScale = 0.1;
-	const maxScale = 50;
+	const maxScale = 100;
 	const minLevel = 0;
 	let maxLevel: number | undefined;
 	let currentLevel: number | undefined = $state();
 	let imageWidth: number | undefined = $state();
 	let imageHeight: number | undefined = $state();
 	let imageLayersDiv: HTMLDivElement | undefined = $state();
+	let scaleBreakpoints: number[] | undefined = $state();
 
 	$effect(() => {
-		if (!metadata.value) return;
+		if (metadata.value === undefined) return;
 
 		maxLevel = metadata.value.length - 1;
 		currentLevel = maxLevel;
 		imageWidth = metadata.value[0].width;
 		imageHeight = metadata.value[0].height;
+
+		// Start at highest resolution and go till second lowest.
+		let lowestResolution = metadata.value[maxLevel].width * metadata.value[maxLevel].height;
+		scaleBreakpoints = [];
+		for (let i = minLevel; i < maxLevel; i++) {
+			scaleBreakpoints.push(
+				Math.sqrt((metadata.value[i].width * metadata.value[i].height) / lowestResolution)
+			);
+		}
 	});
 
 	$effect(() => {
-		document.addEventListener('touchmove', handleTouchMove);
+		// document.addEventListener('touchmove', handleTouchMove);
+		// document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('mouseup', handlePanEnd);
-		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
+		(function () {
+			var script = document.createElement('script');
+			script.onload = function () {
+				var stats = new Stats();
+
+				stats.showPanel(2);
+				document.body.appendChild(stats.dom);
+				requestAnimationFrame(function loop() {
+					stats.update();
+					requestAnimationFrame(loop);
+				});
+			};
+			script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
+			document.head.appendChild(script);
+		})();
+
 		return () => {
-			document.removeEventListener('touchmove', handleTouchMove);
+			// document.removeEventListener('touchmove', handleTouchMove);
+			// document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('mouseup', handlePanEnd);
-			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('wheel', handleWheel);
 		};
 	});
@@ -64,7 +90,7 @@
 		event.preventDefault();
 
 		if (!isDragging) {
-			if (!imageWidth || !imageHeight) return;
+			if (imageWidth === undefined || imageHeight === undefined) return;
 
 			const currentLayer = document
 				.getElementById('image-layer-' + currentLevel)
@@ -118,7 +144,12 @@
 
 		scale = newScale;
 
-		if (!currentLevel) return;
+		handleLevelChange(delta);
+	}
+
+	function handleLevelChange(delta: number) {
+		if (currentLevel === undefined || maxLevel === undefined || scaleBreakpoints === undefined)
+			return;
 
 		// If at highest detail level and zooming in,
 		// or if at lowest detail level and zooming out, do nothing.
@@ -128,23 +159,24 @@
 			return;
 		}
 
-		const imageLayersWidth = imageLayersDiv?.getBoundingClientRect()?.width;
-		if (!imageLayersWidth) return;
-
-		const viewportWidth = window.innerWidth;
-		const threshold = imageLayersWidth / viewportWidth;
-
-		// If current layer width is larger than viewport width, switch to next level.
-		if (threshold > 1) {
-			if (currentLevel == minLevel) return;
-
-			currentLevel -= 1;
-			console.log('Switching to next level:', currentLevel + '.');
-		} else if (threshold < 0.9) {
-			if (currentLevel == maxLevel) return;
-
+		// If zooming out (not at lowest detail)
+		// check current breakpoint (at currentLevel)
+		// if scale <>> sB[cL] then cL += 1 (move to lower reso.)
+		// e.g. sB = [32, 8] and currently at level 1 and zooming out
+		// desired result: move to level 2 (cL + 1)
+		// should happen when: scale < 8 (sB[cl])
+		// result: cL += 1 (cL = 2)
+		if (delta > 0 && scale < scaleBreakpoints[currentLevel]) {
 			currentLevel += 1;
-			console.log('Switching to previous level:', currentLevel + '.');
+			console.log('Switching to lower resolution level:', currentLevel + '.');
+		}
+
+		// If zooming in (not at highest detail),
+		// check next breakpoint (at currentLevel - 1)
+		// if scale > sB[cL - 1] then cL -= 1 (move to higher reso.)
+		if (delta < 0 && scale > scaleBreakpoints[currentLevel - 1]) {
+			currentLevel -= 1;
+			console.log('Switching to higher resolution level:', currentLevel + '.');
 		}
 	}
 
@@ -171,8 +203,8 @@
 		{#if metadata.value && image.state.value}
 			{#if annotations.value && imageWidth && imageHeight}
 				<div id="annotation-layers">
-					{#each annotations.value as layer, layerIndex}
-						<AnnotationLayer {layer} {layerIndex} {imageWidth} {imageHeight} />
+					{#each annotations.value as annotationLayer, layerIndex}
+						<AnnotationLayer {annotationLayer} {layerIndex} {imageWidth} {imageHeight} />
 					{/each}
 				</div>
 			{/if}
