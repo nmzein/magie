@@ -17,13 +17,15 @@ export type Metadata = {
 	height: number;
 };
 
+type Geometry = number[][];
+type AnnotationResolutionLayer = Geometry[];
 export type AnnotationLayer = {
 	tag: string;
 	visible: boolean;
 	opacity: number;
 	fill: string;
 	stroke: string;
-	annotations: number[][][];
+	resolutions: AnnotationResolutionLayer[];
 };
 
 export type ImageLayer = HTMLImageElement[][];

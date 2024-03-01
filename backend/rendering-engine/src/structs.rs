@@ -54,6 +54,8 @@ pub struct TileRequest {
     pub y: u32,
 }
 
+pub type Geometry = Vec<[f64; 2]>;
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationLayer {
     pub tag: String,
@@ -61,7 +63,25 @@ pub struct AnnotationLayer {
     pub opacity: f32,
     pub fill: String,
     pub stroke: String,
-    pub annotations: Vec<Vec<[f64; 2]>>,
+    // Layer per resolution
+    pub resolutions: Vec<Vec<Geometry>>,
+}
+
+impl AnnotationLayer {
+    pub fn new(tag: String, fill: String, depth: usize) -> Self {
+        Self {
+            tag,
+            visible: true,
+            opacity: 1.0,
+            fill,
+            stroke: "#000000".into(),
+            resolutions: vec![vec![]; depth],
+        }
+    }
+
+    pub fn insert(&mut self, geometry: Geometry, depth: usize) {
+        self.resolutions[depth].push(geometry);
+    }
 }
 
 pub struct Region {
