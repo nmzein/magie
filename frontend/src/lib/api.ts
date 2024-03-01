@@ -201,31 +201,31 @@ export async function GetAnnotations() {
 	}
 }
 
-// TODO: Move to server.
-// Credit: https://stackoverflow.com/questions/54719326/sorting-points-in-a-clockwise-direction
-function sort(annotation: number[][]): number[][] {
-	const length = annotation.length;
+// // TODO: Move to server.
+// // Credit: https://stackoverflow.com/questions/54719326/sorting-points-in-a-clockwise-direction
+// function sort(annotation: number[][]): number[][] {
+// 	const length = annotation.length;
 
-	// Get the center (mean value) using reduce.
-	const center = annotation.reduce(
-		(acc, [x, y]) => {
-			acc[0] += x / length;
-			acc[1] += y / length;
-			return acc;
-		},
-		[0, 0]
-	);
+// 	// Get the center (mean value) using reduce.
+// 	const center = annotation.reduce(
+// 		(acc, [x, y]) => {
+// 			acc[0] += x / length;
+// 			acc[1] += y / length;
+// 			return acc;
+// 		},
+// 		[0, 0]
+// 	);
 
-	return (
-		annotation
-			// Add an angle property to each point using:
-			// angle = arctan(y/x) then convert to degrees.
-			.map(([x, y]) => {
-				return [x, y, Math.atan2(y - center[1], x - center[0]) * (180 / Math.PI)];
-			})
-			// Sort by angle.
-			.sort((a, b) => a[2] - b[2])
-			// Remove the angle property.
-			.map(([x, y, _]) => [x, y])
-	);
-}
+// 	return (
+// 		annotation
+// 			// Add an angle property to each point using:
+// 			// angle = arctan(y/x) then convert to degrees.
+// 			.map(([x, y]) => {
+// 				return [x, y, Math.atan2(y - center[1], x - center[0]) * (180 / Math.PI)];
+// 			})
+// 			// Sort by angle.
+// 			.sort((a, b) => a[2] - b[2])
+// 			// Remove the angle property.
+// 			.map(([x, y, _]) => [x, y])
+// 	);
+// }

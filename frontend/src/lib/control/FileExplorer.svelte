@@ -17,7 +17,7 @@
 
 	// TODO: Move to server?
 	$effect.pre(() => {
-		if (!stores.value) return;
+		if (stores.value === undefined) return;
 		images = images.concat(stores.value);
 
 		images.forEach((image) => {

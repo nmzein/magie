@@ -28,7 +28,7 @@ const _image = () => {
 	// Run as soon as metadata is parsed and loaded in GetMetadata.
 	const initialise = () => {
 		let levels = metadata.value?.length;
-		if (!state || !levels) return;
+		if (state === undefined || levels === undefined) return;
 
 		state.value = new Array(levels).fill([]);
 
@@ -47,7 +47,7 @@ const _websocket = () => {
 	let socket = $state<{ value: WebSocket }>({ value: new WebSocket(WEBSOCKET_URL) });
 
 	async function GetTile(data: TileRequest): Promise<boolean> {
-		if (!metadata || socket.value.readyState !== WebSocket.OPEN) {
+		if (metadata === undefined || socket.value.readyState !== WebSocket.OPEN) {
 			return false;
 		}
 
@@ -62,7 +62,7 @@ const _websocket = () => {
 	});
 
 	async function processTile(event: MessageEvent): Promise<void> {
-		if (!image.state.value) return;
+		if (image.state.value === undefined) return;
 
 		const data: Blob = event.data;
 		const arr = new Uint8Array(await data.arrayBuffer());

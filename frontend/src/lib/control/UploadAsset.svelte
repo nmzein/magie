@@ -7,8 +7,10 @@
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 
-		const file = event.dataTransfer?.files[0];
-		assetUpload = file;
+		const files = event.dataTransfer?.files;
+		if (files && files.length > 0) {
+			assetUpload = files[0];
+		}
 	}
 
 	async function handleBrowse(event: Event) {

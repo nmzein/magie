@@ -14,7 +14,7 @@
 	let directory_path = '';
 
 	function handleUpload() {
-		if (!imageUpload.value || !selectedGenerator.value) {
+		if (imageUpload.value === undefined || selectedGenerator.value === undefined) {
 			alert('Please provide an image and/or select an annotation generator.');
 			return;
 		}

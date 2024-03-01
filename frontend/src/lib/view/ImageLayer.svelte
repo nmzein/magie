@@ -18,7 +18,7 @@
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach((entry) => {
-			if (!loadedImage.value) return;
+			if (loadedImage.value === undefined) return;
 
 			if (entry.isIntersecting) {
 				let levelString = (entry.target as HTMLElement).dataset.level;
