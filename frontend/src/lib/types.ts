@@ -18,14 +18,14 @@ export type Metadata = {
 };
 
 type Geometry = number[][];
-type AnnotationResolutionLayer = Geometry[];
+
 export type AnnotationLayer = {
 	tag: string;
 	visible: boolean;
 	opacity: number;
 	fill: string;
 	stroke: string;
-	resolutions: AnnotationResolutionLayer[];
+	annotations: Geometry[];
 };
 
 export type ImageLayer = HTMLImageElement[][];

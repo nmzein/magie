@@ -27,7 +27,6 @@ futures-util = "0.3.30"
 image = "0.24.9"
 turbojpeg = { version = "1.0.0", features = ["image"] }
 # libloading = "0.8.1"
-# diesel = { version = "2.1.4", features = ["sqlite", "r2d2", "chrono"] }
 
 # OpenSlide
 openslide-rs = "2.0.1"

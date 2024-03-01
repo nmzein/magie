@@ -2,6 +2,7 @@
 	import { annotations, image, metadata } from '$stores';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
+	import * as THREE from 'three';
 
 	let panStartX = $state(0);
 	let panStartY = $state(0);
@@ -16,29 +17,42 @@
 	const minScale = 0.1;
 	const maxScale = 100;
 	const minLevel = 0;
-	let maxLevel: number | undefined;
+	let maxLevel: number | undefined = $state();
 	let currentLevel: number | undefined = $state();
 	let imageWidth: number | undefined = $state();
 	let imageHeight: number | undefined = $state();
-	let imageLayersDiv: HTMLDivElement | undefined = $state();
-	let scaleBreakpoints: number[] | undefined = $state();
 
-	$effect(() => {
-		if (metadata.value === undefined) return;
+	let scaleBreakpoints: number[] | undefined = $derived.by(() => {
+		if (metadata.value === undefined || maxLevel === undefined) return;
 
-		maxLevel = metadata.value.length - 1;
-		currentLevel = maxLevel;
-		imageWidth = metadata.value[0].width;
-		imageHeight = metadata.value[0].height;
-
-		// Start at highest resolution and go till second lowest.
 		let lowestResolution = metadata.value[maxLevel].width * metadata.value[maxLevel].height;
-		scaleBreakpoints = [];
+		let scaleBreakpoints = [];
+		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
 		for (let i = minLevel; i < maxLevel; i++) {
 			scaleBreakpoints.push(
 				Math.sqrt((metadata.value[i].width * metadata.value[i].height) / lowestResolution)
 			);
 		}
+
+		return scaleBreakpoints;
+	});
+
+	let camera: THREE.OrthographicCamera | undefined = $derived.by(() => {
+		if (imageWidth === undefined || imageHeight === undefined) return;
+
+		const camera = new THREE.OrthographicCamera(0, imageWidth, 0, -1 * imageHeight, 0.1, 10);
+		camera.position.z = 1;
+
+		return camera;
+	});
+
+	$effect(() => {
+		if (metadata.value === undefined) return;
+
+		maxLevel = metadata.value.length - 1;
+		currentLevel = metadata.value.length - 1;
+		imageWidth = metadata.value[0].width;
+		imageHeight = metadata.value[0].height;
 	});
 
 	$effect(() => {
@@ -201,14 +215,14 @@
 			: 'transition: transform 0.2s;'}"
 	>
 		{#if metadata.value && image.state.value}
-			{#if annotations.value && imageWidth && imageHeight}
+			{#if annotations.value && imageWidth && imageHeight && camera}
 				<div id="annotation-layers">
 					{#each annotations.value as annotationLayer, layerIndex}
-						<AnnotationLayer {annotationLayer} {layerIndex} {imageWidth} {imageHeight} />
+						<AnnotationLayer {annotationLayer} {layerIndex} {imageWidth} {imageHeight} {camera} />
 					{/each}
 				</div>
 			{/if}
-			<div id="image-layers" bind:this={imageLayersDiv}>
+			<div id="image-layers">
 				{#each image.state.value as layer, layerIndex}
 					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
 				{/each}
