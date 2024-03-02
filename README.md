@@ -6,32 +6,44 @@ Nemato is a gigapixel image & annotations rendering engine with a web interface 
 
 ## 💽 Installation
 
-```
-git clone https://github.com/nmzein/nemato.git
-```
+1. Download the source code: `git clone https://github.com/nmzein/nemato.git`
+2. Navigate to main directory: `cd nemato`
+
+---
 
 ### Docker (recommended)
 
-Navigate into `nemato/`, ensure the docker daemon is running, and run:
+1. Install [Docker Desktop](https://docs.docker.com/desktop/) (needed for use of Docker Engine).
+2. Ensure the docker daemon is [running](https://docs.docker.com/config/daemon/start/), and run:
 
 ```
-sudo docker build -t nemato .
-sudo docker run -p 3000:3000 -p 4000:4000 nemato
+docker build -t nemato .
+docker run -p 3000:3000 -p 4000:4000 nemato
+
+# Note you may need to run these with sudo.
 ```
+
+The application can now be accessed at `0.0.0.0:4000`.
+
+---
 
 ### Manual
 
-Install dependencies.
+Install dependencies (prerequisites: `curl`).
 
 ```
+# Debian [verified working version(s): 12]
+sudo apt install build-essential cmake nasm npm pkg-config libclang-dev libopenslide-dev libssl-dev
+
 # Ubuntu
-sudo apt install libclang-dev libssl-dev libopenslide-dev pkg-config npm
+sudo apt install cmake nasm npm pkg-config libclang-dev libopenslide-dev libssl-dev
 ```
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 export PATH=$PATH:~/.cargo/bin
 cargo install sqlx-cli
+
 sudo npm install -g vite
 ```
 
