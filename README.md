@@ -17,8 +17,13 @@ Nemato is a gigapixel image & annotations rendering engine with a web interface 
 2. Ensure the docker daemon is [running](https://docs.docker.com/config/daemon/start/), and run:
 
 ```
-docker build -t nemato .
-docker run -p 3000:3000 -p 4000:4000 nemato
+# Build for production. [4.85GB; <9 mins on low-perf laptop]
+docker build -t nemato -f Dockerfile.prod .
+
+# Build for development. [4.85GB; <11 mins on low-perf laptop]
+docker build -t nemato -f Dockerfile.dev .
+
+docker run -it -p 3000:3000 -p 4000:4000 nemato
 
 # Note you may need to run these with sudo.
 ```
@@ -65,6 +70,8 @@ npm run build
 npm run preview -- --open
 ```
 
+The application can now be accessed at `localhost:4000`.
+
 ### 🏗️ Development
 
 To run Nemato for development, navigate to `backend/rendering-engine/` and run:
@@ -81,3 +88,5 @@ Then, in another terminal, navigate to `frontend/` and run:
 npm install --legacy-peer-deps
 npm run dev -- --open
 ```
+
+The application can now be accessed at `localhost:4000`.

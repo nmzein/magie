@@ -1,0 +1,70 @@
+FROM node:21.6.2-bookworm-slim AS node
+FROM rust:slim-bookworm AS rust
+
+FROM node AS frontend
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update
+
+RUN --mount=type=cache,target=/var/cache/npm \
+    npm install -g npm@10.5.0 && \
+    npm install -g vite
+
+COPY ./frontend /app/frontend
+
+WORKDIR /app/frontend
+RUN --mount=type=cache,target=/var/cache/app/npm \
+    npm ci --legacy-peer-deps
+
+WORKDIR /app
+COPY .env /app
+# Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
+RUN sed -i 's/PUBLIC_DOMAIN=localhost/PUBLIC_DOMAIN=0.0.0.0/g' /app/.env
+
+WORKDIR /app/frontend
+RUN npm run build
+
+FROM rust AS backend
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && \
+    apt-get install -y build-essential \
+                       cmake \
+                       nasm \
+                       pkg-config \
+                       libclang-dev \
+                       libopenslide-dev \
+                       libssl-dev
+
+RUN --mount=type=cache,target=/var/cache/sqlx \
+    cargo install sqlx-cli
+
+WORKDIR /app/backend/rendering-engine
+COPY --from=frontend /app/.env /app
+
+COPY ./backend /app/backend
+RUN cargo sqlx database create
+RUN cargo sqlx migrate run
+RUN cargo build --release
+
+FROM rust AS final
+
+COPY --from=frontend /usr/local/include/node /usr/local/include/node
+COPY --from=frontend /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+
+# TODO: Fix cache copying from backend.
+COPY --from=backend . .
+
+WORKDIR /app
+
+COPY --from=frontend /app/.env /app
+COPY --from=frontend /app/frontend /app/frontend
+# TODO: Don't copy full source code.
+COPY --from=backend /app/backend /app/backend
+
+EXPOSE 4000
+EXPOSE 3000
+
+CMD /bin/bash -c "cd backend/rendering-engine/ && cargo run --release & cd frontend/ && npm run preview -- --host"
