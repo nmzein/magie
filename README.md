@@ -47,7 +47,6 @@ sudo apt install cmake nasm npm pkg-config libclang-dev libopenslide-dev libssl-
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 export PATH=$PATH:~/.cargo/bin
-cargo install sqlx-cli
 
 sudo npm install -g vite
 ```
@@ -57,8 +56,6 @@ sudo npm install -g vite
 To run Nemato in production, navigate to `backend/rendering-engine/` and run:
 
 ```
-cargo sqlx database create
-cargo sqlx migrate run
 cargo run --release
 ```
 
@@ -77,8 +74,6 @@ The application can now be accessed at `localhost:4000`.
 To run Nemato for development, navigate to `backend/rendering-engine/` and run:
 
 ```
-cargo sqlx database create
-cargo sqlx migrate run
 cargo run
 ```
 
@@ -90,3 +85,25 @@ npm run dev -- --open
 ```
 
 The application can now be accessed at `localhost:4000`.
+
+---
+
+### 🗃️ Interacting with the Database
+
+To reset the database, run migrations, or prepare SQL queries, run:
+
+```
+cargo install sqlx-cli
+
+# Create
+cargo sqlx database create
+
+# Migrate
+cargo sqlx migrate run
+
+# Prepare Queries
+cargo sqlx prepare
+
+# Drop Database
+cargo sqlx database reset
+```
