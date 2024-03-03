@@ -27,7 +27,7 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<ImageDataResponse>> {
     })
     .collect();
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log("LIST", Some(&list));
 
     list
@@ -61,7 +61,7 @@ pub async fn insert(
     .fetch_one(&mut *transaction)
     .await?;
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log::<()>(&format!("INSERT <Image: {:?}>", result.id), None);
 
     for m in metadata {
@@ -80,7 +80,7 @@ pub async fn insert(
         .execute(&mut *transaction)
         .await?;
 
-        #[cfg(feature = "log")]
+        #[cfg(feature = "log-database-success")]
         log::<()>(
             &format!("INSERT <Metadata: {}:{}>", result.id, m.level),
             None,
@@ -103,7 +103,7 @@ pub async fn contains(directory_path: &str, pool: &SqlitePool) -> bool {
     .await
     .is_ok();
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log(
         &format!("CONTAINS <Image: {}>", directory_path),
         Some(&contains),
@@ -127,7 +127,7 @@ pub async fn get_paths(
     .fetch_one(pool)
     .await?;
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log(&format!("GET <Paths: {}>", id), Some(&paths));
 
     Ok((
@@ -155,7 +155,7 @@ pub async fn get_metadata(id: u32, pool: &SqlitePool) -> Result<Vec<Metadata>> {
     .fetch_all(pool)
     .await?;
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log(&format!("GET <Metadata: {}>", id), Some(&metadata));
 
     Ok(metadata)
@@ -186,13 +186,13 @@ pub async fn remove(id: u32, pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await?;
 
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-database-success")]
     log::<()>(&format!("DELETE <Image: {}>", id), None);
 
     Ok(())
 }
 
-#[cfg(feature = "log")]
+#[cfg(feature = "log-database-success")]
 fn log<T: Debug>(operation: &str, result: Option<&T>) {
     print!("Database <{}>", operation);
     if let Some(result) = result {

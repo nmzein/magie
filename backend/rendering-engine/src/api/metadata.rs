@@ -8,7 +8,7 @@ pub async fn metadata(
     }): Extension<AppState>,
     Json(id): Json<u32>,
 ) -> Response {
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-success")]
     log::<()>(
         StatusCode::ACCEPTED,
         &format!("Received request for metadata of image: {}.", id),
@@ -17,7 +17,7 @@ pub async fn metadata(
 
     // Get image with id from the database.
     let Ok(image) = crate::db::get(id, &pool).await else {
-        return log_respond::<()>(
+        let resp = log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Image with id {} does not exist in the database or doesn't have metadata.",
@@ -25,6 +25,8 @@ pub async fn metadata(
             ),
             None,
         );
+
+        return resp;
     };
 
     let metadata = image.metadata.clone();

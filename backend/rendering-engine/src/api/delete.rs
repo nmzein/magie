@@ -8,7 +8,7 @@ pub async fn delete(
     }): Extension<AppState>,
     Json(id): Json<u32>,
 ) -> Response {
-    #[cfg(feature = "log")]
+    #[cfg(feature = "log-success")]
     log::<()>(
         StatusCode::ACCEPTED,
         &format!("Received request to delete image with id: {}.", id),
@@ -16,16 +16,18 @@ pub async fn delete(
     );
 
     let Ok((directory_path, image_name, _, _)) = crate::db::get_paths(id, &pool).await else {
-        return log_respond::<()>(
+        let resp = log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("Could not retrieve paths for image with id {}.", id),
             None,
         );
+
+        return resp;
     };
 
     // Delete directory from the filesystem.
     let _ = crate::io::delete(&directory_path).await.map_err(|e| async {
-        return log_respond(
+        let resp = log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Could not delete directory for image with name {}.",
@@ -33,11 +35,13 @@ pub async fn delete(
             ),
             Some(e),
         );
+
+        return resp;
     });
 
     // Remove entries from the state database.
     let _ = crate::db::remove(id, &pool).await.map_err(|e| async {
-        return log_respond(
+        let resp = log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
                 "Could not delete image with name {} from state database.",
@@ -45,6 +49,8 @@ pub async fn delete(
             ),
             Some(e),
         );
+
+        return resp;
     });
 
     // If image in in-memory state, remove its entry.
@@ -56,5 +62,7 @@ pub async fn delete(
         }
     }
 
-    log_respond::<()>(StatusCode::OK, "Successfully deleted image entry.", None)
+    let resp = log::<()>(StatusCode::OK, "Successfully deleted image entry.", None);
+
+    resp
 }

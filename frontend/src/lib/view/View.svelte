@@ -49,8 +49,13 @@
 	$effect(() => {
 		if (metadata.value === undefined) return;
 
-		maxLevel = metadata.value.length - 1;
-		currentLevel = metadata.value.length - 1;
+		for (let i = 0; i < metadata.value.length; i++) {
+			if (metadata.value[i].cols <= 4 || metadata.value[i].rows <= 4) {
+				maxLevel = i - 1;
+				currentLevel = i - 1;
+				break;
+			}
+		}
 		imageWidth = metadata.value[0].width;
 		imageHeight = metadata.value[0].height;
 	});

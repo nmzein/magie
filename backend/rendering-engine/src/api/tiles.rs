@@ -36,7 +36,7 @@ async fn tiles(socket: WebSocket, Extension(AppState { current_image, .. }): Ext
     while let Some(Ok(Message::Text(message))) = stream.next().await {
         let current_image = Arc::clone(&current_image);
         let Some(current_image) = current_image.lock().unwrap().clone() else {
-            #[cfg(feature = "log")]
+            #[cfg(feature = "log-failure")]
             log::<()>(
                 StatusCode::BAD_REQUEST,
                 "Image metadata must first be fetched before requesting tiles.",
@@ -48,34 +48,40 @@ async fn tiles(socket: WebSocket, Extension(AppState { current_image, .. }): Ext
         let sender = sender.clone();
 
         tokio::spawn(async move {
-            let Ok(tile_request) = serde_json::from_str::<TileRequest>(&message) else {
-                #[cfg(feature = "log")]
-                log::<()>(
-                    StatusCode::BAD_REQUEST,
-                    &format!("Failed to parse tile request: {}.", message),
-                    None,
-                );
+            let tile_request = match serde_json::from_str::<TileRequest>(&message) {
+                Ok(tile_request) => tile_request,
+                Err(e) => {
+                    #[cfg(feature = "log-failure")]
+                    log(
+                        StatusCode::BAD_REQUEST,
+                        &format!("Failed to parse tile request: {}.", message),
+                        Some(e),
+                    );
 
-                return;
+                    return;
+                }
             };
 
             let store_path = current_image.directory_path.join(&current_image.store_name);
-            let Ok(tile) = crate::io::retrieve(&store_path, &tile_request).await else {
-                #[cfg(feature = "log")]
-                log::<()>(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!(
-                        "Failed to retrieve tile for image with id: {}.",
-                        &tile_request.id
-                    ),
-                    None,
-                );
+            let tile = match crate::io::retrieve(&store_path, &tile_request).await {
+                Ok(tile) => tile,
+                Err(e) => {
+                    #[cfg(feature = "log-failure")]
+                    log(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!(
+                            "Failed to retrieve tile for image with id: {}.",
+                            &tile_request.id
+                        ),
+                        Some(e),
+                    );
 
-                return;
+                    return;
+                }
             };
 
             let _ = sender.send(Message::Binary(tile)).await.map_err(|e| {
-                #[cfg(feature = "log")]
+                #[cfg(feature = "log-failure")]
                 log(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     &format!(

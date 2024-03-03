@@ -6,17 +6,7 @@ pub use axum::{
 };
 use std::fmt::Debug;
 
-pub fn log_respond<T: Debug>(
-    status_code: StatusCode,
-    message: &str,
-    details: Option<T>,
-) -> Response {
-    log::<T>(status_code, message, details);
-
-    (status_code, String::from(message)).into_response()
-}
-
-pub fn log<T: Debug>(status_code: StatusCode, message: &str, details: Option<T>) {
+pub fn log<T: Debug>(status_code: StatusCode, message: &str, details: Option<T>) -> Response {
     if status_code.is_success() {
         println!("Ok <{}>: {}", status_code, message);
         if let Some(details) = details {
@@ -30,4 +20,6 @@ pub fn log<T: Debug>(status_code: StatusCode, message: &str, details: Option<T>)
     }
 
     println!();
+
+    (status_code, String::from(message)).into_response()
 }

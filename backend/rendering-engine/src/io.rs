@@ -204,7 +204,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                 let start = Instant::now();
 
                 // Rearrange tile from [R,G,B,R,G,B] to [R,R,G,G,B,B].
-                let tile: Vec<u8> = image
+                let tile = image
                     .read_region(&Region {
                         size: Size {
                             width: TILE_SIZE,
@@ -231,16 +231,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                     .collect();
 
                 #[cfg(feature = "time")]
-                println!(
-                    "Rearranging tile <{}:{}, {}> RGB channels took: {:?}",
-                    level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
-
-                #[cfg(feature = "time")]
-                let start = Instant::now();
+                let start = time("Reading and rearranging tile", level, x, y, start);
 
                 array.store_chunks(
                     &ArraySubset::new_with_start_end_inc(
@@ -251,13 +242,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                 )?;
 
                 #[cfg(feature = "time")]
-                println!(
-                    "Storing tile <{}:{}, {}> took: {:?}",
-                    level,
-                    x,
-                    y,
-                    start.elapsed()
-                );
+                time("Storing tile", level, x, y, start);
             }
         }
 

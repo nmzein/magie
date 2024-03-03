@@ -21,7 +21,11 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 tower-http = { version = "0.5.2", features = ["cors"] }
 tempfile = "3.10.1"
-sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+sqlx = { version = "0.7.3", features = [
+    "sqlite",
+    "runtime-tokio-native-tls",
+    "macros",
+] }
 dotenv = "0.15.0"
 futures-util = "0.3.30"
 image = "0.24.9"
@@ -41,13 +45,19 @@ geo-types = "0.7.13"
 # Currently "openslide" and "tiatoolbox" are necessary features, do not remove.
 default = [
     # "time",
-    "log",
-    "openslide", 
-    "tiatoolbox"
+    "log-success",
+    "log-failure",
+    "log-database-success",
+    "log-database-failure",
+    "openslide",
+    "tiatoolbox",
 ]
 
 time = []
-log = []
+log-success = []
+log-failure = []
+log-database-success = []
+log-database-failure = []
 # Decoders
 openslide = []
 # Generators
