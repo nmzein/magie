@@ -62,9 +62,7 @@ cargo run --release
 Then, in another terminal, navigate to `frontend/` and run:
 
 ```
-npm install --legacy-peer-deps
-npm run build
-npm run preview -- --open
+npm run prod -- --open
 ```
 
 The application can now be accessed at `localhost:4000`.
@@ -80,7 +78,6 @@ cargo run
 Then, in another terminal, navigate to `frontend/` and run:
 
 ```
-npm install --legacy-peer-deps
 npm run dev -- --open
 ```
 

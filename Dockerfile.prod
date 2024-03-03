@@ -23,7 +23,7 @@ COPY .env /app
 RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' /app/.env
 
 WORKDIR /app/frontend
-RUN npm run build
+RUN npm run ci:build
 
 FROM rust AS backend
 
@@ -71,4 +71,4 @@ COPY --from=backend /app/backend /app/backend
 EXPOSE 4000
 EXPOSE 3000
 
-CMD /bin/bash -c "cd backend/rendering-engine && cargo run --release & cd frontend && npm run preview -- --host"
+CMD /bin/bash -c "cd backend/rendering-engine && cargo run --release & cd frontend && npm run ci:prev -- --host"

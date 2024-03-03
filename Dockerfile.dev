@@ -81,4 +81,4 @@ COPY --from=backend /app/backend /app/backend
 EXPOSE 4000
 EXPOSE 3000
 
-CMD /bin/bash -c "cd backend/rendering-engine && cargo run & cd frontend && npm run dev -- --host"
+CMD /bin/bash -c "cd backend/rendering-engine && cargo run & cd frontend && npm run ci:dev -- --host"
