@@ -1,8 +1,18 @@
+.git
+.github
+.gitignore
+
 /frontend/node_modules
 /frontend/.svelte-kit
+/frontend/.prettierrc
+/frontend/.prettierignore
+/frontend/.npmrc
+/frontend/.eslintrc.js
+/frontend/.eslintignore
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .DS_Store
+README.md
 
 /backend/store/*
 !/backend/store/.gitkeep

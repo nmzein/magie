@@ -17,10 +17,10 @@ Nemato is a gigapixel image & annotations rendering engine with a web interface 
 2. Ensure the docker daemon is [running](https://docs.docker.com/config/daemon/start/), and run:
 
 ```
-# Build for production. [4.85GB; <9 mins on low-perf laptop]
+# Build for production. [4.81GB; <6 mins on low-perf laptop]
 docker build -t nemato -f Dockerfile.prod .
 
-# Build for development. [4.85GB; <11 mins on low-perf laptop]
+# Build for development. [6.45GB; <3 mins on low-perf laptop]
 docker build -t nemato -f Dockerfile.dev .
 
 docker run -it -p 3000:3000 -p 4000:4000 nemato

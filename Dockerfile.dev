@@ -27,7 +27,7 @@ COPY ./frontend /app/frontend
 WORKDIR /app
 COPY .env /app
 # Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
-RUN sed -i 's/PUBLIC_DOMAIN=localhost/PUBLIC_DOMAIN=0.0.0.0/g' /app/.env
+RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' /app/.env
 
 FROM rust AS backend
 
@@ -41,43 +41,38 @@ RUN --mount=type=cache,target=/var/cache/apt \
                        libopenslide-dev \
                        libssl-dev
 
-RUN --mount=type=cache,target=/var/cache/sqlx \
-    cargo install sqlx-cli
-
-# Copy only necessary files to minimise rebuild.
 WORKDIR /app/backend/rendering-engine
+
 COPY --from=frontend /app/.env /app
 
 COPY ./backend/rendering-engine/migrations /app/backend/rendering-engine/migrations
 COPY ./backend/rendering-engine/.sqlx /app/backend/rendering-engine/.sqlx
 COPY ./backend/rendering-engine/state /app/backend/rendering-engine/state
-RUN cargo sqlx database create
-RUN cargo sqlx migrate run
 
 # Incremental build.
-RUN echo "fn main() {}" > dummy.rs
-COPY ./backend/rendering-engine/Cargo.toml /app/backend/rendering-engine/
-COPY ./backend/rendering-engine/Cargo.lock /app/backend/rendering-engine/
-RUN sed -i 's#src/main.rs#dummy.rs#' Cargo.toml
-RUN cargo build --release
+RUN echo "fn main() {}" > temp.rs
+COPY ./backend/rendering-engine/Cargo.* /app/backend/rendering-engine
+RUN sed -i 's#src/main.rs#temp.rs#' Cargo.toml
+RUN cargo build
 
-RUN sed -i 's#dummy.rs#src/main.rs#' Cargo.toml
+RUN sed -i 's#temp.rs#src/main.rs#' Cargo.toml
 COPY ./backend/rendering-engine/src /app/backend/rendering-engine/src
-RUN cargo build --release
+RUN cargo build
 
 COPY ./backend/store /app/backend/store
 
 FROM rust AS final
 
+COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
 COPY --from=frontend /usr/local/include/node /usr/local/include/node
 COPY --from=frontend /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 
 # TODO: Fix cache copying from backend.
 COPY --from=backend . .
 
 WORKDIR /app
+
 COPY --from=frontend /app/.env /app
 COPY --from=frontend /app/frontend /app/frontend
 # TODO: Don't copy full source code.
@@ -86,5 +81,4 @@ COPY --from=backend /app/backend /app/backend
 EXPOSE 4000
 EXPOSE 3000
 
-## Development.
-CMD /bin/bash -c "cd backend/rendering-engine && cargo run --release & cd frontend/ && npm run dev -- --host"
+CMD /bin/bash -c "cd backend/rendering-engine && cargo run & cd frontend && npm run dev -- --host"
