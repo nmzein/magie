@@ -47,7 +47,7 @@ COPY --from=frontend /app/.env /app
 
 COPY ./backend/rendering-engine/migrations /app/backend/rendering-engine/migrations
 COPY ./backend/rendering-engine/.sqlx /app/backend/rendering-engine/.sqlx
-COPY ./backend/rendering-engine/state /app/backend/rendering-engine/state
+COPY ./backend/rendering-engine/state/reference.sqlite /app/backend/rendering-engine/state/db.sqlite
 
 # Incremental build.
 RUN echo "fn main() {}" > temp.rs

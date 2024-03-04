@@ -8,5 +8,4 @@ vite.config.ts.timestamp-*
 !/backend/store/.gitkeep
 /backend/rendering-engine/target
 /backend/rendering-engine/state/*
-!/backend/rendering-engine/state/.gitkeep
-!/backend/rendering-engine/state/db.sqlite
+!/backend/rendering-engine/state/reference.sqlite

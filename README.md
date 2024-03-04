@@ -13,22 +13,26 @@ Nemato is a gigapixel image & annotations rendering engine with a web interface 
 
 ### Docker (recommended)
 
-1. Install [Docker Desktop](https://docs.docker.com/desktop/) (needed for use of Docker Engine).
-2. Ensure the docker daemon is [running](https://docs.docker.com/config/daemon/start/), and run:
+1. Install [Docker Engine](https://docs.docker.com/engine/install/).
+2. Ensure the Docker daemon is [running](https://docs.docker.com/config/daemon/start/).
+3. Run the following commands (note that you may need to run them with `sudo`):
 
 ```
-# Build for production. [4.81GB; <6 mins on low-perf laptop]
-docker build -t nemato -f Dockerfile.prod .
+# 🛠️ Production [4.81GB; <6 mins on low-perf laptop]
+docker-compose up prod
 
-# Build for development. [6.45GB; <3 mins on low-perf laptop]
-docker build -t nemato -f Dockerfile.dev .
-
-docker run -it -p 3000:3000 -p 4000:4000 nemato
-
-# Note you may need to run these with sudo.
+# 🏗️ Development [6.45GB; <3 mins on low-perf laptop]
+docker-compose up dev
 ```
 
 The application can now be accessed at `0.0.0.0:4000`.
+
+#### Useful Docker Commands
+
+Replace any instance of `<branch>` with `prod` or `dev`.
+
+- Use `docker-compose up --build <branch>` to force a rebuild if any files are altered.
+- Use `docker exec -it $(docker ps -qf "ancestor=nemato:<branch>") bash` to get a bash shell inside of the container.
 
 ---
 
@@ -51,33 +55,23 @@ export PATH=$PATH:~/.cargo/bin
 sudo npm install -g vite
 ```
 
-### 🛠️ Production
-
-To run Nemato in production, navigate to `backend/rendering-engine/` and run:
+To run Nemato, navigate to `backend/rendering-engine/` and run:
 
 ```
+# 🛠️ Production
 cargo run --release
-```
 
-Then, in another terminal, navigate to `frontend/` and run:
-
-```
-npm run prod -- --open
-```
-
-The application can now be accessed at `localhost:4000`.
-
-### 🏗️ Development
-
-To run Nemato for development, navigate to `backend/rendering-engine/` and run:
-
-```
+# 🏗️ Development
 cargo run
 ```
 
 Then, in another terminal, navigate to `frontend/` and run:
 
 ```
+# 🛠️ Production
+npm run prod -- --open
+
+# 🏗️ Development
 npm run dev -- --open
 ```
 

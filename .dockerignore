@@ -15,8 +15,6 @@ vite.config.ts.timestamp-*
 README.md
 
 /backend/store/*
-!/backend/store/.gitkeep
 /backend/rendering-engine/target
 /backend/rendering-engine/state/*
-!/backend/rendering-engine/state/.gitkeep
-!/backend/rendering-engine/state/db.sqlite
+!/backend/rendering-engine/state/reference.sqlite

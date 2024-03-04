@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: nemato:dev
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    stdin_open: true
+    tty: true
+
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: nemato:prod
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    stdin_open: true
+    tty: true

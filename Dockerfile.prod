@@ -43,7 +43,7 @@ COPY --from=frontend /app/.env /app
 
 COPY ./backend/rendering-engine/migrations /app/backend/rendering-engine/migrations
 COPY ./backend/rendering-engine/.sqlx /app/backend/rendering-engine/.sqlx
-COPY ./backend/rendering-engine/state /app/backend/rendering-engine/state
+COPY ./backend/rendering-engine/state/reference.sqlite /app/backend/rendering-engine/state/db.sqlite
 COPY ./backend/rendering-engine/Cargo.* /app/backend/rendering-engine
 COPY ./backend/rendering-engine/src /app/backend/rendering-engine/src
 
