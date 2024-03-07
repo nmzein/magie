@@ -22,38 +22,28 @@ export const annotationsUpload = state<File>();
 
 export const autogenerateAnnotations = definedState<boolean>(true);
 
-const _image = () => {
-	let state = $state<{ value: ImageLayer[] | undefined }>({ value: undefined });
+export const image = (() => {
+	let image = state<ImageLayer[]>();
 
 	// Run as soon as metadata is parsed and loaded in GetMetadata.
-	const initialise = () => {
+	const init = () => {
 		let levels = metadata.value?.length;
-		if (state === undefined || levels === undefined) return;
+		if (image === undefined || levels === undefined) return;
 
-		state.value = new Array(levels).fill([]);
+		image.value = new Array(levels).fill([]);
 
 		for (let level = 0; level < levels; level++) {
-			state.value[level] = new Array(metadata.value?.[level].rows)
+			image.value[level] = new Array(metadata.value?.[level].rows)
 				.fill(0)
 				.map(() => new Array(metadata.value?.[level].cols).fill(new Image()));
 		}
 	};
 
-	return { state, initialise };
-};
-export const image = _image();
+	return { state: image, init };
+})();
 
 const _websocket = () => {
-	let socket = $state<{ value: WebSocket }>({ value: new WebSocket(WEBSOCKET_URL) });
-
-	async function GetTile(data: TileRequest): Promise<boolean> {
-		if (metadata === undefined || socket.value.readyState !== WebSocket.OPEN) {
-			return false;
-		}
-
-		socket.value.send(JSON.stringify(data));
-		return true;
-	}
+	let socket = definedState<WebSocket>(new WebSocket(WEBSOCKET_URL));
 
 	socket.value.addEventListener('message', (event: MessageEvent) => {
 		processTile(event).catch((error) => {
@@ -76,6 +66,15 @@ const _websocket = () => {
 		const blob = new Blob([arr.slice(3)], { type: 'image/jpeg' });
 		newTile.src = URL.createObjectURL(blob);
 		image.state.value[level][y][x] = newTile;
+	}
+
+	async function GetTile(data: TileRequest): Promise<boolean> {
+		if (metadata === undefined || socket.value.readyState !== WebSocket.OPEN) {
+			return false;
+		}
+
+		socket.value.send(JSON.stringify(data));
+		return true;
 	}
 
 	return { socket, GetTile };

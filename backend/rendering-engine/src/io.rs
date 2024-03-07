@@ -124,7 +124,7 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     };
 
     let mut jpeg_tile =
-        turbojpeg::compress_image::<Rgb<u8>>(&image_tile, 95, turbojpeg::Subsamp::Sub2x2)?.to_vec();
+        turbojpeg::compress_image::<Rgb<u8>>(&image_tile, 70, turbojpeg::Subsamp::Sub2x2)?.to_vec();
 
     #[cfg(feature = "time")]
     time("Encoding tile to JPEG", level, x, y, start);

@@ -48,15 +48,16 @@ impl Annotation {
     }
 }
 
-const COLOURS_LEN: usize = 7;
+const COLOURS_LEN: usize = 8;
 static COLOURS: [&str; COLOURS_LEN] = [
     "#FF0000", // Red
     "#FF7F00", // Orange
     "#FFFF00", // Yellow
-    "#00FF00", // Green
     "#0000FF", // Blue
+    "#FF1493", // DeepPink
     "#4B0082", // Indigo
     "#8B00FF", // Violet
+    "#00FF00", // Green
 ];
 
 // pub const name: &str = "TIAToolbox";

@@ -154,7 +154,7 @@ export async function GetMetadata(id: number) {
 				metadata.value = data;
 
 				// On success, initialise the image grid and get annotations.
-				image.initialise();
+				image.init();
 				GetAnnotations();
 			} catch (error) {
 				console.error('Parse Error <Metadata: ' + loadedImage.value?.path + '>:', error);

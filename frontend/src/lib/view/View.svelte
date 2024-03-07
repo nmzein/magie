@@ -56,8 +56,12 @@
 				break;
 			}
 		}
-		imageWidth = metadata.value[0].width;
-		imageHeight = metadata.value[0].height;
+
+		// maxLevel = metadata.value.length - 1;
+		// currentLevel = metadata.value.length - 1;
+
+		imageWidth = metadata.value[0].width * 1.003;
+		imageHeight = metadata.value[0].height * 1.003;
 	});
 
 	$effect(() => {
@@ -66,10 +70,10 @@
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
-		(function () {
-			var script = document.createElement('script');
+		(() => {
+			let script = document.createElement('script');
 			script.onload = function () {
-				var stats = new Stats();
+				let stats = new Stats();
 
 				stats.showPanel(2);
 				document.body.appendChild(stats.dom);
@@ -210,31 +214,33 @@
 	role="img"
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
-	ontouchstart={handleTouchStart}
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
+	<!-- ontouchstart={handleTouchStart} -->
 	<div
 		id="container"
 		style="transform: translate({offsetX}px, {offsetY}px) scale({scale}); {isDragging
 			? ''
 			: 'transition: transform 0.2s;'}"
 	>
-		{#if metadata.value && image.state.value}
-			{#if annotations.value && imageWidth && imageHeight && camera}
+		{#if metadata.value != undefined && image.state.value != undefined}
+			{#if annotations.value != undefined && imageWidth != undefined && imageHeight != undefined && camera != undefined}
 				<div id="annotation-layers">
 					{#each annotations.value as annotationLayer, layerIndex}
 						<AnnotationLayer {annotationLayer} {layerIndex} {imageWidth} {imageHeight} {camera} />
 					{/each}
 				</div>
 			{/if}
-			<div id="image-layers">
-				{#each image.state.value as layer, layerIndex}
-					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
-				{/each}
-			</div>
+			{#if currentLevel != undefined}
+				<div id="image-layers">
+					{#each image.state.value as layer, layerIndex}
+						<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
+					{/each}
+				</div>
+			{/if}
 		{/if}
 	</div>
-	{#if metadata.value}
+	{#if metadata.value != undefined}
 		<div id="coordinates-panel" class="panel">
 			<span>x:</span>
 			{x}, <span>y:</span>

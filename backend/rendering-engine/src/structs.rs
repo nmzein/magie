@@ -70,7 +70,7 @@ impl AnnotationLayer {
         Self {
             tag,
             visible: true,
-            opacity: 1.0,
+            opacity: 0.5,
             fill,
             stroke: "#000000".into(),
             annotations: vec![],

@@ -1,10 +1,8 @@
-//@font-face {
-//	font-family: 'JetBrains Mono';
-//	src: url('JetBrainsMono[wght].ttf');
-//	font-weight: 100 200 300 400 500 600 700 800 900;
-//}
-
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: url('/JetBrainsMono[wght].ttf');
+	font-weight: 100 200 300 400 500 600 700 800 900;
+}
 
 * {
 	font-family: 'JetBrains Mono', monospace;
