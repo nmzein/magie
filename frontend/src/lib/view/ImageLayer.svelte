@@ -1,9 +1,5 @@
 <script lang="ts">
-	let {
-		layerIndex,
-		layer,
-		display = false
-	} = $props<{
+	let { layerIndex, layer, display } = $props<{
 		layerIndex: number;
 		layer: ImageLayer;
 		display: boolean;
@@ -18,29 +14,27 @@
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach((entry) => {
-			if (loadedImage.value === undefined) return;
+			if (loadedImage.value === undefined || !entry.isIntersecting) return;
 
-			if (entry.isIntersecting) {
-				let levelString = (entry.target as HTMLElement).dataset.level;
-				let xString = (entry.target as HTMLElement).dataset.x;
-				let yString = (entry.target as HTMLElement).dataset.y;
-				if (!levelString || !xString || !yString) return;
+			let levelString = (entry.target as HTMLElement).dataset.level;
+			let xString = (entry.target as HTMLElement).dataset.x;
+			let yString = (entry.target as HTMLElement).dataset.y;
+			if (!levelString || !xString || !yString) return;
 
-				let level = parseInt(levelString);
-				let x = parseInt(xString);
-				let y = parseInt(yString);
+			let level = parseInt(levelString);
+			let x = parseInt(xString);
+			let y = parseInt(yString);
 
-				const ready = websocket.GetTile({
-					id: loadedImage.value.id,
-					level,
-					x,
-					y
-				});
-				if (!ready) return;
+			const ready = websocket.GetTile({
+				id: loadedImage.value.id,
+				level,
+				x,
+				y
+			});
+			if (!ready) return;
 
-				observer.unobserve(entry.target);
-				console.log('Unobserving', level);
-			}
+			observer.unobserve(entry.target);
+			console.log('Unobserving', level);
 		});
 	}
 
@@ -48,7 +42,6 @@
 
 	$effect(() => {
 		document.querySelectorAll('[data-level="' + layerIndex + '"]').forEach((tile) => {
-			// console.log('Observing', layerIndex);
 			observer.observe(tile);
 		});
 
@@ -58,25 +51,45 @@
 	});
 </script>
 
-<div
-	id="image-layer-{layerIndex}"
-	class="image-layer"
-	style="--no-of-columns: {metadata.value?.[layerIndex].cols};"
->
-	{#each layer as row, rowIndex (rowIndex)}
-		{#each row as tile, tileIndex (tileIndex)}
-			<img
-				src={tile.src || '/placeholder.png'}
-				style="display: {display ? 'block' : 'none'};"
-				data-level={layerIndex}
-				data-x={tileIndex}
-				data-y={rowIndex}
-				alt="Tile ({tileIndex}, {rowIndex})"
-				onerror={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
-			/>
+{#if metadata.value != undefined}
+	<div
+		id="image-layer-{layerIndex}"
+		class="image-layer"
+		style="--no-of-columns: {metadata.value[layerIndex].cols}; z-index: {metadata.value.length -
+			layerIndex};"
+	>
+		{#each layer as row, rowIndex (rowIndex)}
+			{#each row as tile, tileIndex (tileIndex)}
+				<!--
+					We want this to always be mounted, however, it should only
+					show to the IntersectionObserver (and the user) in two cases.
+					
+					1) This layer is the current layer (i.e. display == true).
+					2) The tile has been loaded (i.e. tile.src != '').
+				-->
+				<img
+					src={tile.src || '/placeholder.png'}
+					style="display: {display || tile.src != '' ? 'block' : 'none'};"
+					data-level={layerIndex}
+					data-x={tileIndex}
+					data-y={rowIndex}
+					alt="Tile ({tileIndex}, {rowIndex})"
+					onerror={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
+				/>
+
+				<!-- 
+					In the case where the tile has not been loaded and this layer
+					is not the current layer, we want to show a placeholder image
+					or else the loaded tiles would not be in the correct position.	
+					This tile should never be observable by the IntersectionObserver.	
+				 -->
+				{#if tile.src == '' && !display}
+					<img src="/placeholder.png" alt="" />
+				{/if}
+			{/each}
 		{/each}
-	{/each}
-</div>
+	</div>
+{/if}
 
 <style lang="scss">
 	.image-layer {

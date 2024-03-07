@@ -14,8 +14,8 @@
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
-	const CANVAS_WIDTH = 2000;
-	const CANVAS_HEIGHT = CANVAS_WIDTH * (imageHeight / imageWidth);
+	const CANVAS_HEIGHT = 8000;
+	const CANVAS_WIDTH = CANVAS_HEIGHT * (imageWidth / imageHeight);
 
 	const scene = new THREE.Scene();
 
@@ -30,11 +30,16 @@
 	);
 
 	// Materials for this annotation layer.
-	const fillMaterial = new THREE.MeshBasicMaterial({
-		color: annotationLayer.fill
-	});
+	let fillMaterial = $derived(
+		new THREE.MeshBasicMaterial({
+			color: annotationLayer.fill
+		})
+	);
+
+	let geometry: THREE.BufferGeometry | undefined = $state();
 
 	$effect(() => untrack(() => draw()));
+	$effect(() => render());
 
 	function draw() {
 		let start = performance.now();
@@ -43,7 +48,6 @@
 
 		annotationLayer.annotations.forEach((annotation, _) => {
 			const shape = new THREE.Shape();
-
 			shape.moveTo(annotation[0][0], -1 * annotation[0][1]);
 			annotation[0] = [];
 			for (let i = 1; i < annotation.length; i++) {
@@ -60,9 +64,15 @@
 		start = performance.now();
 
 		// Merge the geometries into a single geometry to minimise draw calls.
-		const geometry = BufferGeometryUtils.mergeGeometries(geometries);
+		geometry = BufferGeometryUtils.mergeGeometries(geometries);
+	}
+
+	function render(material: THREE.Material = fillMaterial) {
+		let start = performance.now();
+
+		renderer.clear();
 		// Create a mesh with the geometries and materials.
-		const mesh = new THREE.InstancedMesh(geometry, fillMaterial, 1);
+		const mesh = new THREE.InstancedMesh(geometry, material, 1);
 		// Add the shapes to the scene.
 		scene.add(mesh);
 
@@ -86,7 +96,7 @@
 	width={CANVAS_WIDTH}
 	height={CANVAS_HEIGHT}
 	id={'annotation-layer-' + layerIndex}
-	style="z-index: {1 + layerIndex}; display: {annotationLayer.visible
+	style="z-index: {100 + layerIndex}; display: {annotationLayer.visible
 		? 'block'
 		: 'none'}; opacity: {annotationLayer.opacity};"
 />
