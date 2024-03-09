@@ -86,14 +86,15 @@ pub async fn insert(
     Ok(())
 }
 
-pub async fn contains(directory_path: &str, conn: Arc<Mutex<Connection>>) -> bool {
-    let conn_lock = conn.lock().unwrap();
-    let contains = conn_lock.execute(
+pub async fn contains(directory_path: &str, conn: Arc<Mutex<Connection>>) -> Result<bool> {
+    let conn_lock: std::sync::MutexGuard<'_, Connection> = conn.lock().unwrap();
+    let mut stmt = conn_lock.prepare(
         r#"
             SELECT 1 FROM images WHERE directory_path = ?1;
         "#,
-        [directory_path],
-    );
+    )?;
+
+    let contains = stmt.exists(&[directory_path])?;
 
     #[cfg(feature = "log-database-success")]
     log(
@@ -101,7 +102,7 @@ pub async fn contains(directory_path: &str, conn: Arc<Mutex<Connection>>) -> boo
         Some(&contains),
     );
 
-    contains.is_ok()
+    Ok(contains)
 }
 
 pub async fn get_paths(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Paths> {

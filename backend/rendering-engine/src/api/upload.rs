@@ -46,17 +46,32 @@ pub async fn upload(
 
     // Check if image already exists in database.
     let directory_path = PathBuf::from(directory_path).join(image_name_no_ext);
-    if crate::db::contains(&directory_path.to_str().unwrap(), Arc::clone(&conn)).await {
-        let resp = log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!(
-                "Image with name {} already exists. Consider deleting it from the list first.",
-                image_name_no_ext
-            ),
-            None,
-        );
+    match { crate::db::contains(&directory_path.to_str().unwrap(), Arc::clone(&conn)).await } {
+        Ok(true) => {
+            let resp = log::<()>(
+                StatusCode::BAD_REQUEST,
+                &format!(
+                    "Image with name {} already exists. Consider deleting it from the list first.",
+                    image_name_no_ext
+                ),
+                None,
+            );
 
-        return resp;
+            return resp;
+        }
+        Err(e) => {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!(
+                    "Failed to check if image with name {} already exists.",
+                    image_name_no_ext
+                ),
+                Some(e),
+            );
+
+            return resp;
+        }
+        _ => (),
     }
 
     // Create a directory in store for the image.
