@@ -1,3 +1,5 @@
-pub mod common;
+mod common;
+pub mod export;
+
 #[cfg(feature = "openslide")]
-pub mod openslide;
+mod openslide;

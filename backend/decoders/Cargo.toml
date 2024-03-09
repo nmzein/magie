@@ -3,17 +3,17 @@ name = "decoders"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib"]
+[build-dependencies]
+shared = { version = "0.1.0", path = "../shared" }
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
 anyhow = "1.0.80"
 
-# OpenSlide
-openslide-rs = "2.0.1"
+# Optional Dependencies
+openslide-rs = { version = "2.0.1", optional = true }
 
 [features]
 default = ["openslide"]
 
-openslide = []
+openslide = ["dep:openslide-rs"]

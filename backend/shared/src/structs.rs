@@ -16,7 +16,6 @@ pub struct Address {
     pub y: u32,
 }
 
-pub type Geometry = Vec<[f64; 2]>;
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationLayer {
     pub tag: String,
@@ -24,7 +23,7 @@ pub struct AnnotationLayer {
     pub opacity: f32,
     pub fill: String,
     pub stroke: String,
-    pub annotations: Vec<Geometry>,
+    pub annotations: Vec<Vec<[f64; 2]>>,
 }
 
 impl AnnotationLayer {
@@ -39,7 +38,7 @@ impl AnnotationLayer {
         }
     }
 
-    pub fn insert(&mut self, geometry: Geometry) {
+    pub fn insert(&mut self, geometry: Vec<[f64; 2]>) {
         self.annotations.push(geometry);
     }
 }
