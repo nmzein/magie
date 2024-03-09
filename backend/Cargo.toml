@@ -1,0 +1,8 @@
+[workspace]
+members = ["shared", "decoders", "generators", "rendering-engine"]
+resolver = "2"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+strip = "symbols"

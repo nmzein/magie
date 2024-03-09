@@ -1,13 +1,13 @@
 #![deny(clippy::all)]
 #![warn(clippy::restriction, clippy::pedantic, clippy::nursery, clippy::cargo)]
 
+#[macro_use]
+extern crate dlopen_derive;
+
 mod api;
 mod db;
-mod decoders;
-mod generators;
 mod io;
 mod structs;
-mod traits;
 
 use crate::structs::AppState;
 use axum::{
@@ -16,7 +16,9 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
+use dlopen::wrapper::{Container, WrapperApi};
 use dotenv::dotenv;
+use shared::traits::{Decoder, Generator};
 use std::{
     collections::HashMap,
     env,
@@ -24,6 +26,20 @@ use std::{
 };
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
+
+#[derive(WrapperApi)]
+struct DecodersApi {
+    get_decoders: fn() -> Vec<Box<dyn Decoder>>,
+}
+
+#[derive(WrapperApi)]
+struct GeneratorsApi {
+    get_generators: fn() -> HashMap<String, Box<dyn Generator>>,
+}
+
+// TODO: Make compilation agnostic.
+static DECODERS_PATH: &str = "./target/debug/libdecoders.so";
+static GENERATORS_PATH: &str = "./target/debug/libgenerators.so";
 
 #[tokio::main]
 async fn main() {
@@ -48,14 +64,21 @@ async fn main() {
         &env::var("PUBLIC_WEBSOCKET_SUBDIR").expect("PUBLIC_WEBSOCKET_SUBDIR is not set.");
     let upload_url = &env::var("PUBLIC_UPLOAD_SUBDIR").expect("PUBLIC_UPLOAD_SUBDIR is not set.");
 
-    let pool = db::connect(database_url)
+    let conn = db::connect(database_url)
         .await
         .expect("Could not establish a connection to the state database.");
 
+    let decoders_api_wrapper: Container<DecodersApi> =
+        unsafe { Container::load(DECODERS_PATH) }.expect("Could not load decoders.");
+
+    let generators_api_wrapper: Container<GeneratorsApi> =
+        unsafe { Container::load(GENERATORS_PATH) }.expect("Could not load generators.");
+
     let state = AppState {
-        pool,
+        conn: Arc::new(Mutex::new(conn)),
         current_image: Arc::new(Mutex::new(None)),
-        generators: HashMap::new(),
+        decoders: Arc::new(Mutex::new(decoders_api_wrapper.get_decoders())),
+        generators: Arc::new(Mutex::new(generators_api_wrapper.get_generators())),
     };
 
     let backend_url = format!("{domain}:{backend_port}");

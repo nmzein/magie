@@ -3,54 +3,35 @@ name = "rendering_engine"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "rendering_engine"
-path = "src/main.rs"
-
-[profile.release]
-codegen-units = 1
-lto = "fat"
-strip = "symbols"
-
 [dependencies]
-tokio = { version = "1.36.0", features = ["full"] }
+shared = { version = "0.1.0", path = "../shared" }
+decoders = { version = "0.1.0", path = "../decoders" }
+generators = { version = "0.1.0", path = "../generators" }
+
+anyhow = "1.0.80"
 axum = { version = "0.7.4", features = ["ws", "json"] }
 axum_typed_multipart = "0.11.0"
-anyhow = "1.0.80"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
-tower-http = { version = "0.5.2", features = ["cors"] }
-tempfile = "3.10.1"
-sqlx = { version = "0.7.3", features = [
-    "sqlite",
-    "runtime-tokio-native-tls",
-    "macros",
-] }
 dotenv = "0.15.0"
+dlopen = "0.1.8"
+dlopen_derive = "0.1.4"
 futures-util = "0.3.30"
 image = "0.24.9"
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+tempfile = "3.10.1"
+tokio = { version = "1.36.0", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["cors"] }
 turbojpeg = { version = "1.0.0", features = ["image"] }
-# libloading = "0.8.1"
-
-# OpenSlide
-openslide-rs = "2.0.1"
-# ZARR
-zarrs = "0.12.2"
-# TIAToolbox-specific
-flate2 = "1.0.28"
-wkb = "0.7.1"
-geo-types = "0.7.13"
+zarrs = "0.12.4"
 
 [features]
-# Currently "openslide" and "tiatoolbox" are necessary features, do not remove.
 default = [
     # "time",
     "log-success",
     "log-failure",
     "log-database-success",
     "log-database-failure",
-    "openslide",
-    "tiatoolbox",
 ]
 
 time = []
@@ -58,7 +39,3 @@ log-success = []
 log-failure = []
 log-database-success = []
 log-database-failure = []
-# Decoders
-openslide = []
-# Generators
-tiatoolbox = []

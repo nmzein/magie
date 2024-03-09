@@ -1,12 +1,14 @@
 use crate::api::common::*;
 use crate::structs::UploadAssetRequest;
 use axum_typed_multipart::TypedMultipart;
-use std::path::Path;
-use std::path::PathBuf;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 // TODO: Split into smaller functions.
 pub async fn upload(
-    Extension(AppState { pool, .. }): Extension<AppState>,
+    Extension(AppState { conn, decoders, .. }): Extension<AppState>,
     TypedMultipart(UploadAssetRequest {
         directory_path,
         image,
@@ -44,7 +46,7 @@ pub async fn upload(
 
     // Check if image already exists in database.
     let directory_path = PathBuf::from(directory_path).join(image_name_no_ext);
-    if crate::db::contains(&directory_path.to_str().unwrap(), &pool).await {
+    if crate::db::contains(&directory_path.to_str().unwrap(), Arc::clone(&conn)).await {
         let resp = log::<()>(
             StatusCode::BAD_REQUEST,
             &format!(
@@ -93,13 +95,21 @@ pub async fn upload(
         }
     }
 
-    // TODO: Check file extension within function and choose decoder based on this.
-    // TODO: Return if metadata length is 0
     // Convert image to ZARR.
     let store_name = format!("{image_name_no_ext}.zarr");
     let store_path = directory_path.join(&store_name);
-    let metadata = match crate::io::convert(&image_path, &store_path).await {
+    let metadata = match crate::io::convert(&image_path, &store_path, Arc::clone(&decoders)).await {
         Ok(metadata) => {
+            if metadata.is_empty() {
+                let resp = log::<()>(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to convert image to ZARR. No metadata returned.",
+                    None,
+                );
+
+                return resp;
+            }
+
             #[cfg(feature = "log-success")]
             log::<()>(
                 StatusCode::CREATED,
@@ -177,7 +187,7 @@ pub async fn upload(
         &store_name,
         annotations_name.as_deref(),
         metadata,
-        &pool,
+        Arc::clone(&conn),
     )
     .await
     {

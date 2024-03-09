@@ -5,6 +5,7 @@ pub use axum::{
     Extension,
 };
 use std::fmt::Debug;
+pub use std::sync::Arc;
 
 pub fn log<T: Debug>(status_code: StatusCode, message: &str, details: Option<T>) -> Response {
     if status_code.is_success() {

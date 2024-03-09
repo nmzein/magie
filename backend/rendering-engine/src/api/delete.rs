@@ -1,8 +1,9 @@
 use crate::api::common::*;
+use crate::structs::Paths;
 
 pub async fn delete(
     Extension(AppState {
-        pool,
+        conn,
         current_image,
         ..
     }): Extension<AppState>,
@@ -15,7 +16,12 @@ pub async fn delete(
         None,
     );
 
-    let Ok((directory_path, image_name, _, _)) = crate::db::get_paths(id, &pool).await else {
+    let Ok(Paths {
+        directory_path,
+        image_name,
+        ..
+    }) = crate::db::get_paths(id, Arc::clone(&conn)).await
+    else {
         let resp = log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("Could not retrieve paths for image with id {}.", id),
@@ -40,18 +46,20 @@ pub async fn delete(
     });
 
     // Remove entries from the state database.
-    let _ = crate::db::remove(id, &pool).await.map_err(|e| async {
-        let resp = log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "Could not delete image with name {} from state database.",
-                image_name
-            ),
-            Some(e),
-        );
+    let _ = crate::db::remove(id, Arc::clone(&conn))
+        .await
+        .map_err(|e| async {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!(
+                    "Could not delete image with name {} from state database.",
+                    image_name
+                ),
+                Some(e),
+            );
 
-        return resp;
-    });
+            return resp;
+        });
 
     // If image in in-memory state, remove its entry.
     let mut binding = current_image.lock().unwrap();

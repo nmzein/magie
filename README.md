@@ -55,7 +55,7 @@ export PATH=$PATH:~/.cargo/bin
 sudo npm install -g vite
 ```
 
-To run Nemato, navigate to `backend/rendering-engine/` and run:
+To run Nemato, navigate to `backend/` and run:
 
 ```
 # 🛠️ Production
@@ -76,25 +76,3 @@ npm run dev -- --open
 ```
 
 The application can now be accessed at `localhost:4000`.
-
----
-
-### 🗃️ Interacting with the Database
-
-To reset the database, run migrations, or prepare SQL queries, run:
-
-```
-cargo install sqlx-cli
-
-# Create
-cargo sqlx database create
-
-# Migrate
-cargo sqlx migrate run
-
-# Prepare Queries
-cargo sqlx prepare
-
-# Drop Database
-cargo sqlx database reset
-```

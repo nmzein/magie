@@ -1,6 +1,6 @@
 use crate::api::common::*;
 
-pub async fn generators(Extension(_state): Extension<AppState>) -> Response {
+pub async fn generators(Extension(AppState { generators, .. }): Extension<AppState>) -> Response {
     #[cfg(feature = "log-success")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -8,6 +8,13 @@ pub async fn generators(Extension(_state): Extension<AppState>) -> Response {
         None,
     );
 
-    // Json(state.generators.keys().cloned().collect::<Vec<_>>()).into_response()
-    Json(["TIA Toolbox".to_string()]).into_response()
+    Json(
+        generators
+            .lock()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect::<Vec<_>>(),
+    )
+    .into_response()
 }

@@ -1,7 +1,8 @@
 use anyhow::Result;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqlitePool;
+use shared::traits::{Decoder, Generator};
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -11,9 +12,10 @@ use tempfile::NamedTempFile;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub pool: SqlitePool,
+    pub conn: Arc<Mutex<Connection>>,
     pub current_image: Arc<Mutex<Option<ImageState>>>,
-    pub generators: HashMap<String, Generator>,
+    pub decoders: Arc<Mutex<Vec<Box<dyn Decoder>>>>,
+    pub generators: Arc<Mutex<HashMap<String, Box<dyn Generator>>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -25,10 +27,12 @@ pub struct ImageState {
     pub metadata: Vec<Metadata>,
 }
 
-#[derive(Clone)]
-pub struct Generator {
-    pub name: String,
-    pub read_annotations: fn(annotations_path: &str) -> Result<Vec<AnnotationLayer>>,
+#[derive(Debug)]
+pub struct Paths {
+    pub directory_path: PathBuf,
+    pub image_name: String,
+    pub store_name: String,
+    pub annotations_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -50,50 +54,6 @@ pub struct ImageDataResponse {
 pub struct TileRequest {
     pub id: u32,
     pub level: u32,
-    pub x: u32,
-    pub y: u32,
-}
-
-pub type Geometry = Vec<[f64; 2]>;
-#[derive(Clone, Debug, Serialize)]
-pub struct AnnotationLayer {
-    pub tag: String,
-    pub visible: bool,
-    pub opacity: f32,
-    pub fill: String,
-    pub stroke: String,
-    pub annotations: Vec<Geometry>,
-}
-
-impl AnnotationLayer {
-    pub fn new(tag: String, fill: String) -> Self {
-        Self {
-            tag,
-            visible: true,
-            opacity: 0.5,
-            fill,
-            stroke: "#000000".into(),
-            annotations: vec![],
-        }
-    }
-
-    pub fn insert(&mut self, geometry: Geometry) {
-        self.annotations.push(geometry);
-    }
-}
-
-pub struct Region {
-    pub size: Size,
-    pub level: u32,
-    pub address: Address,
-}
-
-pub struct Size {
-    pub width: u32,
-    pub height: u32,
-}
-
-pub struct Address {
     pub x: u32,
     pub y: u32,
 }

@@ -1,6 +1,8 @@
 .git
 .github
 .gitignore
+.DS_Store
+README.md
 
 /frontend/node_modules
 /frontend/.svelte-kit
@@ -9,12 +11,10 @@
 /frontend/.npmrc
 /frontend/.eslintrc.js
 /frontend/.eslintignore
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
-.DS_Store
-README.md
+/frontend/vite.config.js.timestamp-*
+/frontend/vite.config.ts.timestamp-*
 
+/backend/target
 /backend/store/*
-/backend/rendering-engine/target
-/backend/rendering-engine/state/*
-!/backend/rendering-engine/state/reference.sqlite
+/backend/state/*
+!/backend/state/reference.sqlite

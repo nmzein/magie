@@ -2,7 +2,7 @@ use crate::api::common::*;
 
 pub async fn metadata(
     Extension(AppState {
-        pool,
+        conn,
         current_image,
         ..
     }): Extension<AppState>,
@@ -16,7 +16,7 @@ pub async fn metadata(
     );
 
     // Get image with id from the database.
-    let Ok(image) = crate::db::get(id, &pool).await else {
+    let Ok(image) = crate::db::get(id, Arc::clone(&conn)).await else {
         let resp = log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(

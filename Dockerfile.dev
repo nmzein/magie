@@ -41,25 +41,15 @@ RUN --mount=type=cache,target=/var/cache/apt \
                        libopenslide-dev \
                        libssl-dev
 
-WORKDIR /app/backend/rendering-engine
+WORKDIR /app/backend
 
 COPY --from=frontend /app/.env /app
 
-COPY ./backend/rendering-engine/migrations /app/backend/rendering-engine/migrations
-COPY ./backend/rendering-engine/.sqlx /app/backend/rendering-engine/.sqlx
-COPY ./backend/rendering-engine/state/reference.sqlite /app/backend/rendering-engine/state/db.sqlite
+COPY ./backend/migrations /app/backend/migrations
+COPY ./backend/state/reference.sqlite /app/backend/state/db.sqlite
 
-# Incremental build.
-RUN echo "fn main() {}" > temp.rs
-COPY ./backend/rendering-engine/Cargo.* /app/backend/rendering-engine
-RUN sed -i 's#src/main.rs#temp.rs#' Cargo.toml
+COPY ./backend /app/backend
 RUN cargo build
-
-RUN sed -i 's#temp.rs#src/main.rs#' Cargo.toml
-COPY ./backend/rendering-engine/src /app/backend/rendering-engine/src
-RUN cargo build
-
-COPY ./backend/store /app/backend/store
 
 FROM rust AS final
 
@@ -81,4 +71,4 @@ COPY --from=backend /app/backend /app/backend
 EXPOSE 4000
 EXPOSE 3000
 
-CMD /bin/bash -c "cd backend/rendering-engine && cargo run & cd frontend && npm run ci:dev -- --host"
+CMD /bin/bash -c "cd backend && cargo run & cd frontend && npm run ci:dev -- --host"

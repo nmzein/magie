@@ -1,10 +1,16 @@
-use crate::structs::{Address, AnnotationLayer, Metadata, Region, Size, TileRequest};
-use crate::traits::Decoder;
+use crate::structs::{Metadata, TileRequest};
 use anyhow::Result;
 use image::{ImageBuffer, Rgb};
+use shared::{
+    structs::{Address, Region, Size},
+    traits::Decoder,
+};
 #[cfg(feature = "time")]
 use std::time::Instant;
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use tempfile::NamedTempFile;
 use tokio::fs;
 use zarrs::{
@@ -19,7 +25,7 @@ static TILE_LENGTH: usize = (TILE_SIZE * TILE_SIZE) as usize;
 static TILE_SPLIT_LENGTH: usize = (TILE_SIZE * TILE_SIZE * 3) as usize;
 static RGB_CHANNELS: u64 = 3;
 static GROUP_PATH: &str = "/group";
-static STORE_PATH: &str = "../store";
+static STORE_PATH: &str = "store";
 
 pub async fn create(directory_path: &PathBuf) -> Result<PathBuf> {
     let directory_path = PathBuf::from(STORE_PATH).join(directory_path);
@@ -45,24 +51,6 @@ pub async fn save_asset(file: NamedTempFile, path: &PathBuf) -> Result<()> {
     file.persist(path)?;
 
     Ok(())
-}
-
-// TODO: Generate using macros.
-// TODO: Add extension checking function to Decoder to query decoders for supported extensions.
-fn decode(image_path: &PathBuf) -> Result<impl Decoder> {
-    if let Ok(image) = openslide_rs::OpenSlide::open(image_path) {
-        return Ok(image);
-    }
-
-    Err(anyhow::anyhow!(
-        "Image could not be opened using any of the available decoders."
-    ))
-}
-
-// TODO: Run annotation generator translation interface.
-pub async fn annotations(annotations_path: &PathBuf) -> Result<Vec<AnnotationLayer>> {
-    let annotations_path = PathBuf::from(STORE_PATH).join(annotations_path);
-    Ok(crate::generators::tiatoolbox::read_annotations(&annotations_path).await?)
 }
 
 pub fn interleave<'a>(channels: &[u8], tile: &'a mut Vec<u8>) -> &'a [u8] {
@@ -139,11 +127,24 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     Ok(jpeg_tile)
 }
 
-pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<Metadata>> {
+pub async fn convert(
+    image_path: &PathBuf,
+    store_path: &PathBuf,
+    decoders: Arc<Mutex<Vec<Box<dyn Decoder>>>>,
+) -> Result<Vec<Metadata>> {
     let image_path = PathBuf::from(STORE_PATH).join(image_path);
     let store_path = PathBuf::from(STORE_PATH).join(store_path);
 
-    let image = decode(&image_path)?;
+    let decoder_lock = decoders.lock().unwrap();
+    let decoder = decoder_lock
+        .iter()
+        .find(|decoder| {
+            decoder
+                .supported_extensions()
+                .contains(&image_path.extension().unwrap().to_str().unwrap())
+        })
+        .ok_or(anyhow::anyhow!("No decoder found for image."))?;
+
     // One store per image.
     let store = Arc::new(FilesystemStore::new(store_path)?);
     // One group per image.
@@ -152,17 +153,17 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
     // ! Remove group and make it so better adheres to OME-ZARR.
     group.store_metadata()?;
 
-    let levels = image.get_level_count()?;
+    let levels = decoder.get_level_count(&image_path)?;
     if levels == 0 {
         return Err(anyhow::anyhow!("Image has no levels."));
     }
-    let (level_0_width, level_0_height) = image.get_level_dimensions(0)?;
+    let (level_0_width, level_0_height) = decoder.get_level_dimensions(&image_path, 0)?;
 
     let mut metadata: Vec<Metadata> = Vec::new();
 
     for level in 0..levels {
         // Get image dimensions.
-        let (width, height) = image.get_level_dimensions(level)?;
+        let (width, height) = decoder.get_level_dimensions(&image_path, level)?;
 
         // Calculate number of tiles per row and column.
         let cols = width.div_ceil(TILE_SIZE);
@@ -204,18 +205,21 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                 let start = Instant::now();
 
                 // Rearrange tile from [R,G,B,R,G,B] to [R,R,G,G,B,B].
-                let tile = image
-                    .read_region(&Region {
-                        size: Size {
-                            width: TILE_SIZE,
-                            height: TILE_SIZE,
+                let tile = decoder
+                    .read_region(
+                        &image_path,
+                        &Region {
+                            size: Size {
+                                width: TILE_SIZE,
+                                height: TILE_SIZE,
+                            },
+                            level: level,
+                            address: Address {
+                                x: (x * TILE_SIZE * width_ratio),
+                                y: (y * TILE_SIZE * height_ratio),
+                            },
                         },
-                        level: level,
-                        address: Address {
-                            x: (x * TILE_SIZE * width_ratio),
-                            y: (y * TILE_SIZE * height_ratio),
-                        },
-                    })?
+                    )?
                     .chunks(3)
                     .fold(
                         vec![Vec::new(), Vec::new(), Vec::new()],
@@ -231,7 +235,13 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                     .collect();
 
                 #[cfg(feature = "time")]
-                let start = time("Reading and rearranging tile", level, x, y, start);
+                let start = time(
+                    "Reading and rearranging tile",
+                    level,
+                    x.into(),
+                    y.into(),
+                    start,
+                );
 
                 array.store_chunks(
                     &ArraySubset::new_with_start_end_inc(
@@ -242,7 +252,7 @@ pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<M
                 )?;
 
                 #[cfg(feature = "time")]
-                time("Storing tile", level, x, y, start);
+                time("Storing tile", level, x.into(), y.into(), start);
             }
         }
 
