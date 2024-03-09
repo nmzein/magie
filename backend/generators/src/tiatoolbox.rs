@@ -91,9 +91,6 @@ impl Generator for TIAToolbox {
             })
         })?;
 
-        println!("Query took: {:?}", start.elapsed());
-        let start = std::time::Instant::now();
-
         let mut colour_index = 0;
         let mut layers = HashMap::new();
 

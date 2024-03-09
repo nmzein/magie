@@ -1,9 +1,6 @@
 #![deny(clippy::all)]
 #![warn(clippy::restriction, clippy::pedantic, clippy::nursery, clippy::cargo)]
 
-#[macro_use]
-extern crate dlopen_derive;
-
 mod api;
 mod db;
 mod io;
@@ -16,30 +13,13 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use dlopen::wrapper::{Container, WrapperApi};
 use dotenv::dotenv;
-use shared::traits::{Decoder, Generator};
 use std::{
-    collections::HashMap,
     env,
     sync::{Arc, Mutex},
 };
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-
-#[derive(WrapperApi)]
-struct DecodersApi {
-    get_decoders: fn() -> Vec<Box<dyn Decoder>>,
-}
-
-#[derive(WrapperApi)]
-struct GeneratorsApi {
-    get_generators: fn() -> HashMap<String, Box<dyn Generator>>,
-}
-
-// TODO: Make compilation agnostic.
-static DECODERS_PATH: &str = "./target/debug/libdecoders.so";
-static GENERATORS_PATH: &str = "./target/debug/libgenerators.so";
 
 #[tokio::main]
 async fn main() {
@@ -68,17 +48,11 @@ async fn main() {
         .await
         .expect("Could not establish a connection to the state database.");
 
-    let decoders_api_wrapper: Container<DecodersApi> =
-        unsafe { Container::load(DECODERS_PATH) }.expect("Could not load decoders.");
-
-    let generators_api_wrapper: Container<GeneratorsApi> =
-        unsafe { Container::load(GENERATORS_PATH) }.expect("Could not load generators.");
-
     let state = AppState {
         conn: Arc::new(Mutex::new(conn)),
         current_image: Arc::new(Mutex::new(None)),
-        decoders: Arc::new(Mutex::new(decoders_api_wrapper.get_decoders())),
-        generators: Arc::new(Mutex::new(generators_api_wrapper.get_generators())),
+        decoders: Arc::new(Mutex::new(decoders::export::get())),
+        generators: Arc::new(Mutex::new(generators::export::get())),
     };
 
     let backend_url = format!("{domain}:{backend_port}");
