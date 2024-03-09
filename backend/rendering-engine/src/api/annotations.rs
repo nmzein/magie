@@ -1,7 +1,12 @@
 use crate::api::common::*;
+use tokio::task;
 
 pub async fn annotations(
-    Extension(AppState { current_image, .. }): Extension<AppState>,
+    Extension(AppState {
+        current_image,
+        generators,
+        ..
+    }): Extension<AppState>,
 ) -> Response {
     let Some(current_image) = current_image.lock().unwrap().clone() else {
         return log::<()>(
@@ -35,23 +40,57 @@ pub async fn annotations(
     };
 
     let annotations_path = current_image.directory_path.join(annotations_name);
-    let annotations = match crate::io::annotations(&annotations_path).await {
-        Ok(annotations) => {
-            #[cfg(feature = "log-success")]
-            log::<()>(StatusCode::OK, "Successfully retrieved annotations.", None);
 
-            annotations
+    // TODO: Remove hardcoding
+    let generator_name = "TIAToolbox";
+
+    match task::spawn_blocking(move || {
+        let binding = generators.lock().unwrap();
+        let generator = match binding.get(generator_name) {
+            Some(generator) => generator,
+            None => {
+                let resp = log::<()>(
+                    StatusCode::BAD_REQUEST,
+                    &format!(
+                        "Annotation generator with name {} does not exist.",
+                        generator_name
+                    ),
+                    None,
+                );
+
+                return resp;
+            }
+        };
+
+        match generator.read_annotations(&annotations_path) {
+            Ok(annotations) => {
+                #[cfg(feature = "log-success")]
+                log::<()>(StatusCode::OK, "Successfully retrieved annotations.", None);
+
+                Json(annotations).into_response()
+            }
+            Err(e) => {
+                let resp = log(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to retrieve annotations.",
+                    Some(e),
+                );
+
+                resp
+            }
         }
+    })
+    .await
+    {
+        Ok(response) => response,
         Err(e) => {
             let resp = log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to retrieve annotations.",
+                "Failed to spawn blocking task.",
                 Some(e),
             );
 
-            return resp;
+            resp
         }
-    };
-
-    Json(annotations).into_response()
+    }
 }

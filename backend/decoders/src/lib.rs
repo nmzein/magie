@@ -1,3 +1,3 @@
-mod common;
+pub mod common;
 #[cfg(feature = "openslide")]
 pub mod openslide;

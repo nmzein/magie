@@ -1,31 +1,37 @@
-use crate::structs::{ImageDataResponse, ImageState, Metadata};
+use crate::structs::{ImageDataResponse, ImageState, Metadata, Paths};
 use anyhow::Result;
-use sqlx::sqlite::SqlitePool;
-use std::{fmt::Debug, path::PathBuf};
+use rusqlite::Connection;
+use std::{
+    fmt::Debug,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
-pub async fn connect(database_url: &str) -> Result<SqlitePool> {
-    let pool = SqlitePool::connect(database_url).await?;
-    sqlx::migrate!().run(&pool).await?;
+pub async fn connect(database_url: &str) -> Result<Connection> {
+    let conn = Connection::open(database_url)?;
 
-    Ok(pool)
+    // TODO: migrations
+
+    Ok(conn)
 }
 
-pub async fn list(pool: &SqlitePool) -> Result<Vec<ImageDataResponse>> {
-    let list = sqlx::query!(
+pub async fn list(conn: Arc<Mutex<Connection>>) -> Result<Vec<ImageDataResponse>> {
+    let conn_lock = conn.lock().unwrap();
+    let mut stmt = conn_lock.prepare(
         r#"
             SELECT id, directory_path FROM images;
-        "#
-    )
-    .fetch_all(pool)
-    .await?
-    .into_iter()
-    .map(|row| {
-        Ok(ImageDataResponse {
-            id: row.id.unwrap() as u32,
-            path: row.directory_path,
-        })
-    })
-    .collect();
+        "#,
+    )?;
+
+    let list = stmt
+        .query_map([], |row| {
+            Ok(ImageDataResponse {
+                id: row.get(0)?,
+                path: row.get(1)?,
+            })
+        })?
+        .map(|res| res.map_err(anyhow::Error::from))
+        .collect::<Result<Vec<_>, _>>();
 
     #[cfg(feature = "log-database-success")]
     log("LIST", Some(&list));
@@ -39,69 +45,55 @@ pub async fn insert(
     store_name: &str,
     annotations_name: Option<&str>,
     metadata: Vec<Metadata>,
-    pool: &SqlitePool,
+    conn: Arc<Mutex<Connection>>,
 ) -> Result<()> {
     let directory_path = directory_path
         .to_str()
         .ok_or_else(|| anyhow::anyhow!("Could not convert directory path to string."))?;
 
-    let mut transaction = pool.begin().await?;
+    let mut conn_lock = conn.lock().unwrap();
+    let transaction = conn_lock.transaction()?;
 
-    let result = sqlx::query!(
+    transaction.execute(
         r#"
             INSERT INTO images (directory_path, image_name, store_name, annotations_name)
-            VALUES ($1, $2, $3, $4)
+            VALUES (?1, ?2, ?3, ?4)
             RETURNING id;
         "#,
-        directory_path,
-        image_name,
-        store_name,
-        annotations_name
-    )
-    .fetch_one(&mut *transaction)
-    .await?;
+        (directory_path, image_name, store_name, annotations_name),
+    )?;
+
+    let id = transaction.last_insert_rowid();
 
     #[cfg(feature = "log-database-success")]
-    log::<()>(&format!("INSERT <Image: {:?}>", result.id), None);
+    log::<()>(&format!("INSERT <Image: {:?}>", id), None);
 
     for m in metadata {
-        sqlx::query!(
+        transaction.execute(
             r#"
                 INSERT INTO metadata (image_id, level, cols, rows, width, height)
-                VALUES ($1, $2, $3, $4, $5, $6);
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6);
             "#,
-            result.id,
-            m.level,
-            m.cols,
-            m.rows,
-            m.width,
-            m.height
-        )
-        .execute(&mut *transaction)
-        .await?;
+            (id, m.level, m.cols, m.rows, m.width, m.height),
+        )?;
 
         #[cfg(feature = "log-database-success")]
-        log::<()>(
-            &format!("INSERT <Metadata: {}:{}>", result.id, m.level),
-            None,
-        );
+        log::<()>(&format!("INSERT <Metadata: {}:{}>", id, m.level), None);
     }
 
-    transaction.commit().await?;
+    let _ = transaction.commit();
 
     Ok(())
 }
 
-pub async fn contains(directory_path: &str, pool: &SqlitePool) -> bool {
-    let contains = sqlx::query!(
+pub async fn contains(directory_path: &str, conn: Arc<Mutex<Connection>>) -> bool {
+    let conn_lock = conn.lock().unwrap();
+    let contains = conn_lock.execute(
         r#"
-            SELECT * FROM images WHERE directory_path = $1;
+            SELECT 1 FROM images WHERE directory_path = ?1;
         "#,
-        directory_path,
-    )
-    .fetch_one(pool)
-    .await
-    .is_ok();
+        [directory_path],
+    );
 
     #[cfg(feature = "log-database-success")]
     log(
@@ -109,51 +101,56 @@ pub async fn contains(directory_path: &str, pool: &SqlitePool) -> bool {
         Some(&contains),
     );
 
-    contains
+    contains.is_ok()
 }
 
-pub async fn get_paths(
-    id: u32,
-    pool: &SqlitePool,
-) -> Result<(PathBuf, String, String, Option<String>)> {
-    let paths = sqlx::query!(
+pub async fn get_paths(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Paths> {
+    let conn_lock = conn.lock().unwrap();
+    let mut stmt = conn_lock.prepare(
         r#"
             SELECT directory_path, image_name, store_name, annotations_name
             FROM images
-            WHERE id = $1;
+            WHERE id = ?1;
         "#,
-        id
-    )
-    .fetch_one(pool)
-    .await?;
+    )?;
+
+    let paths = stmt.query_row([id], |row| {
+        Ok(Paths {
+            directory_path: PathBuf::from(row.get::<_, String>(0)?),
+            image_name: row.get(1)?,
+            store_name: row.get(2)?,
+            annotations_name: Some(row.get(3)?),
+        })
+    })?;
 
     #[cfg(feature = "log-database-success")]
     log(&format!("GET <Paths: {}>", id), Some(&paths));
 
-    Ok((
-        PathBuf::from(paths.directory_path),
-        paths.image_name,
-        paths.store_name,
-        paths.annotations_name,
-    ))
+    Ok(paths)
 }
 
-pub async fn get_metadata(id: u32, pool: &SqlitePool) -> Result<Vec<Metadata>> {
-    // Unchecked is used here to avoid having to convert from i64 to u32.
-    // This is fine because we know the values going into the database are u32
-    // so as long as the database is not tampered with, this is a fine assumption.
-    let metadata = sqlx::query_as_unchecked!(
-        Metadata,
+pub async fn get_metadata(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<Metadata>> {
+    let conn_lock = conn.lock().unwrap();
+    let mut stmt = conn_lock.prepare(
         r#"
             SELECT level, cols, rows, width, height
             FROM metadata
-            WHERE image_id = $1
+            WHERE image_id = ?1
             ORDER BY level ASC;
         "#,
-        id
-    )
-    .fetch_all(pool)
-    .await?;
+    )?;
+
+    let metadata = stmt
+        .query_map([id], |row| {
+            Ok(Metadata {
+                level: row.get(0)?,
+                cols: row.get(1)?,
+                rows: row.get(2)?,
+                width: row.get(3)?,
+                height: row.get(4)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     #[cfg(feature = "log-database-success")]
     log(&format!("GET <Metadata: {}>", id), Some(&metadata));
@@ -161,30 +158,29 @@ pub async fn get_metadata(id: u32, pool: &SqlitePool) -> Result<Vec<Metadata>> {
     Ok(metadata)
 }
 
-pub async fn get(id: u32, pool: &SqlitePool) -> Result<ImageState> {
-    let paths = get_paths(id, pool).await?;
-    let metadata = get_metadata(id, pool).await?;
+pub async fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<ImageState> {
+    let paths = get_paths(id, Arc::clone(&conn)).await?;
+    let metadata = get_metadata(id, conn).await?;
 
     let state = ImageState {
-        directory_path: paths.0.into(),
-        image_name: paths.1.into(),
-        store_name: paths.2.into(),
-        annotations_name: paths.3,
+        directory_path: paths.directory_path.into(),
+        image_name: paths.image_name.into(),
+        store_name: paths.store_name.into(),
+        annotations_name: paths.annotations_name,
         metadata,
     };
 
     Ok(state)
 }
 
-pub async fn remove(id: u32, pool: &SqlitePool) -> Result<()> {
-    sqlx::query!(
+pub async fn remove(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let conn_lock = conn.lock().unwrap();
+    conn_lock.execute(
         r#"
-            DELETE FROM images WHERE id = $1;
+            DELETE FROM images WHERE id = ?1;
         "#,
-        id
-    )
-    .execute(pool)
-    .await?;
+        [id],
+    )?;
 
     #[cfg(feature = "log-database-success")]
     log::<()>(&format!("DELETE <Image: {}>", id), None);

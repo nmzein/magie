@@ -1,11 +1,12 @@
-/frontend/node_modules
-/frontend/.svelte-kit
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
 .DS_Store
 
+/frontend/node_modules
+/frontend/.svelte-kit
+/frontend/vite.config.js.timestamp-*
+/frontend/vite.config.ts.timestamp-*
+
+/backend/target
 /backend/store/*
 !/backend/store/.gitkeep
-/backend/rendering-engine/target
-/backend/rendering-engine/state/*
-!/backend/rendering-engine/state/reference.sqlite
+/backend/state/*
+!/backend/state/reference.sqlite
