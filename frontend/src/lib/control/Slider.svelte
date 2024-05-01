@@ -1,6 +1,14 @@
 <script lang="ts">
 	// Credit: https://www.w3schools.com/howto/howto_js_rangeslider.asp
-	let { id, min, max, step, value, inputStyle, labelStyle } = $props<{
+	let {
+		id,
+		min,
+		max,
+		step,
+		value = $bindable(),
+		inputStyle,
+		labelStyle
+	}: {
 		id: string;
 		min: number;
 		max: number;
@@ -8,7 +16,7 @@
 		value: number;
 		inputStyle: string;
 		labelStyle: string;
-	}>();
+	} = $props();
 </script>
 
 <div style="display: flex; {inputStyle}">

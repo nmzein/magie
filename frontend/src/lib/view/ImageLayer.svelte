@@ -1,9 +1,13 @@
 <script lang="ts">
-	let { layerIndex, layer, display } = $props<{
+	let {
+		layerIndex,
+		layer,
+		display
+	}: {
 		layerIndex: number;
 		layer: ImageLayer;
 		display: boolean;
-	}>();
+	} = $props();
 
 	import { websocket, loadedImage, metadata } from '$stores';
 	import type { ImageLayer } from '$types';

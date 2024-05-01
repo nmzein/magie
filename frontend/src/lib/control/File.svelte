@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { file, indent } = $props<{ file: { name: string; metadata: Image }; indent: string }>();
+	let { file, indent }: { file: { name: string; metadata: Image }; indent: string } = $props();
 
 	import type { Image } from '$lib/types';
 	import { LoadImage } from '$api';

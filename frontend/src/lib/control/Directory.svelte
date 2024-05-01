@@ -1,9 +1,9 @@
 <script lang="ts">
 	let {
 		content,
-		showContent = false,
+		showContent = $bindable(false),
 		depth
-	} = $props<{ content: DirectoryNode; showContent: boolean; depth: number }>();
+	}: { content: DirectoryNode; showContent: boolean; depth: number } = $props();
 
 	import type { DirectoryNode } from '$lib/types';
 	import Directory from '$control/Directory.svelte';

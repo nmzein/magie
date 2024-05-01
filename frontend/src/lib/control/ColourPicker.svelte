@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { id, value } = $props<{ id: string; value: string }>();
+	let { id, value = $bindable() }: { id: string; value: string } = $props();
 </script>
 
 <label for={id} style="--colour: {value};">

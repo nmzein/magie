@@ -1,11 +1,17 @@
 <script lang="ts">
-	let { annotationLayer, layerIndex, imageWidth, imageHeight, camera } = $props<{
+	let {
+		annotationLayer,
+		layerIndex,
+		imageWidth,
+		imageHeight,
+		camera
+	}: {
 		annotationLayer: AnnotationLayer;
 		layerIndex: number;
 		imageWidth: number;
 		imageHeight: number;
 		camera: THREE.Camera;
-	}>();
+	} = $props();
 
 	import type { AnnotationLayer } from '$types';
 	import { untrack } from 'svelte';
@@ -99,7 +105,7 @@
 	style="z-index: {100 + layerIndex}; display: {annotationLayer.visible
 		? 'block'
 		: 'none'}; opacity: {annotationLayer.opacity};"
-/>
+></canvas>
 
 <style lang="scss">
 	canvas {

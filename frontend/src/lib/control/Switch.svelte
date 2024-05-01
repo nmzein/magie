@@ -1,11 +1,11 @@
 <script lang="ts">
 	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
-	let { checked } = $props<{ checked: boolean }>();
+	let { checked = $bindable() }: { checked: boolean } = $props();
 </script>
 
 <label id="switch">
 	<input type="checkbox" {checked} onclick={() => (checked = !checked)} />
-	<span id="slider" />
+	<span id="slider"></span>
 </label>
 
 <style lang="scss">

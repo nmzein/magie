@@ -1,8 +1,11 @@
 <script lang="ts">
-	let { assetUpload, placeholder } = $props<{
+	let {
+		assetUpload = $bindable(),
+		placeholder
+	}: {
 		assetUpload: File | undefined;
 		placeholder: string;
-	}>();
+	} = $props();
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
@@ -21,8 +24,7 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div ondrop={(e) => handleDrop(e)} ondragover={(e) => e.preventDefault()}>
 	{#if assetUpload}
 		<button
@@ -34,8 +36,8 @@
 			<span>{assetUpload.name}</span>
 		</button>
 	{:else}
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<label id="asset" for={'browse-input' + placeholder} onclick={async (e) => handleBrowse(e)}>
 			<img src="default_file.svg" alt="" />
 			<span class="secondary-text">{placeholder}</span>

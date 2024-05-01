@@ -32,7 +32,7 @@
 		<div class="panel small">
 			<button><img class="zoom" src="plus.svg" alt="Zoom in." /></button>
 			<button><img class="zoom" src="minus.svg" alt="Zoom out." /></button>
-			<div style="flex: 1;" />
+			<div style="flex: 1;"></div>
 			<button onclick={() => (showLargePanel = !showLargePanel)}
 				><img
 					id="arrow"

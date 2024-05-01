@@ -61,7 +61,7 @@
 			<UploadAsset bind:assetUpload={imageUpload.value} placeholder="Image" />
 
 			{#if !autogenerateAnnotations.value}
-				<div class="divider" />
+				<div class="divider"></div>
 				<UploadAsset bind:assetUpload={annotationsUpload.value} placeholder="Annotations" />
 			{/if}
 		</div>
@@ -75,7 +75,7 @@
 	</div>
 
 	<div style="display: flex;">
-		<div style="flex: 1;" />
+		<div style="flex: 1;"></div>
 		<button type="submit" onclick={() => handleUpload()}>UPLOAD</button>
 	</div>
 </div>

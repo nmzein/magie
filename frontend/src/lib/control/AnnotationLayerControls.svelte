@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { layer } = $props<{ layer: AnnotationLayer }>();
+	let { layer }: { layer: AnnotationLayer } = $props();
 
 	import type { AnnotationLayer } from '$types';
 
