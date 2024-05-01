@@ -45,7 +45,6 @@ WORKDIR /app/backend
 
 COPY --from=frontend /app/.env /app
 
-COPY ./backend/migrations /app/backend/migrations
 COPY ./backend/state/reference.sqlite /app/backend/state/db.sqlite
 
 COPY ./backend /app/backend

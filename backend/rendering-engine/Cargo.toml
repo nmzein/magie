@@ -8,20 +8,20 @@ shared = { version = "0.1.0", path = "../shared" }
 decoders = { version = "0.1.0", path = "../decoders" }
 generators = { version = "0.1.0", path = "../generators" }
 
-anyhow = "1.0.80"
-axum = { version = "0.7.4", features = ["ws", "json"] }
-axum_typed_multipart = "0.11.0"
+anyhow = "1.0.82"
+axum = { version = "0.7.5", features = ["ws", "json"] }
+axum_typed_multipart = "0.11.1"
 dotenv = "0.15.0"
 futures-util = "0.3.30"
 image = "0.24.9"
 rusqlite = { version = "0.31.0", features = ["bundled"] }
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
+serde = { version = "1.0.199", features = ["derive"] }
+serde_json = "1.0.116"
 tempfile = "3.10.1"
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
-turbojpeg = { version = "1.0.0", features = ["image"] }
-zarrs = "0.12.4"
+turbojpeg = { version = "1.1.0", features = ["image"] }
+zarrs = "0.13.0"
 
 [features]
 default = [

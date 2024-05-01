@@ -1,6 +1,6 @@
 use crate::structs::{Metadata, TileRequest};
 use anyhow::Result;
-use image::{ImageBuffer, Rgb};
+use image::RgbImage;
 use shared::{
     structs::{Address, Region, Size},
     traits::Decoder,
@@ -105,14 +105,14 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     #[cfg(feature = "time")]
     let start = time("Interleaving RGB channels", level, x, y, start);
 
-    let Some(image_tile) = ImageBuffer::from_raw(TILE_SIZE, TILE_SIZE, tile) else {
+    let Some(image_tile) = RgbImage::from_raw(TILE_SIZE, TILE_SIZE, tile) else {
         return Err(anyhow::anyhow!(
             "Could not convert tile Vec<u8> to ImageBuffer."
         ));
     };
 
     let mut jpeg_tile =
-        turbojpeg::compress_image::<Rgb<u8>>(&image_tile, 70, turbojpeg::Subsamp::Sub2x2)?.to_vec();
+        turbojpeg::compress_image(&image_tile, 70, turbojpeg::Subsamp::Sub2x2)?.to_vec();
 
     #[cfg(feature = "time")]
     time("Encoding tile to JPEG", level, x, y, start);

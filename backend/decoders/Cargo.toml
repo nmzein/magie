@@ -8,10 +8,10 @@ shared = { version = "0.1.0", path = "../shared" }
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
-anyhow = "1.0.80"
+anyhow = "1.0.82"
 
 # Optional Dependencies
-openslide-rs = { version = "2.0.1", optional = true }
+openslide-rs = { version = "2.0.2", optional = true }
 
 [features]
 default = ["openslide"]
