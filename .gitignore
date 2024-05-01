@@ -7,6 +7,6 @@
 
 /backend/target
 /backend/store/*
-!/backend/store/.gitkeep
 /backend/state/*
 !/backend/state/reference.sqlite
+!/backend/state/schema.sql

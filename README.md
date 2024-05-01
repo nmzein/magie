@@ -4,6 +4,10 @@
 
 Nemato is a gigapixel image & annotations rendering engine with a web interface for usage in many professional fields for the analysis of extremely large images.
 
+<p align="center">
+  <img src="https://github.com/nmzein/nemato/assets/67694622/401968c1-dee3-4080-8634-41fd91aaf4d6" alt="Demo Image" width="700" />
+</p>
+
 ## 💽 Installation
 
 1. Download the source code: `git clone https://github.com/nmzein/nemato.git`
@@ -25,7 +29,7 @@ docker-compose up prod
 docker-compose up dev
 ```
 
-The application can now be accessed at `0.0.0.0:4000`.
+The application can now be accessed at `http://0.0.0.0:4000`.
 
 #### Useful Docker Commands
 
@@ -36,43 +40,23 @@ Replace any instance of `<branch>` with `prod` or `dev`.
 
 ---
 
-### Manual
+### Bare Metal
 
-Install dependencies (prerequisites: `curl`).
+Install dependencies:
 
-```
-# Debian [verified working version(s): 12]
-sudo apt install build-essential cmake nasm npm pkg-config libclang-dev libopenslide-dev libssl-dev
+| OS     | Command               | Verified Supported Version(s) |
+| ------ | --------------------- | ----------------------------- |
+| Debian | `./install.sh debian` | 12/Bookworm                   |
+| Ubuntu | `./install.sh ubuntu` | -                             |
 
-# Ubuntu
-sudo apt install cmake nasm npm pkg-config libclang-dev libopenslide-dev libssl-dev
-```
-
-```
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-export PATH=$PATH:~/.cargo/bin
-
-sudo npm install -g vite
-```
-
-To run Nemato, navigate to `backend/` and run:
+Build and run:
 
 ```
 # 🛠️ Production
-cargo run --release
+./run.sh prod
 
 # 🏗️ Development
-cargo run
+./run.sh dev
 ```
 
-Then, in another terminal, navigate to `frontend/` and run:
-
-```
-# 🛠️ Production
-npm run prod -- --open
-
-# 🏗️ Development
-npm run dev -- --open
-```
-
-The application can now be accessed at `localhost:4000`.
+The application can now be accessed at `http://localhost:4000`.
