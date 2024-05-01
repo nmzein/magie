@@ -13,8 +13,23 @@ fn main() {
         r#"use shared::traits::Generator;
 use std::collections::HashMap;
 
-pub fn get() -> HashMap<String, Box<dyn Generator>> {{
-    let mut generators: HashMap<String, Box<dyn Generator>> = HashMap::new();
+pub fn get() -> HashMap<String, Box<dyn Generator>> {{"#
+    )
+    .unwrap();
+
+    if generators.is_empty() {
+        writeln!(
+            &mut file,
+            r#"    HashMap::new()
+}}"#
+        )
+        .unwrap();
+        return;
+    }
+
+    writeln!(
+        &mut file,
+        r#"    let mut generators: HashMap<String, Box<dyn Generator>> = HashMap::new();
     
     let gs = ["#
     )

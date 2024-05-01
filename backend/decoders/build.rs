@@ -12,10 +12,23 @@ fn main() {
         &mut file,
         r#"use shared::traits::Decoder;
         
-pub fn get() -> Vec<Box<dyn Decoder>> {{
-    vec!["#
+pub fn get() -> Vec<Box<dyn Decoder>> {{"#
     )
     .unwrap();
+
+    if decoders.is_empty() {
+        writeln!(
+            &mut file,
+            r#"
+    vec![]
+}}
+"#
+        )
+        .unwrap();
+        return;
+    }
+
+    writeln!(&mut file, r#"    vec!["#).unwrap();
 
     let mut decoders_iter = decoders.iter().peekable();
     while let Some(decoder) = decoders_iter.next() {
