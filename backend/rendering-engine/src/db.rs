@@ -57,8 +57,7 @@ pub async fn insert(
     transaction.execute(
         r#"
             INSERT INTO images (directory_path, image_name, store_name, annotations_name)
-            VALUES (?1, ?2, ?3, ?4)
-            RETURNING id;
+            VALUES (?1, ?2, ?3, ?4);
         "#,
         (directory_path, image_name, store_name, annotations_name),
     )?;
