@@ -3,8 +3,8 @@
 	let { checked = $bindable() }: { checked: boolean } = $props();
 </script>
 
-<label id="switch">
-	<input type="checkbox" {checked} onclick={() => (checked = !checked)} />
+<label id="switch" for="switch">
+	<input id="switch" type="checkbox" {checked} onclick={() => (checked = !checked)} />
 	<span id="slider"></span>
 </label>
 

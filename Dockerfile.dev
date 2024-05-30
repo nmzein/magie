@@ -29,6 +29,10 @@ COPY .env /app
 # Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
 RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' /app/.env
 
+WORKDIR /app/backend/geometry-computer
+COPY /backend/geometry-computer /app/backend/geometry-computer
+RUN npm install
+
 FROM rust AS backend
 
 RUN --mount=type=cache,target=/var/cache/apt \
@@ -40,13 +44,11 @@ RUN --mount=type=cache,target=/var/cache/apt \
                        libclang-dev \
                        libopenslide-dev \
                        libssl-dev
-
-WORKDIR /app/backend
-
+                       
+WORKDIR /app
 COPY --from=frontend /app/.env /app
 
-COPY ./backend/state/reference.sqlite /app/backend/state/db.sqlite
-
+WORKDIR /app/backend
 COPY ./backend /app/backend
 RUN cargo build
 
@@ -64,6 +66,7 @@ WORKDIR /app
 
 COPY --from=frontend /app/.env /app
 COPY --from=frontend /app/frontend /app/frontend
+COPY --from=frontend /app/backend/geometry-computer /app/backend/geometry-computer
 # TODO: Don't copy full source code.
 COPY --from=backend /app/backend /app/backend
 

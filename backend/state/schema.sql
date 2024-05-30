@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS images (
   annotations_name TEXT
 );
 
-CREATE TABLE IF NOT EXISTS metadata (
+CREATE TABLE IF NOT EXISTS metadata_layer (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   image_id INTEGER NOT NULL,
   level INTEGER NOT NULL,
@@ -16,4 +16,12 @@ CREATE TABLE IF NOT EXISTS metadata (
   height INTEGER NOT NULL,
   FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE CASCADE,
   UNIQUE(image_id, level)
+);
+
+CREATE TABLE IF NOT EXISTS annotation_layer (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  image_id INTEGER NOT NULL,
+  tag TEXT NOT NULL,
+  FOREIGN KEY(image_id) REFERENCES images(id) ON DELETE CASCADE,
+  UNIQUE(image_id, tag)
 );

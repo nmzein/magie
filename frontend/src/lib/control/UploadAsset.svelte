@@ -16,7 +16,7 @@
 		}
 	}
 
-	async function handleBrowse(event: Event) {
+	function handleBrowse(event: Event) {
 		const files = (event.target as HTMLInputElement).files;
 		if (files && files.length > 0) {
 			assetUpload = files[0];
@@ -38,13 +38,13 @@
 	{:else}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<label id="asset" for={'browse-input' + placeholder} onclick={async (e) => handleBrowse(e)}>
+		<label id="asset" for={'browse-input-' + placeholder} onclick={(e) => handleBrowse(e)}>
 			<img src="default_file.svg" alt="" />
 			<span class="secondary-text">{placeholder}</span>
 		</label>
 
 		<input
-			id={'browse-input' + placeholder}
+			id={'browse-input-' + placeholder}
 			type="file"
 			style="display: none"
 			onchange={(e) => handleBrowse(e)}

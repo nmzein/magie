@@ -21,7 +21,7 @@ import {
 	PUBLIC_UPLOAD_SUBDIR
 } from '$env/static/public';
 
-import type { AnnotationLayer, Metadata, Image } from './types';
+import type { AnnotationLayer, MetadataLayer, Image } from './types';
 
 const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
@@ -69,19 +69,19 @@ export async function CreateDirectory(
 }
 
 export async function SendUploadAssets(
-	directoryPath: string,
-	imageUpload: File,
-	annotationsUpload: File | undefined,
-	generator: string
+	parentDirectoryPath: string,
+	imageFile: File,
+	annotationsFile: File | undefined,
+	generatorName: string
 ) {
 	const formData = new FormData();
 
-	formData.append('directory_path', directoryPath);
-	formData.append('image', imageUpload);
-	if (annotationsUpload) {
-		formData.append('annotations', annotationsUpload);
+	formData.append('parent_directory_path', parentDirectoryPath);
+	formData.append('image_file', imageFile);
+	if (annotationsFile) {
+		formData.append('annotations_file', annotationsFile);
 	}
-	formData.append('annotation_generator', generator);
+	formData.append('generator_name', generatorName);
 
 	try {
 		const response = await fetch(UPLOAD_URL, {
@@ -150,12 +150,12 @@ export async function GetMetadata(id: number) {
 
 		if (response.ok) {
 			try {
-				const data: Metadata[] = await response.json();
+				const data: MetadataLayer[] = await response.json();
 				metadata.value = data;
 
 				// On success, initialise the image grid and get annotations.
 				image.init();
-				GetAnnotations();
+				GetAnnotations(id);
 			} catch (error) {
 				console.error('Parse Error <Metadata: ' + loadedImage.value?.path + '>:', error);
 			}
@@ -171,10 +171,14 @@ export async function GetMetadata(id: number) {
 	}
 }
 
-export async function GetAnnotations() {
+export async function GetAnnotations(id: number) {
 	try {
 		const response = await fetch(ANNOTATIONS_URL, {
-			method: 'GET'
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(id)
 		});
 
 		if (response.ok) {

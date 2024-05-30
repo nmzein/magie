@@ -1,96 +1,73 @@
 use crate::api::common::*;
-use tokio::task;
+use crate::consts::LOCAL_STORE_PATH;
+use serde::Serialize;
+use std::path::PathBuf;
 
-pub async fn annotations(
-    Extension(AppState {
-        current_image,
-        generators,
-        ..
-    }): Extension<AppState>,
-) -> Response {
-    let Some(current_image) = current_image.lock().unwrap().clone() else {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            "Image metadata must first be fetched before requesting tiles.",
-            None,
-        );
-    };
+#[derive(Serialize)]
+struct AnnotationLayerResponse {
+    tag: String,
+    visible: bool,
+    opacity: f32,
+    fill: String,
+    stroke: String,
+    geometry: String,
+}
 
-    #[cfg(feature = "log-success")]
+impl AnnotationLayerResponse {
+    fn new(tag: String, geometry: String) -> Self {
+        Self {
+            tag,
+            visible: true,
+            opacity: 0.5,
+            fill: "#FF0000".to_string(),
+            stroke: "#000000".to_string(),
+            geometry,
+        }
+    }
+}
+
+pub async fn annotations(Extension(conn): Extension<AppState>, Json(id): Json<u32>) -> Response {
+    #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!(
-            "Received request for annotations of image: {:?}.",
-            current_image.image_name
-        ),
+        &format!("Received request for annotations of image with id: {id}."),
         None,
     );
 
-    let Some(ref annotations_name) = current_image.annotations_name else {
-        let resp = log::<()>(
-            StatusCode::NOT_FOUND,
-            &format!(
-                "Image with name {} does not have annotations.",
-                current_image.image_name
-            ),
-            None,
-        );
-
-        return resp;
-    };
-
-    let annotations_path = current_image.directory_path.join(annotations_name);
-
-    // TODO: Remove hardcoding
-    let generator_name = "TIAToolbox";
-
-    match task::spawn_blocking(move || {
-        let binding = generators.lock().unwrap();
-        let generator = match binding.get(generator_name) {
-            Some(generator) => generator,
-            None => {
-                let resp = log::<()>(
-                    StatusCode::BAD_REQUEST,
-                    &format!(
-                        "Annotation generator with name {} does not exist.",
-                        generator_name
-                    ),
-                    None,
+    let annotation_layer_paths =
+        match crate::db::get_annotation_layer_paths(id, Arc::clone(&conn)).await {
+            Ok(layers) => layers,
+            Err(e) => {
+                return log(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Failed to retrieve paths for image with id: {id}."),
+                    Some(e),
                 );
-
-                return resp;
             }
         };
 
-        match generator.read_annotations(&annotations_path) {
-            Ok(annotations) => {
-                #[cfg(feature = "log-success")]
-                log::<()>(StatusCode::OK, "Successfully retrieved annotations.", None);
-
-                Json(annotations).into_response()
-            }
-            Err(e) => {
-                let resp = log(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to retrieve annotations.",
-                    Some(e),
-                );
-
-                resp
-            }
-        }
-    })
-    .await
-    {
-        Ok(response) => response,
-        Err(e) => {
-            let resp = log(
+    let mut annotation_layers = Vec::new();
+    for (tag, path) in annotation_layer_paths {
+        if let Ok(geometry) =
+            std::fs::read_to_string(&PathBuf::from(LOCAL_STORE_PATH).join(path.clone()))
+        {
+            annotation_layers.push(AnnotationLayerResponse::new(tag.to_owned(), geometry));
+        } else {
+            return log::<()>(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to spawn blocking task.",
-                Some(e),
+                &format!("Failed to read JSON file at path: {path:?}."),
+                None,
             );
-
-            resp
         }
     }
+
+    if annotation_layers.is_empty() {
+        return log::<()>(
+            StatusCode::NOT_FOUND,
+            &format!("No annotation layers found for image with id: {id}."),
+            None,
+        );
+    }
+
+    Json(annotation_layers).into_response()
 }

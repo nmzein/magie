@@ -1,68 +1,85 @@
-use shared::functions::{declare_modules, find_exported_struct, find_modules};
+use shared::functions::{declare_modules, find_modules};
+use std::io::Result;
 use std::{fs::File, io::Write};
 
-fn main() {
+fn main() -> Result<()> {
+    let mut common = File::create("src/common.rs")?;
+    let mut export = File::create("src/export.rs")?;
+    let mut lib = File::create("src/lib.rs")?;
+
     let generators = find_modules();
-    let mut file = File::create("src/lib.rs").unwrap();
-    declare_modules(&mut file, generators.clone());
-
-    file = File::create("src/export.rs").unwrap();
-
-    writeln!(
-        &mut file,
-        r#"use shared::traits::Generator;
-use std::collections::HashMap;
-
-pub fn get() -> HashMap<String, Box<dyn Generator>> {{"#
-    )
-    .unwrap();
+    declare_modules(&mut lib, generators.clone());
 
     if generators.is_empty() {
+        return handle_no_generators(&mut export);
+    }
+
+    declare_deps(&mut common)?;
+    handle_generators(&mut export, generators)
+}
+
+fn declare_deps(common: &mut File) -> Result<()> {
+    writeln!(
+        common,
+        r#"pub use anyhow::Result;
+pub use shared::{{structs::AnnotationLayer, traits::Generator}};
+pub use std::path::PathBuf;"#
+    )?;
+
+    Ok(())
+}
+
+fn handle_no_generators(export: &mut File) -> Result<()> {
+    writeln!(
+        export,
+        r#"use shared::traits::Generator;
+
+pub fn get(_name: &str) -> Option<Box<dyn Generator>> {{
+    None
+}}
+
+pub const NAMES: [&str; 0] = [];"#
+    )?;
+
+    Ok(())
+}
+
+fn handle_generators(export: &mut File, generators: Vec<String>) -> Result<()> {
+    writeln!(
+        export,
+        r#"use shared::traits::Generator;
+
+pub fn get(name: &str) -> Option<Box<dyn Generator>> {{
+    match name {{"#
+    )?;
+
+    for generator in generators.clone() {
         writeln!(
-            &mut file,
-            r#"    HashMap::new()
-}}"#
-        )
-        .unwrap();
-        return;
+            export,
+            r#"        crate::{}::NAME => Some(Box::new(crate::{}::Module)),"#,
+            generator, generator
+        )?;
     }
 
     writeln!(
-        &mut file,
-        r#"    let mut generators: HashMap<String, Box<dyn Generator>> = HashMap::new();
-    
-    let gs = ["#
-    )
-    .unwrap();
-
-    let mut generators_iter = generators.iter().peekable();
-    while let Some(generator) = generators_iter.next() {
-        let module_file = File::open(format!("src/{}.rs", generator)).unwrap();
-        let exported_struct = find_exported_struct(module_file).unwrap();
-
-        writeln!(
-            &mut file,
-            r#"        crate::{}::{}"#,
-            generator, exported_struct
-        )
-        .unwrap();
-
-        if generators_iter.peek().is_none() {
-            writeln!(&mut file, r#"    ];"#).unwrap();
-        } else {
-            writeln!(&mut file, ",").unwrap();
-        }
-    }
-
-    writeln!(
-        &mut file,
-        r#"
-    for g in gs {{
-        generators.insert(g.name(), Box::new(g));
+        export,
+        r#"        _ => None,
     }}
+}}
 
-    generators
+pub fn names() -> Vec<&'static str> {{
+    vec!["#
+    )?;
+
+    for generator in generators {
+        writeln!(export, r#"        crate::{}::NAME,"#, generator,)?;
+    }
+
+    writeln!(
+        export,
+        r#"    ]
 }}"#
-    )
-    .unwrap();
+    )?;
+
+    Ok(())
 }

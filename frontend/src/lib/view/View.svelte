@@ -2,7 +2,7 @@
 	import { annotations, image, metadata } from '$stores';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
-	import * as THREE from 'three';
+	import { OrthographicCamera } from 'three';
 
 	let panStartX = $state(0);
 	let panStartY = $state(0);
@@ -37,10 +37,10 @@
 		return scaleBreakpoints;
 	});
 
-	let camera: THREE.OrthographicCamera | undefined = $derived.by(() => {
+	let camera: OrthographicCamera | undefined = $derived.by(() => {
 		if (imageWidth === undefined || imageHeight === undefined) return;
 
-		const camera = new THREE.OrthographicCamera(0, imageWidth, 0, -1 * imageHeight, 0.1, 10);
+		const camera = new OrthographicCamera(0, imageWidth, 0, -1 * imageHeight, 0.1, 10);
 		camera.position.z = 1;
 
 		return camera;

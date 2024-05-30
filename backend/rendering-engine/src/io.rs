@@ -1,4 +1,5 @@
-use crate::structs::{Metadata, TileRequest};
+use crate::consts::LOCAL_STORE_PATH;
+use crate::types::{MetadataLayer, TileRequest};
 use anyhow::Result;
 use image::RgbImage;
 use shared::{
@@ -7,10 +8,7 @@ use shared::{
 };
 #[cfg(feature = "time")]
 use std::time::Instant;
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::{path::PathBuf, sync::Arc};
 use tempfile::NamedTempFile;
 use tokio::fs;
 use zarrs::{
@@ -25,10 +23,9 @@ static TILE_LENGTH: usize = (TILE_SIZE * TILE_SIZE) as usize;
 static TILE_SPLIT_LENGTH: usize = (TILE_SIZE * TILE_SIZE * 3) as usize;
 static RGB_CHANNELS: u64 = 3;
 static GROUP_PATH: &str = "/group";
-static STORE_PATH: &str = "store";
 
 pub async fn create(directory_path: &PathBuf) -> Result<PathBuf> {
-    let directory_path = PathBuf::from(STORE_PATH).join(directory_path);
+    let directory_path = PathBuf::from(LOCAL_STORE_PATH).join(directory_path);
 
     // Create directory.
     fs::create_dir_all(&directory_path).await?;
@@ -37,7 +34,7 @@ pub async fn create(directory_path: &PathBuf) -> Result<PathBuf> {
 }
 
 pub async fn delete(directory_path: &PathBuf) -> Result<()> {
-    let directory_path = PathBuf::from(STORE_PATH).join(directory_path);
+    let directory_path = PathBuf::from(LOCAL_STORE_PATH).join(directory_path);
 
     // Remove directory.
     fs::remove_dir_all(directory_path).await?;
@@ -46,7 +43,7 @@ pub async fn delete(directory_path: &PathBuf) -> Result<()> {
 }
 
 pub async fn save_asset(file: NamedTempFile, path: &PathBuf) -> Result<()> {
-    let path = PathBuf::from(STORE_PATH).join(path);
+    let path = PathBuf::from(LOCAL_STORE_PATH).join(path);
 
     file.persist(path)?;
 
@@ -75,7 +72,7 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     #[cfg(feature = "time")]
     let start = Instant::now();
 
-    let store_path = PathBuf::from(STORE_PATH).join(store_path);
+    let store_path = PathBuf::from(LOCAL_STORE_PATH).join(store_path);
     let store = Arc::new(FilesystemStore::new(store_path)?);
     let array = Arc::new(Array::new(
         store,
@@ -127,24 +124,40 @@ pub async fn retrieve(store_path: &PathBuf, tile_request: &TileRequest) -> Resul
     Ok(jpeg_tile)
 }
 
-pub async fn convert(
+pub async fn convert(image_path: &PathBuf, store_path: &PathBuf) -> Result<Vec<MetadataLayer>> {
+    let image_path = PathBuf::from(LOCAL_STORE_PATH).join(image_path);
+    let store_path = PathBuf::from(LOCAL_STORE_PATH).join(store_path);
+
+    let Some(extension) = image_path.extension().and_then(|ext| ext.to_str()) else {
+        return Err(anyhow::anyhow!("Image has no extension."));
+    };
+
+    let decoders = decoders::export::get(extension);
+    if decoders.is_empty() {
+        return Err(anyhow::anyhow!("No decoders found for image."));
+    }
+
+    for decoder in decoders {
+        // If successful, return early, otherwise log error and continue.
+        match try_convert(&image_path, &store_path, decoder).await {
+            Ok(metadata) => return Ok(metadata),
+            Err(e) => {
+                eprintln!("Error <Decoders>: Decoder failed to convert image.");
+                eprintln!("Details: {:?}", e);
+                eprintln!();
+            }
+        }
+    }
+
+    // None of the decoders were successful.
+    Err(anyhow::anyhow!("All decoders failed to convert image."))
+}
+
+pub async fn try_convert(
     image_path: &PathBuf,
     store_path: &PathBuf,
-    decoders: Arc<Mutex<Vec<Box<dyn Decoder>>>>,
-) -> Result<Vec<Metadata>> {
-    let image_path = PathBuf::from(STORE_PATH).join(image_path);
-    let store_path = PathBuf::from(STORE_PATH).join(store_path);
-
-    let decoder_lock = decoders.lock().unwrap();
-    let decoder = decoder_lock
-        .iter()
-        .find(|decoder| {
-            decoder
-                .supported_extensions()
-                .contains(&image_path.extension().unwrap().to_str().unwrap())
-        })
-        .ok_or(anyhow::anyhow!("No decoder found for image."))?;
-
+    decoder: Box<dyn Decoder>,
+) -> Result<Vec<MetadataLayer>> {
     // One store per image.
     let store = Arc::new(FilesystemStore::new(store_path)?);
     // One group per image.
@@ -159,7 +172,7 @@ pub async fn convert(
     }
     let (level_0_width, level_0_height) = decoder.get_level_dimensions(&image_path, 0)?;
 
-    let mut metadata: Vec<Metadata> = Vec::new();
+    let mut metadata: Vec<MetadataLayer> = Vec::new();
 
     for level in 0..levels {
         // Get image dimensions.
@@ -256,7 +269,7 @@ pub async fn convert(
             }
         }
 
-        metadata.push(Metadata {
+        metadata.push(MetadataLayer {
             level,
             cols,
             rows,

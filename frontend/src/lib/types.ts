@@ -10,14 +10,12 @@ export type Image = {
 	path: string;
 };
 
-export type Metadata = {
+export type MetadataLayer = {
 	cols: number;
 	rows: number;
 	width: number;
 	height: number;
 };
-
-type Geometry = number[][];
 
 export type AnnotationLayer = {
 	tag: string;
@@ -25,7 +23,12 @@ export type AnnotationLayer = {
 	opacity: number;
 	fill: string;
 	stroke: string;
-	annotations: Geometry[];
+	geometry: string;
+};
+
+type Attributes = {
+	position: number[];
+	normal: number[];
 };
 
 export type ImageLayer = HTMLImageElement[][];

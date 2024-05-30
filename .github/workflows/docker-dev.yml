@@ -1,0 +1,16 @@
+name: Docker Development Image CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker Development Image
+        run: docker build . --file Dockerfile.dev --tag my-image-name:$(date +%s)

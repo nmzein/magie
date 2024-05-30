@@ -1,0 +1,9 @@
+{
+  "name": "geometry-computer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "three": "0.164.1"
+  }
+}
