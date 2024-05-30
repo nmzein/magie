@@ -2,7 +2,7 @@
 
 ## About
 
-Nemato is a gigapixel image & annotations rendering engine with a web interface for usage in many professional fields for the analysis of extremely large images.
+Nemato is a gigapixel image & annotations rendering engine, built in Rust, with a modern Svelte web interface. It enables scientists to view and analyse extremely large images annotated with hundreds of thousands of annotations created by automated tools. It also allows analysis tool developers to easily integrate their tools through a powerful and flexible module interface.
 
 <p align="center">
   <img src="https://github.com/nmzein/nemato/assets/67694622/401968c1-dee3-4080-8634-41fd91aaf4d6" alt="Demo Image" width="700" />
@@ -22,21 +22,14 @@ Nemato is a gigapixel image & annotations rendering engine with a web interface 
 3. Run the following commands (note that you may need to run them with `sudo`):
 
 ```
-# 🛠️ Production [4.81GB; <6 mins on low-perf laptop]
+🛠️ Production [4.09GB; <6 mins on low-perf laptop]
 docker-compose up prod
 
-# 🏗️ Development [6.45GB; <3 mins on low-perf laptop]
-docker-compose up dev
+🏗️ Development [6.45GB; <3 mins on low-perf laptop]
+docker-compose up --build dev
 ```
 
 The application can now be accessed at `http://0.0.0.0:4000`.
-
-#### Useful Docker Commands
-
-Replace any instance of `<branch>` with `prod` or `dev`.
-
-- Use `docker-compose up --build <branch>` to force a rebuild if any files are altered.
-- Use `docker exec -it $(docker ps -qf "ancestor=nemato:<branch>") bash` to get a bash shell inside of the container.
 
 ---
 
@@ -44,18 +37,19 @@ Replace any instance of `<branch>` with `prod` or `dev`.
 
 Install dependencies:
 
-| OS     | Command               | Verified Supported Version(s) |
-| ------ | --------------------- | ----------------------------- |
-| Debian | `./install.sh debian` | 12/Bookworm                   |
-| Ubuntu | `./install.sh ubuntu` | -                             |
+| OS     | Command               | Verified Supported Version(s) | Issues                                     |
+| ------ | --------------------- | ----------------------------- | ------------------------------------------ |
+| Debian | `./install.sh debian` | 12/Bookworm                   | -                                          |
+| Fedora | `./install.sh fedora` | -                             | https://github.com/nmzein/nemato/issues/13 |
+| Ubuntu | `./install.sh ubuntu` | -                             | https://github.com/nmzein/nemato/issues/13 |
 
 Build and run:
 
 ```
-# 🛠️ Production
+🛠️ Production
 ./run.sh prod
 
-# 🏗️ Development
+🏗️ Development
 ./run.sh dev
 ```
 

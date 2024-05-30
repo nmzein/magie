@@ -1,6 +1,7 @@
 .DS_Store
 
-/frontend/node_modules
+node_modules/
+
 /frontend/.svelte-kit
 /frontend/vite.config.js.timestamp-*
 /frontend/vite.config.ts.timestamp-*
@@ -8,5 +9,5 @@
 /backend/target
 /backend/store/*
 /backend/state/*
-!/backend/state/reference.sqlite
 !/backend/state/schema.sql
+!/backend/state/db.sqlite

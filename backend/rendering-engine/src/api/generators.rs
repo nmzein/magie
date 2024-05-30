@@ -1,20 +1,12 @@
 use crate::api::common::*;
 
-pub async fn generators(Extension(AppState { generators, .. }): Extension<AppState>) -> Response {
-    #[cfg(feature = "log-success")]
+pub async fn generators() -> Response {
+    #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
         "Received request for annotation generators.",
         None,
     );
 
-    Json(
-        generators
-            .lock()
-            .unwrap()
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>(),
-    )
-    .into_response()
+    Json(generators::export::names()).into_response()
 }

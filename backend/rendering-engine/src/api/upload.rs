@@ -1,199 +1,101 @@
 use crate::api::common::*;
-use crate::structs::UploadAssetRequest;
-use axum_typed_multipart::TypedMultipart;
+use crate::consts::LOCAL_STORE_PATH;
+use crate::types::{MetadataLayer, UploadAssetRequest};
+use axum_typed_multipart::{FieldData, TypedMultipart};
+use shared::structs::AnnotationLayer;
 use std::{
     path::{Path, PathBuf},
+    process::Command,
     sync::Arc,
 };
+use tempfile::NamedTempFile;
 
-// TODO: Split into smaller functions.
 pub async fn upload(
-    Extension(AppState { conn, decoders, .. }): Extension<AppState>,
+    Extension(conn): Extension<AppState>,
     TypedMultipart(UploadAssetRequest {
-        directory_path,
-        image,
-        annotations,
-        annotation_generator,
+        parent_directory_path,
+        image_file,
+        annotations_file,
+        generator_name,
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
+    let image_metadata = image_file.metadata.clone();
     // Get image name from metadata request body.
-    let (image_name, image_name_no_ext) = match image
-        .metadata
+    let (image_name, image_name_no_ext) = match image_metadata
         .file_name
         .as_ref()
         .and_then(|name| Some((name, Path::new(name).file_stem()?.to_str()?)))
     {
         Some((name, name_no_ext)) => {
-            #[cfg(feature = "log-success")]
+            #[cfg(feature = "log.request")]
             log::<()>(
                 StatusCode::ACCEPTED,
-                &format!("Received request to process image with name: {}.", name),
+                &format!("Received request to process upload for image with name: {name}."),
                 None,
             );
 
             (name, name_no_ext)
         }
         None => {
-            let resp = log::<()>(
+            return log::<()>(
                 StatusCode::BAD_REQUEST,
-                "Failed to retrieve image name or convert to string.",
+                "Failed to retrieve image name from file metadata or failed to convert it to a string.",
                 None,
             );
-
-            return resp;
         }
     };
+    let directory_path = PathBuf::from(parent_directory_path).join(image_name_no_ext);
 
     // Check if image already exists in database.
-    let directory_path = PathBuf::from(directory_path).join(image_name_no_ext);
-    match { crate::db::contains(&directory_path.to_str().unwrap(), Arc::clone(&conn)).await } {
+    match crate::db::contains(&directory_path.to_str().unwrap(), Arc::clone(&conn)).await {
         Ok(true) => {
-            let resp = log::<()>(
+            return log::<()>(
                 StatusCode::BAD_REQUEST,
                 &format!(
-                    "Image with name {} already exists. Consider deleting it from the list first.",
-                    image_name_no_ext
+                    "Image with name `{image_name_no_ext}` already exists. Consider deleting it from the list first."
                 ),
                 None,
             );
-
-            return resp;
         }
+        Ok(false) => { /* Image does not exist in database, continue. */ }
         Err(e) => {
-            let resp = log(
+            return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!(
-                    "Failed to check if image with name {} already exists.",
-                    image_name_no_ext
+                    "State database failed to check if image with name `{image_name_no_ext}` already exists.",
                 ),
                 Some(e),
             );
-
-            return resp;
         }
-        _ => (),
     }
 
-    // Create a directory in store for the image.
+    // Create a directory in backend/store.
     let _ = crate::io::create(&directory_path).await.map_err(|e| async {
-        let resp = log(
+        return log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "Failed to create directory for image with name {}.",
-                image_name_no_ext
-            ),
+            &format!("Failed to create a directory for image with name `{image_name_no_ext}`."),
             Some(e),
         );
-
-        return resp;
     });
 
-    // Save image to disk.
+    // Path to uploaded image file.
     let image_path = directory_path.join(&image_name);
-    match crate::io::save_asset(image.contents, &image_path).await {
-        Ok(_) => {
-            #[cfg(feature = "log-success")]
-            log::<()>(
-                StatusCode::CREATED,
-                "Successfully saved image to disk.",
-                None,
-            );
-        }
-        Err(e) => {
-            let resp = log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to save image with name {} to disk.", image_name),
-                Some(e),
-            );
 
-            return resp;
-        }
-    }
-
-    // Convert image to ZARR.
+    // Path to Zarr store.
     let store_name = format!("{image_name_no_ext}.zarr");
     let store_path = directory_path.join(&store_name);
-    let metadata = match crate::io::convert(&image_path, &store_path, Arc::clone(&decoders)).await {
-        Ok(metadata) => {
-            if metadata.is_empty() {
-                let resp = log::<()>(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to convert image to ZARR. No metadata returned.",
-                    None,
-                );
 
-                return resp;
-            }
-
-            #[cfg(feature = "log-success")]
-            log::<()>(
-                StatusCode::CREATED,
-                "Successfully converted image to ZARR.",
-                None,
-            );
-
-            metadata
-        }
-        Err(e) => {
-            let resp = log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to convert the image to ZARR.",
-                Some(e),
-            );
-
-            return resp;
-        }
-    };
-
-    let mut annotations_name = None;
-    if let Some(annotations) = annotations {
-        // Get annotations file name from metadata request body.
-        let Some(local_annotations_name) = annotations.metadata.file_name else {
-            let resp = log::<()>(
-                StatusCode::BAD_REQUEST,
-                "Failed to retrieve annotations file name from metadata request body.",
-                None,
-            );
-
-            return resp;
+    let metadata_layers =
+        match handle_image(image_file, &image_path, &image_name, &store_path).await {
+            Ok(layers) => layers,
+            Err(resp) => return resp,
         };
 
-        // TODO: Check that file is in correct format given annotation generator.
-
-        // Save annotations to disk.
-        let annotations_path = directory_path.join(&local_annotations_name);
-        match crate::io::save_asset(annotations.contents, &annotations_path).await {
-            Ok(_) => {
-                #[cfg(feature = "log-success")]
-                log::<()>(
-                    StatusCode::CREATED,
-                    "Successfully saved annotations to disk.",
-                    None,
-                );
-
-                annotations_name = Some(local_annotations_name);
-            }
-            Err(e) => {
-                let resp = log(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!(
-                        "Failed to save annotations with name {:?} to disk.",
-                        annotations_name
-                    ),
-                    Some(e),
-                );
-
-                return resp;
-            }
-        }
-    } else {
-        // TODO: Generate annotations.
-        log::<()>(
-            StatusCode::CREATED,
-            "No annotations provided. TODO: Generate annotations.",
-            None,
-        );
-    }
+    let (annotations_name, annotation_layers) =
+        match handle_annotations(&directory_path, annotations_file, generator_name).await {
+            Ok((name, layers)) => (Some(name), layers),
+            Err(resp) => return resp,
+        };
 
     // Insert into database.
     match crate::db::insert(
@@ -201,7 +103,8 @@ pub async fn upload(
         &image_name,
         &store_name,
         annotations_name.as_deref(),
-        metadata,
+        metadata_layers,
+        annotation_layers,
         Arc::clone(&conn),
     )
     .await
@@ -217,4 +120,186 @@ pub async fn upload(
             Some(e),
         ),
     }
+}
+
+async fn handle_image(
+    image_file: FieldData<NamedTempFile>,
+    image_path: &PathBuf,
+    image_name: &str,
+    store_path: &PathBuf,
+) -> Result<Vec<MetadataLayer>, Response> {
+    // Save image to disk.
+    match crate::io::save_asset(image_file.contents, &image_path).await {
+        Ok(_) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::CREATED,
+                &format!("Successfully saved image with name `{image_name}` to disk."),
+                None,
+            );
+        }
+        Err(e) => {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to save image with name `{image_name}` to disk."),
+                Some(e),
+            );
+
+            return Err(resp);
+        }
+    }
+
+    // Convert image to Zarr.
+    match crate::io::convert(&image_path, &store_path).await {
+        Ok(metadata) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::CREATED,
+                &format!("Successfully converted image with name `{image_name}` to Zarr."),
+                None,
+            );
+
+            return Ok(metadata);
+        }
+        Err(e) => {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to convert the image with name `{image_name}` to Zarr."),
+                Some(e),
+            );
+
+            return Err(resp);
+        }
+    };
+}
+
+async fn handle_annotations(
+    directory_path: &PathBuf,
+    annotations_file: Option<FieldData<NamedTempFile>>,
+    generator_name: String,
+) -> Result<(String, Vec<AnnotationLayer>), Response> {
+    // If no annotations file provided by the user, generate them.
+    let Some(annotations_file) = annotations_file else {
+        // TODO: Generate annotations.
+        log::<()>(
+            StatusCode::CREATED,
+            "No annotations provided. TODO: Generate annotations.",
+            None,
+        );
+
+        return Ok((String::from("TODO"), Vec::new()));
+    };
+
+    // Get annotations file name from metadata request body.
+    let Some(annotations_name) = annotations_file.metadata.file_name else {
+        let resp = log::<()>(
+            StatusCode::BAD_REQUEST,
+            "Failed to retrieve filename from annotations file metadata.",
+            None,
+        );
+
+        return Err(resp);
+    };
+
+    // Save uploaded annotations file to disk.
+    let annotations_path = directory_path.join(&annotations_name);
+    match crate::io::save_asset(annotations_file.contents, &annotations_path).await {
+        Ok(_) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::CREATED,
+                &format!(
+                    "Successfully saved annotations file with name `{annotations_name}` to disk."
+                ),
+                None,
+            );
+        }
+        Err(e) => {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("Failed to save annotations file with name `{annotations_name}` to disk."),
+                Some(e),
+            );
+
+            return Err(resp);
+        }
+    }
+
+    // Get annotations generator.
+    let Some(generator) = generators::export::get(&generator_name) else {
+        let resp = log::<()>(
+            StatusCode::NOT_FOUND,
+            &format!("Generator with name `{generator_name}` could not be found."),
+            None,
+        );
+
+        return Err(resp);
+    };
+
+    // Translate annotations.
+    let Ok(annotation_layers) = generator.translate(&annotations_path) else {
+        let resp = log::<()>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("Failed to translate annotations file with name `{annotations_name}` using the generator: `{generator_name}`."),
+            None,
+        );
+
+        return Err(resp);
+    };
+
+    // TODO: Use capnproto
+    // Serialize annotation layers.
+    let Ok(annotation_layers_json) = serde_json::to_string(&annotation_layers) else {
+        let resp = log::<()>(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to serialize annotation layers.",
+            None,
+        );
+
+        return Err(resp);
+    };
+
+    // Save json string to file.
+    let annotations_path = PathBuf::from(LOCAL_STORE_PATH)
+        .join(directory_path)
+        .join("annotations.json");
+
+    std::fs::write(annotations_path, annotation_layers_json).expect("Unable to write file");
+
+    // Compute annotation positions and normals.
+    match Command::new("node")
+        .arg("--max-old-space-size=4096")
+        .arg("./geometry-computer/index.js")
+        .arg(PathBuf::from(LOCAL_STORE_PATH).join(directory_path))
+        .output()
+    {
+        Ok(output) => {
+            if output.status.success() {
+                log::<()>(
+                    StatusCode::CREATED,
+                    "Successfully computed annotation positions and normals.",
+                    None,
+                );
+            } else {
+                let resp = log(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to compute annotation positions and normals.",
+                    Some(String::from_utf8(output.stderr)),
+                );
+
+                return Err(resp);
+            }
+        }
+        Err(e) => {
+            let resp = log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to run geometry computation.",
+                Some(e),
+            );
+
+            return Err(resp);
+        }
+    }
+
+    return Ok((annotations_name, annotation_layers));
 }

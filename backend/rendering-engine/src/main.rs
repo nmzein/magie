@@ -2,11 +2,11 @@
 #![warn(clippy::restriction, clippy::pedantic, clippy::nursery, clippy::cargo)]
 
 mod api;
+mod consts;
 mod db;
 mod io;
-mod structs;
+mod types;
 
-use crate::structs::AppState;
 use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, HeaderValue, Method},
@@ -26,34 +26,22 @@ async fn main() {
     // Load environment variables from .env file.
     dotenv().ok();
 
-    let database_url = &env::var("DATABASE_URL").expect("DATABASE_URL is not set.");
-    let domain = &env::var("PUBLIC_DOMAIN").expect("PUBLIC_DOMAIN is not set.");
-    let frontend_port =
-        &env::var("PUBLIC_FRONTEND_PORT").expect("PUBLIC_FRONTEND_PORT is not set.");
-    let backend_port = &env::var("PUBLIC_BACKEND_PORT").expect("PUBLIC_BACKEND_PORT is not set.");
-    let http_scheme = &env::var("PUBLIC_HTTP_SCHEME").expect("PUBLIC_HTTP_SCHEME is not set.");
-    let annotation_url =
-        &env::var("PUBLIC_ANNOTATIONS_SUBDIR").expect("PUBLIC_ANNOTATIONS_SUBDIR is not set.");
-    let delete_url = &env::var("PUBLIC_DELETE_SUBDIR").expect("PUBLIC_DELETE_SUBDIR is not set.");
-    let generators_url =
-        &env::var("PUBLIC_GENERATORS_SUBDIR").expect("PUBLIC_GENERATORS_SUBDIR is not set.");
-    let metadata_url =
-        &env::var("PUBLIC_METADATA_SUBDIR").expect("PUBLIC_METADATA_SUBDIR is not set.");
-    let stores_url = &env::var("PUBLIC_STORES_SUBDIR").expect("PUBLIC_STORES_SUBDIR is not set.");
-    let websocket_url =
-        &env::var("PUBLIC_WEBSOCKET_SUBDIR").expect("PUBLIC_WEBSOCKET_SUBDIR is not set.");
-    let upload_url = &env::var("PUBLIC_UPLOAD_SUBDIR").expect("PUBLIC_UPLOAD_SUBDIR is not set.");
+    let database_url = &fetch_env_var("DATABASE_URL");
+    let domain = &fetch_env_var("PUBLIC_DOMAIN");
+    let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
+    let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
+    let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
+    let annotation_url = &fetch_env_var("PUBLIC_ANNOTATIONS_SUBDIR");
+    let delete_url = &fetch_env_var("PUBLIC_DELETE_SUBDIR");
+    let generators_url = &fetch_env_var("PUBLIC_GENERATORS_SUBDIR");
+    let metadata_url = &fetch_env_var("PUBLIC_METADATA_SUBDIR");
+    let stores_url = &fetch_env_var("PUBLIC_STORES_SUBDIR");
+    let websocket_url = &fetch_env_var("PUBLIC_WEBSOCKET_SUBDIR");
+    let upload_url = &fetch_env_var("PUBLIC_UPLOAD_SUBDIR");
 
     let conn = db::connect(database_url)
         .await
         .expect("Could not establish a connection to the state database.");
-
-    let state = AppState {
-        conn: Arc::new(Mutex::new(conn)),
-        current_image: Arc::new(Mutex::new(None)),
-        decoders: Arc::new(Mutex::new(decoders::export::get())),
-        generators: Arc::new(Mutex::new(generators::export::get())),
-    };
 
     let backend_url = format!("{domain}:{backend_port}");
     let listener = TcpListener::bind(backend_url)
@@ -71,7 +59,7 @@ async fn main() {
         .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
-        .route(annotation_url, get(api::annotations::annotations))
+        .route(annotation_url, post(api::annotations::annotations))
         .route(delete_url, post(api::delete::delete))
         .route(generators_url, get(api::generators::generators))
         .route(metadata_url, post(api::metadata::metadata))
@@ -80,9 +68,13 @@ async fn main() {
         .route(upload_url, post(api::upload::upload))
         .layer(cors)
         .layer(DefaultBodyLimit::disable())
-        .layer(Extension(state));
+        .layer(Extension(Arc::new(Mutex::new(conn))));
 
     axum::serve(listener, app)
         .await
         .expect("Could not serve the backend.");
+}
+
+fn fetch_env_var(name: &str) -> String {
+    env::var(name).expect(&format!("{name} is not set."))
 }

@@ -3,37 +3,40 @@ name = "rendering_engine"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "rendering_engine"
+path = "src/main.rs"
+
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
 decoders = { version = "0.1.0", path = "../decoders" }
 generators = { version = "0.1.0", path = "../generators" }
 
-anyhow = "1.0.82"
+anyhow = "1.0.86"
 axum = { version = "0.7.5", features = ["ws", "json"] }
 axum_typed_multipart = "0.11.1"
 dotenv = "0.15.0"
 futures-util = "0.3.30"
-image = "0.24.9"
+image = "0.24.9" # Stuck on version 0.24.9 because of turbojpeg.
 rusqlite = { version = "0.31.0", features = ["bundled"] }
-serde = { version = "1.0.199", features = ["derive"] }
-serde_json = "1.0.116"
+rusqlite_migration = "1.2.0"
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
 tempfile = "3.10.1"
 tokio = { version = "1.37.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
 turbojpeg = { version = "1.1.0", features = ["image"] }
-zarrs = "0.13.0"
+zarrs = "0.14.0"
 
 [features]
 default = [
     # "time",
-    "log-success",
-    "log-failure",
-    "log-database-success",
-    "log-database-failure",
+    "log.success",
+    "log.request",
+    "log.database",
 ]
 
 time = []
-log-success = []
-log-failure = []
-log-database-success = []
-log-database-failure = []
+"log.success" = []
+"log.request" = []
+"log.database" = []

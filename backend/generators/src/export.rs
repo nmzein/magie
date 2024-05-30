@@ -1,16 +1,14 @@
 use shared::traits::Generator;
-use std::collections::HashMap;
 
-pub fn get() -> HashMap<String, Box<dyn Generator>> {
-    let mut generators: HashMap<String, Box<dyn Generator>> = HashMap::new();
-    
-    let gs = [
-        crate::tiatoolbox::TIAToolbox
-    ];
-
-    for g in gs {
-        generators.insert(g.name(), Box::new(g));
+pub fn get(name: &str) -> Option<Box<dyn Generator>> {
+    match name {
+        crate::tiatoolbox::NAME => Some(Box::new(crate::tiatoolbox::Module)),
+        _ => None,
     }
+}
 
-    generators
+pub fn names() -> Vec<&'static str> {
+    vec![
+        crate::tiatoolbox::NAME,
+    ]
 }

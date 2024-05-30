@@ -2,21 +2,13 @@ use anyhow::Result;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use shared::traits::{Decoder, Generator};
 use std::{
-    collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 use tempfile::NamedTempFile;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub conn: Arc<Mutex<Connection>>,
-    pub current_image: Arc<Mutex<Option<ImageState>>>,
-    pub decoders: Arc<Mutex<Vec<Box<dyn Decoder>>>>,
-    pub generators: Arc<Mutex<HashMap<String, Box<dyn Generator>>>>,
-}
+pub type AppState = Arc<Mutex<Connection>>;
 
 #[derive(Clone, Debug)]
 pub struct ImageState {
@@ -24,7 +16,7 @@ pub struct ImageState {
     pub image_name: String,
     pub store_name: String,
     pub annotations_name: Option<String>,
-    pub metadata: Vec<Metadata>,
+    pub metadata_layers: Vec<MetadataLayer>,
 }
 
 #[derive(Debug)]
@@ -36,7 +28,7 @@ pub struct Paths {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct Metadata {
+pub struct MetadataLayer {
     pub level: u32,
     pub cols: u32,
     pub rows: u32,
@@ -60,10 +52,10 @@ pub struct TileRequest {
 
 #[derive(TryFromMultipart)]
 pub struct UploadAssetRequest {
-    pub directory_path: String,
+    pub parent_directory_path: String,
     #[form_data(limit = "unlimited")]
-    pub image: FieldData<NamedTempFile>,
+    pub image_file: FieldData<NamedTempFile>,
     #[form_data(limit = "unlimited")]
-    pub annotations: Option<FieldData<NamedTempFile>>,
-    pub annotation_generator: String,
+    pub annotations_file: Option<FieldData<NamedTempFile>>,
+    pub generator_name: String,
 }

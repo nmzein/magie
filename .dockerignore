@@ -4,7 +4,8 @@
 .DS_Store
 README.md
 
-/frontend/node_modules
+**/node_modules/
+
 /frontend/.svelte-kit
 /frontend/.prettierrc
 /frontend/.prettierignore
@@ -17,4 +18,5 @@ README.md
 /backend/target
 /backend/store/*
 /backend/state/*
-!/backend/state/reference.sqlite
+!/backend/state/db.sqlite
+!/backend/state/schema.sql

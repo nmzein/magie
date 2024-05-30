@@ -5,10 +5,11 @@ edition = "2021"
 
 [build-dependencies]
 shared = { version = "0.1.0", path = "../shared" }
+syn = "2.0.60"
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
-anyhow = "1.0.82"
+anyhow = "1.0.86"
 
 # Optional Dependencies
 openslide-rs = { version = "2.0.2", optional = true }

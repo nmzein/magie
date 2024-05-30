@@ -10,87 +10,68 @@
 		layerIndex: number;
 		imageWidth: number;
 		imageHeight: number;
-		camera: THREE.Camera;
+		camera: Camera;
 	} = $props();
 
 	import type { AnnotationLayer } from '$types';
-	import { untrack } from 'svelte';
-	import * as THREE from 'three';
-	import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+	import {
+		BufferGeometryLoader,
+		Scene,
+		MeshBasicMaterial,
+		InstancedMesh,
+		WebGLRenderer
+	} from 'three';
+
+	import type { Camera, BufferGeometry } from 'three';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
-	const CANVAS_HEIGHT = 8000;
+	const CANVAS_HEIGHT = 10000;
 	const CANVAS_WIDTH = CANVAS_HEIGHT * (imageWidth / imageHeight);
 
-	const scene = new THREE.Scene();
+	const scene = new Scene();
+	const loader = new BufferGeometryLoader();
+	let geometry: BufferGeometry | undefined;
 
 	// Create a renderer with a transparent canvas.
 	const renderer = $derived(
-		new THREE.WebGLRenderer({
+		new WebGLRenderer({
 			canvas,
 			alpha: true,
-			precision: 'lowp',
+			precision: 'highp',
 			powerPreference: 'high-performance'
 		})
 	);
 
 	// Materials for this annotation layer.
 	let fillMaterial = $derived(
-		new THREE.MeshBasicMaterial({
+		new MeshBasicMaterial({
 			color: annotationLayer.fill
 		})
 	);
 
-	let geometry: THREE.BufferGeometry | undefined = $state();
+	$effect(() => {
+		console.log(annotationLayer.geometry.length);
+		geometry = loader.parse(JSON.parse(annotationLayer.geometry));
+		annotationLayer.geometry = '';
+		render();
+	});
 
-	$effect(() => untrack(() => draw()));
-	$effect(() => render());
+	function render() {
+		if (!geometry) return;
 
-	function draw() {
 		let start = performance.now();
-
-		let geometries: THREE.BufferGeometry[] = [];
-
-		annotationLayer.annotations.forEach((annotation, _) => {
-			const shape = new THREE.Shape();
-			shape.moveTo(annotation[0][0], -1 * annotation[0][1]);
-			annotation[0] = [];
-			for (let i = 1; i < annotation.length; i++) {
-				shape.lineTo(annotation[i][0], -1 * annotation[i][1]);
-				annotation[i] = [];
-			}
-			shape.closePath();
-			geometries.push(new THREE.ShapeGeometry(shape));
-		});
-		// Clear annotations for given resolution.
-		annotationLayer.annotations = [];
-
-		console.log('Drawing annotation layer', layerIndex, 'took', performance.now() - start, 'ms');
-		start = performance.now();
-
-		// Merge the geometries into a single geometry to minimise draw calls.
-		geometry = BufferGeometryUtils.mergeGeometries(geometries);
-	}
-
-	function render(material: THREE.Material = fillMaterial) {
-		let start = performance.now();
-
-		renderer.clear();
+		// renderer.clear();
 		// Create a mesh with the geometries and materials.
-		const mesh = new THREE.InstancedMesh(geometry, material, 1);
+		let mesh = new InstancedMesh(geometry, fillMaterial, 1);
 		// Add the shapes to the scene.
 		scene.add(mesh);
-
-		console.log('Mesh creation for layer ', layerIndex, 'took', performance.now() - start, 'ms');
-		start = performance.now();
-
 		// Render the scene.
 		renderer.render(scene, camera);
 
-		console.log('Rendering annotation layer', layerIndex, 'took', performance.now() - start, 'ms');
+		console.log('Rendering Layer', layerIndex, 'took', performance.now() - start, 'ms');
 
-		console.log('Scene polycount: ', renderer.info.render.triangles);
+		console.log('Scene Polycount: ', renderer.info.render.triangles);
 		console.log('Active Drawcalls: ', renderer.info.render.calls);
 		console.log('Textures in Memory:', renderer.info.memory.textures);
 		console.log('Geometries in Memory:', renderer.info.memory.geometries);

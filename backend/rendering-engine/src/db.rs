@@ -1,6 +1,8 @@
-use crate::structs::{ImageDataResponse, ImageState, Metadata, Paths};
+use crate::types::{ImageDataResponse, ImageState, MetadataLayer, Paths};
 use anyhow::Result;
 use rusqlite::Connection;
+use rusqlite_migration::{Migrations, M};
+use shared::structs::AnnotationLayer;
 use std::{
     fmt::Debug,
     path::PathBuf,
@@ -8,9 +10,12 @@ use std::{
 };
 
 pub async fn connect(database_url: &str) -> Result<Connection> {
-    let conn = Connection::open(database_url)?;
+    let mut conn = Connection::open(database_url)?;
 
-    // TODO: migrations
+    let migrations = Migrations::new(vec![M::up(include_str!("../../state/schema.sql"))]);
+
+    // Update the database schema atomically.
+    migrations.to_latest(&mut conn)?;
 
     Ok(conn)
 }
@@ -33,7 +38,7 @@ pub async fn list(conn: Arc<Mutex<Connection>>) -> Result<Vec<ImageDataResponse>
         .map(|res| res.map_err(anyhow::Error::from))
         .collect::<Result<Vec<_>, _>>();
 
-    #[cfg(feature = "log-database-success")]
+    #[cfg(feature = "log.database")]
     log("LIST", Some(&list));
 
     list
@@ -44,7 +49,8 @@ pub async fn insert(
     image_name: &str,
     store_name: &str,
     annotations_name: Option<&str>,
-    metadata: Vec<Metadata>,
+    metadata_layers: Vec<MetadataLayer>,
+    annotation_layers: Vec<AnnotationLayer>,
     conn: Arc<Mutex<Connection>>,
 ) -> Result<()> {
     let directory_path = directory_path
@@ -62,22 +68,41 @@ pub async fn insert(
         (directory_path, image_name, store_name, annotations_name),
     )?;
 
-    let id = transaction.last_insert_rowid();
+    let image_id = transaction.last_insert_rowid();
 
-    #[cfg(feature = "log-database-success")]
-    log::<()>(&format!("INSERT <Image: {:?}>", id), None);
+    #[cfg(feature = "log.database")]
+    log::<()>(&format!("INSERT <Image: {image_id}>"), None);
 
-    for m in metadata {
+    for m in metadata_layers {
         transaction.execute(
             r#"
-                INSERT INTO metadata (image_id, level, cols, rows, width, height)
+                INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6);
             "#,
-            (id, m.level, m.cols, m.rows, m.width, m.height),
+            (image_id, m.level, m.cols, m.rows, m.width, m.height),
         )?;
 
-        #[cfg(feature = "log-database-success")]
-        log::<()>(&format!("INSERT <Metadata: {}:{}>", id, m.level), None);
+        #[cfg(feature = "log.database")]
+        log::<()>(
+            &format!("INSERT <Metadata Layer: {image_id}:{}>", m.level),
+            None,
+        );
+    }
+
+    for a in annotation_layers {
+        transaction.execute(
+            r#"
+                INSERT INTO annotation_layer (image_id, tag)
+                VALUES (?1, ?2);
+            "#,
+            (image_id, a.tag.clone()),
+        )?;
+
+        #[cfg(feature = "log.database")]
+        log::<()>(
+            &format!("INSERT <Annotation Layer: {image_id}:{}>", a.tag),
+            None,
+        );
     }
 
     let _ = transaction.commit();
@@ -95,7 +120,7 @@ pub async fn contains(directory_path: &str, conn: Arc<Mutex<Connection>>) -> Res
 
     let contains = stmt.exists(&[directory_path])?;
 
-    #[cfg(feature = "log-database-success")]
+    #[cfg(feature = "log.database")]
     log(
         &format!("CONTAINS <Image: {}>", directory_path),
         Some(&contains),
@@ -123,26 +148,29 @@ pub async fn get_paths(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Paths> {
         })
     })?;
 
-    #[cfg(feature = "log-database-success")]
-    log(&format!("GET <Paths: {}>", id), Some(&paths));
+    // #[cfg(feature = "log.database")]
+    // log(&format!("GET <Paths: {}>", id), Some(&paths));
 
     Ok(paths)
 }
 
-pub async fn get_metadata(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<Metadata>> {
+pub async fn get_metadata_layers(
+    id: u32,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<Vec<MetadataLayer>> {
     let conn_lock = conn.lock().unwrap();
     let mut stmt = conn_lock.prepare(
         r#"
             SELECT level, cols, rows, width, height
-            FROM metadata
+            FROM metadata_layer
             WHERE image_id = ?1
             ORDER BY level ASC;
         "#,
     )?;
 
-    let metadata = stmt
+    let metadata_layer = stmt
         .query_map([id], |row| {
-            Ok(Metadata {
+            Ok(MetadataLayer {
                 level: row.get(0)?,
                 cols: row.get(1)?,
                 rows: row.get(2)?,
@@ -152,22 +180,62 @@ pub async fn get_metadata(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<M
         })?
         .collect::<Result<Vec<_>, _>>()?;
 
-    #[cfg(feature = "log-database-success")]
-    log(&format!("GET <Metadata: {}>", id), Some(&metadata));
+    #[cfg(feature = "log.database")]
+    log(&format!("GET <Metadata: {}>", id), Some(&metadata_layer));
 
-    Ok(metadata)
+    Ok(metadata_layer)
+}
+
+pub async fn get_annotation_layer_paths(
+    id: u32,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<Vec<(String, PathBuf)>> {
+    let conn_lock = conn.lock().unwrap();
+    let mut stmt = conn_lock.prepare(
+        r#"
+            SELECT directory_path
+            FROM images
+            WHERE id = ?1;
+        "#,
+    )?;
+
+    let parent_directory_path =
+        stmt.query_row([id], |row| Ok(PathBuf::from(row.get::<_, String>(0)?)))?;
+
+    let mut stmt = conn_lock.prepare(
+        r#"
+            SELECT tag
+            FROM annotation_layer
+            WHERE image_id = ?1;
+        "#,
+    )?;
+
+    let annotation_layers = stmt
+        .query_map([id], |row| {
+            let tag = row.get::<_, String>(0)?;
+            Ok((tag.clone(), parent_directory_path.join(tag + ".json")))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    #[cfg(feature = "log.database")]
+    log(
+        &format!("GET <Annotation Paths: {}>", id),
+        Some(&annotation_layers),
+    );
+
+    Ok(annotation_layers)
 }
 
 pub async fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<ImageState> {
     let paths = get_paths(id, Arc::clone(&conn)).await?;
-    let metadata = get_metadata(id, conn).await?;
+    let metadata_layers = get_metadata_layers(id, conn).await?;
 
     let state = ImageState {
         directory_path: paths.directory_path.into(),
         image_name: paths.image_name.into(),
         store_name: paths.store_name.into(),
         annotations_name: paths.annotations_name,
-        metadata,
+        metadata_layers,
     };
 
     Ok(state)
@@ -182,13 +250,13 @@ pub async fn remove(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
         [id],
     )?;
 
-    #[cfg(feature = "log-database-success")]
+    #[cfg(feature = "log.database")]
     log::<()>(&format!("DELETE <Image: {}>", id), None);
 
     Ok(())
 }
 
-#[cfg(feature = "log-database-success")]
+#[cfg(feature = "log.database")]
 fn log<T: Debug>(operation: &str, result: Option<&T>) {
     print!("Database <{}>", operation);
     if let Some(result) = result {

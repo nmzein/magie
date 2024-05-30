@@ -1,53 +1,145 @@
-use shared::functions::{declare_modules, find_exported_struct, find_modules};
-use std::{fs::File, io::Write};
+use shared::functions::{declare_modules, find_modules};
+use std::fs;
+use std::io::Result;
+use std::{collections::HashMap, fs::File, io::Write};
+use syn::{Expr, Item, Lit};
 
-fn main() {
+fn main() -> Result<()> {
+    let mut common = File::create("src/common.rs")?;
+    let mut export = File::create("src/export.rs")?;
+    let mut lib = File::create("src/lib.rs")?;
+
     let decoders = find_modules();
-    let mut file = File::create("src/lib.rs").unwrap();
-    declare_modules(&mut file, decoders.clone());
-
-    file = File::create("src/export.rs").unwrap();
-
-    writeln!(
-        &mut file,
-        r#"use shared::traits::Decoder;
-        
-pub fn get() -> Vec<Box<dyn Decoder>> {{"#
-    )
-    .unwrap();
+    declare_modules(&mut lib, decoders.clone());
 
     if decoders.is_empty() {
-        writeln!(
-            &mut file,
-            r#"
+        return handle_no_decoders(&mut export);
+    }
+
+    declare_deps(&mut common)?;
+    handle_decoders(&mut export, decoders)
+}
+
+fn declare_deps(common: &mut File) -> Result<()> {
+    writeln!(
+        common,
+        r#"pub use anyhow::Result;
+pub use shared::{{structs::Region, traits::Decoder}};
+pub use std::path::PathBuf;"#
+    )?;
+
+    Ok(())
+}
+
+fn handle_no_decoders(export: &mut File) -> Result<()> {
+    writeln!(
+        export,
+        r#"use shared::traits::Decoder;
+
+pub fn get(_extension: &str) -> Vec<Box<dyn Decoder>> {{
     vec![]
-}}
-"#
-        )
-        .unwrap();
-        return;
-    }
+}}"#
+    )?;
 
-    writeln!(&mut file, r#"    vec!["#).unwrap();
+    Ok(())
+}
 
-    let mut decoders_iter = decoders.iter().peekable();
-    while let Some(decoder) = decoders_iter.next() {
-        let module_file = File::open(format!("src/{}.rs", decoder)).unwrap();
-        let exported_struct = find_exported_struct(module_file).unwrap();
+fn handle_decoders(export: &mut File, decoders: Vec<String>) -> Result<()> {
+    writeln!(
+        export,
+        r#"use shared::traits::Decoder;
+        
+pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {{
+    match extension {{"#
+    )?;
 
-        writeln!(
-            &mut file,
-            r#"        Box::new(crate::{}::{})"#,
-            decoder, exported_struct
-        )
-        .unwrap();
+    // Loop over decoders, query them for their supported extensions
+    // and populate extension map with decoder.
+    let extension_map = create_extension_map(decoders.clone());
+    // Sort map by extension in alphabetic order.
+    let mut extension_map: Vec<_> = extension_map.into_iter().collect();
+    extension_map.sort_by(|a, b| a.0.cmp(&b.0));
 
-        if decoders_iter.peek().is_none() {
-            writeln!(&mut file, r#"    ]"#).unwrap();
-        } else {
-            writeln!(&mut file, ",").unwrap();
+    // Loop over extension map.
+    for (extension, decoders) in extension_map {
+        writeln!(export, r#"        "{}" => vec!["#, extension)?;
+        for decoder in decoders {
+            writeln!(
+                export,
+                r#"            Box::new(crate::{}::Module),"#,
+                decoder
+            )?;
         }
+        writeln!(export, r#"        ],"#)?;
     }
 
-    writeln!(&mut file, r#"}}"#).unwrap();
+    writeln!(
+        export,
+        r#"        _ => vec![],
+    }}
+}}"#
+    )?;
+
+    Ok(())
+}
+
+fn create_extension_map(decoders: Vec<String>) -> HashMap<String, Vec<String>> {
+    // Initialize a HashMap to store unique extensions
+    let mut extensions_map: HashMap<String, Vec<String>> = HashMap::new();
+
+    for decoder in decoders {
+        // Read the contents of the Rust file
+        let contents =
+            fs::read_to_string(&format!("src/{decoder}.rs")).expect("Failed to read file");
+
+        // Parse the Rust code into a syntax tree
+        let parsed: Vec<Item> = syn::parse_file(&contents).unwrap().items;
+
+        // Find the constant named "EXTENSIONS"
+        let extensions_const = parsed.iter().find_map(|item| {
+            // Check if the item is a constant.
+            if let Item::Const(item_const) = item {
+                // Check if the constant is named "EXTENSIONS"
+                if item_const.ident == "EXTENSIONS" {
+                    Some(item_const)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        });
+
+        let mut extensions = Vec::new();
+        // Extract the values from the "EXTENSIONS" constant
+        if let Some(extensions_const) = extensions_const {
+            // Check if the expression inside the constant is an array
+            if let syn::Expr::Array(expr_array) = *extensions_const.expr.clone() {
+                // Iterate over each element in the array
+                for expr in expr_array.elems {
+                    // Check if the element is a literal
+                    if let Expr::Lit(lit) = expr {
+                        // Check if the literal is a string
+                        if let Lit::Str(lit_str) = lit.lit {
+                            // If it is a string, extract its value and add it to the vector
+                            extensions.push(lit_str.value());
+                        }
+                    }
+                }
+            }
+            // Print the extracted values
+            println!("{:?}", extensions);
+        } else {
+            println!("Error: Constant EXTENSIONS not found");
+        }
+
+        extensions.iter().for_each(|ext| {
+            extensions_map
+                .entry(ext.to_string())
+                .or_insert_with(Vec::new)
+                .push(decoder.clone());
+        });
+    }
+
+    extensions_map
 }
