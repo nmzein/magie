@@ -1,8 +1,6 @@
-# Nemato
+# MAGIE
 
-## About
-
-Nemato is a gigapixel image & annotations rendering engine, built in Rust, with a modern Svelte web interface. It enables scientists to view and analyse extremely large images annotated with hundreds of thousands of annotations created by automated tools. It also allows analysis tool developers to easily integrate their tools through a powerful and flexible module interface.
+MAGIE (Massively Annotated Gigapixel Image Explorer) is a gigapixel image & annotations rendering engine, built in Rust, with a modern Svelte web interface. It enables scientists to view and analyse extremely large images annotated with hundreds of thousands of annotations created by automated tools. It also allows analysis tool developers to easily integrate their tools through a powerful and flexible module interface.
 
 <p align="center">
   <img src="https://github.com/nmzein/nemato/assets/67694622/401968c1-dee3-4080-8634-41fd91aaf4d6" alt="Demo Image" width="700" />
@@ -10,8 +8,8 @@ Nemato is a gigapixel image & annotations rendering engine, built in Rust, with 
 
 ## 💽 Installation
 
-1. Download the source code: `git clone https://github.com/nmzein/nemato.git`
-2. Navigate to main directory: `cd nemato`
+1. Download the source code: `git clone https://github.com/nmzein/magie.git`
+2. Navigate to main directory: `cd magie`
 
 ---
 
@@ -40,8 +38,8 @@ Install dependencies:
 | OS     | Command               | Verified Supported Version(s) | Issues                                     |
 | ------ | --------------------- | ----------------------------- | ------------------------------------------ |
 | Debian | `./install.sh debian` | 12/Bookworm                   | -                                          |
-| Fedora | `./install.sh fedora` | -                             | https://github.com/nmzein/nemato/issues/13 |
-| Ubuntu | `./install.sh ubuntu` | -                             | https://github.com/nmzein/nemato/issues/13 |
+| Fedora | `./install.sh fedora` | -                             | https://github.com/nmzein/magie/issues/13 |
+| Ubuntu | `./install.sh ubuntu` | -                             | https://github.com/nmzein/magie/issues/13 |
 
 Build and run:
 
