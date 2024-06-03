@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: nemato:dev
+    image: magie:dev
     ports:
       - "3000:3000"
       - "4000:4000"
@@ -14,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    image: nemato:prod
+    image: magie:prod
     ports:
       - "3000:3000"
       - "4000:4000"
