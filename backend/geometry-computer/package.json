@@ -4,6 +4,6 @@
   "main": "index.js",
   "type": "module",
   "dependencies": {
-    "three": "0.164.1"
+    "three": "0.165.0"
   }
 }

@@ -1,9 +1,27 @@
+CREATE TABLE IF NOT EXISTS directories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  parent_id INTEGER,
+  name TEXT NOT NULL,
+  lft INTEGER NOT NULL,
+  rgt INTEGER NOT NULL,
+  FOREIGN KEY(parent_id) REFERENCES directories(id) ON DELETE CASCADE,
+  UNIQUE(parent_id, name) -- Enforce that for each parent directory, there is only one directory with a given name.
+);
+
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (0, NULL, '', 1, 4); -- '/'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (1, 0, 'store', 2, 3); -- '/store'
+
 CREATE TABLE IF NOT EXISTS images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  directory_path TEXT UNIQUE NOT NULL,
-  image_name TEXT NOT NULL,
-  store_name TEXT NOT NULL,
-  annotations_name TEXT
+  parent_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  upl_img_ext TEXT NOT NULL,
+  enc_img_ext TEXT NOT NULL,
+  upl_img_fmt TEXT NOT NULL,
+  enc_img_fmt TEXT NOT NULL,
+  upl_anno_ext TEXT,
+  FOREIGN KEY(parent_id) REFERENCES directories(id) ON DELETE CASCADE,
+  UNIQUE(parent_id, name) -- Enforce that for each parent directory, there is only one file with a given name.
 );
 
 CREATE TABLE IF NOT EXISTS metadata_layer (

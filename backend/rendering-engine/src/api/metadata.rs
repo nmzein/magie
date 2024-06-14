@@ -9,7 +9,7 @@ pub async fn metadata(Extension(conn): Extension<AppState>, Json(id): Json<u32>)
     );
 
     // Get image with id from the database.
-    let Ok(image) = crate::db::get(id, Arc::clone(&conn)).await else {
+    let Ok(metadata_layers) = crate::db::image::get_metadata_layers(id, Arc::clone(&conn)) else {
         return log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("Image with id: {id} does not exist in the state database.",),
@@ -24,5 +24,5 @@ pub async fn metadata(Extension(conn): Extension<AppState>, Json(id): Json<u32>)
         None,
     );
 
-    Json(image.metadata_layers).into_response()
+    Json(metadata_layers).into_response()
 }

@@ -2,7 +2,6 @@
 #![warn(clippy::restriction, clippy::pedantic, clippy::nursery, clippy::cargo)]
 
 mod api;
-mod consts;
 mod db;
 mod io;
 mod types;
@@ -31,16 +30,25 @@ async fn main() {
     let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
     let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
-    let annotation_url = &fetch_env_var("PUBLIC_ANNOTATIONS_SUBDIR");
-    let delete_url = &fetch_env_var("PUBLIC_DELETE_SUBDIR");
-    let generators_url = &fetch_env_var("PUBLIC_GENERATORS_SUBDIR");
-    let metadata_url = &fetch_env_var("PUBLIC_METADATA_SUBDIR");
-    let stores_url = &fetch_env_var("PUBLIC_STORES_SUBDIR");
-    let websocket_url = &fetch_env_var("PUBLIC_WEBSOCKET_SUBDIR");
-    let upload_url = &fetch_env_var("PUBLIC_UPLOAD_SUBDIR");
 
-    let conn = db::connect(database_url)
-        .await
+    // Directory routes.
+    let directory_create_url = &fetch_env_var("PUBLIC_DIRECTORY_CREATE_SUBDIR");
+    let directory_delete_url = &fetch_env_var("PUBLIC_DIRECTORY_DELETE_SUBDIR");
+    let directory_rename_url = &fetch_env_var("PUBLIC_DIRECTORY_RENAME_SUBDIR");
+    let directory_move_url = &fetch_env_var("PUBLIC_DIRECTORY_MOVE_SUBDIR");
+
+    // Image routes.
+    let image_upload_url = &fetch_env_var("PUBLIC_IMAGE_UPLOAD_SUBDIR");
+    let image_delete_url = &fetch_env_var("PUBLIC_IMAGE_DELETE_SUBDIR");
+    let image_metadata_url = &fetch_env_var("PUBLIC_IMAGE_METADATA_SUBDIR");
+    let image_annotation_url = &fetch_env_var("PUBLIC_IMAGE_ANNOTATIONS_SUBDIR");
+    let image_tiles_url = &fetch_env_var("PUBLIC_IMAGE_TILES_SUBDIR");
+
+    // General routes.
+    let registry_url = &fetch_env_var("PUBLIC_REGISTRY_SUBDIR");
+    let generators_url = &fetch_env_var("PUBLIC_GENERATORS_SUBDIR");
+
+    let conn = db::general::connect(database_url)
         .expect("Could not establish a connection to the state database.");
 
     let backend_url = format!("{domain}:{backend_port}");
@@ -59,13 +67,22 @@ async fn main() {
         .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
-        .route(annotation_url, post(api::annotations::annotations))
-        .route(delete_url, post(api::delete::delete))
+        // Directory routes.
+        // TODO: Move into submodule.
+        .route(directory_create_url, post(api::directory::create))
+        .route(directory_delete_url, post(api::directory::delete))
+        .route(directory_rename_url, post(api::directory::rename))
+        .route(directory_move_url, post(api::directory::r#move))
+        // Image routes.
+        // TODO: Move into submodule.
+        .route(image_upload_url, post(api::upload::upload))
+        .route(image_delete_url, post(api::delete::delete))
+        .route(image_metadata_url, post(api::metadata::metadata))
+        .route(image_annotation_url, post(api::annotations::annotations))
+        .route(image_tiles_url, get(api::tiles::websocket))
+        // General routes.
+        .route(registry_url, get(api::registry::registry))
         .route(generators_url, get(api::generators::generators))
-        .route(metadata_url, post(api::metadata::metadata))
-        .route(stores_url, get(api::stores::stores))
-        .route(websocket_url, get(api::tiles::websocket))
-        .route(upload_url, post(api::upload::upload))
         .layer(cors)
         .layer(DefaultBodyLimit::disable())
         .layer(Extension(Arc::new(Mutex::new(conn))));

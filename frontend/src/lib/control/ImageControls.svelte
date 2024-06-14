@@ -5,7 +5,7 @@
 
 <div class="outer-container">
 	<div class="inner-container" style="border-radius: 10px 10px 0 0;">
-		<span class="secondary-text"> ANNOTATIONS </span>
+		<span class="grey-text"> ANNOTATIONS </span>
 	</div>
 	{#if annotations.value}
 		{#each annotations.value as layer}

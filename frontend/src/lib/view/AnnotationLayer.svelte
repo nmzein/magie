@@ -26,7 +26,7 @@
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
-	const CANVAS_HEIGHT = 10000;
+	const CANVAS_HEIGHT = 8000;
 	const CANVAS_WIDTH = CANVAS_HEIGHT * (imageWidth / imageHeight);
 
 	const scene = new Scene();
@@ -51,7 +51,6 @@
 	);
 
 	$effect(() => {
-		console.log(annotationLayer.geometry.length);
 		geometry = loader.parse(JSON.parse(annotationLayer.geometry));
 		annotationLayer.geometry = '';
 		render();

@@ -40,7 +40,7 @@
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<label id="asset" for={'browse-input-' + placeholder} onclick={(e) => handleBrowse(e)}>
 			<img src="default_file.svg" alt="" />
-			<span class="secondary-text">{placeholder}</span>
+			<span class="grey-text">{placeholder}</span>
 		</label>
 
 		<input

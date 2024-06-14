@@ -1,16 +1,16 @@
 <script lang="ts">
 	import '../global.scss';
 	import View from '$view/View.svelte';
-	import Controls from '$control/Controls.svelte';
-	import { GetGenerators, GetStores } from '$api';
+	import ControlPanel from '$control/ControlPanel.svelte';
+	import { GetGenerators, GetRegistry } from '$api';
 	import { ConnectWebSocket } from '$stores';
 
 	$effect(() => {
 		ConnectWebSocket();
-		GetStores();
+		GetRegistry();
 		GetGenerators();
 	});
 </script>
 
 <View />
-<Controls />
+<ControlPanel />

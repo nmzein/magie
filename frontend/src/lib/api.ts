@@ -2,7 +2,7 @@ import {
 	loadedImage,
 	metadata,
 	annotations,
-	stores,
+	registry,
 	generators,
 	selectedGenerator,
 	image
@@ -12,45 +12,58 @@ import {
 	PUBLIC_WS_SCHEME,
 	PUBLIC_DOMAIN,
 	PUBLIC_BACKEND_PORT,
-	PUBLIC_ANNOTATIONS_SUBDIR,
-	PUBLIC_CREATE_DIR_SUBDIR,
-	PUBLIC_GENERATORS_SUBDIR,
-	PUBLIC_METADATA_SUBDIR,
-	PUBLIC_STORES_SUBDIR,
-	PUBLIC_WEBSOCKET_SUBDIR,
-	PUBLIC_UPLOAD_SUBDIR
+	// Directory routes.
+	PUBLIC_DIRECTORY_CREATE_SUBDIR,
+	PUBLIC_DIRECTORY_DELETE_SUBDIR,
+	PUBLIC_DIRECTORY_RENAME_SUBDIR,
+	PUBLIC_DIRECTORY_MOVE_SUBDIR,
+	// Image routes.
+	PUBLIC_IMAGE_UPLOAD_SUBDIR,
+	PUBLIC_IMAGE_DELETE_SUBDIR,
+	PUBLIC_IMAGE_METADATA_SUBDIR,
+	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
+	PUBLIC_IMAGE_TILES_SUBDIR,
+	// General routes.
+	PUBLIC_REGISTRY_SUBDIR,
+	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
 
-import type { AnnotationLayer, MetadataLayer, Image } from './types';
+import type { AnnotationLayer, MetadataLayer, Image, Directory } from './types';
 
 const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
 const WS_URL = PUBLIC_WS_SCHEME + URL;
 
-export const WEBSOCKET_URL = WS_URL + PUBLIC_WEBSOCKET_SUBDIR;
-const ANNOTATIONS_URL = HTTP_URL + PUBLIC_ANNOTATIONS_SUBDIR;
-const CREATE_DIR_URL = HTTP_URL + PUBLIC_CREATE_DIR_SUBDIR;
+// Directory routes.
+const DIRECTORY_CREATE_URL = HTTP_URL + PUBLIC_DIRECTORY_CREATE_SUBDIR;
+const DIRECTORY_DELETE_URL = HTTP_URL + PUBLIC_DIRECTORY_DELETE_SUBDIR;
+const DIRECTORY_RENAME_URL = HTTP_URL + PUBLIC_DIRECTORY_RENAME_SUBDIR;
+const DIRECTORY_MOVE_URL = HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR;
+
+// Image routes.
+const IMAGE_UPLOAD_URL = HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR;
+const IMAGE_DELETE_URL = HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR;
+const IMAGE_METADATA_URL = HTTP_URL + PUBLIC_IMAGE_METADATA_SUBDIR;
+const IMAGE_ANNOTATIONS_URL = HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR;
+export const WEBSOCKET_URL = WS_URL + PUBLIC_IMAGE_TILES_SUBDIR;
+
+// General routes.
+const REGISTRY_URL = HTTP_URL + PUBLIC_REGISTRY_SUBDIR;
 const GENERATORS_URL = HTTP_URL + PUBLIC_GENERATORS_SUBDIR;
-const METADATA_URL = HTTP_URL + PUBLIC_METADATA_SUBDIR;
-const STORES_URL = HTTP_URL + PUBLIC_STORES_SUBDIR;
-const UPLOAD_URL = HTTP_URL + PUBLIC_UPLOAD_SUBDIR;
 
 export async function LoadImage(image: Image) {
 	loadedImage.value = image;
 	GetMetadata(image.id);
 }
 
-export async function CreateDirectory(
-	parentDirectoryID: number | undefined,
-	directoryName: string
-) {
+export async function CreateDirectory(parentDirectoryID: number | undefined, name: string) {
 	const data = {
-		parent_directory_id: parentDirectoryID,
-		directory_name: directoryName
+		parent_id: parentDirectoryID,
+		name: name
 	};
 
 	try {
-		const response = await fetch(CREATE_DIR_URL, {
+		const response = await fetch(DIRECTORY_CREATE_URL, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -59,7 +72,7 @@ export async function CreateDirectory(
 		});
 
 		if (response.ok) {
-			GetStores();
+			GetRegistry();
 		} else {
 			console.error('Response Error <Create Directory>:', response.status, response.statusText);
 		}
@@ -69,14 +82,14 @@ export async function CreateDirectory(
 }
 
 export async function SendUploadAssets(
-	parentDirectoryPath: string,
+	parentDirectoryID: number,
 	imageFile: File,
 	annotationsFile: File | undefined,
 	generatorName: string
 ) {
 	const formData = new FormData();
 
-	formData.append('parent_directory_path', parentDirectoryPath);
+	formData.append('parent_directory_id', parentDirectoryID.toString());
 	formData.append('image_file', imageFile);
 	if (annotationsFile) {
 		formData.append('annotations_file', annotationsFile);
@@ -84,13 +97,13 @@ export async function SendUploadAssets(
 	formData.append('generator_name', generatorName);
 
 	try {
-		const response = await fetch(UPLOAD_URL, {
+		const response = await fetch(IMAGE_UPLOAD_URL, {
 			method: 'POST',
 			body: formData
 		});
 
 		if (response.ok) {
-			GetStores();
+			GetRegistry();
 		} else {
 			console.error('Response Error <Upload>:', response.status, response.statusText);
 		}
@@ -119,28 +132,28 @@ export async function GetGenerators() {
 	}
 }
 
-export async function GetStores() {
+export async function GetRegistry() {
 	try {
-		const response = await fetch(STORES_URL, { method: 'GET' });
+		const response = await fetch(REGISTRY_URL, { method: 'GET' });
 
 		if (response.ok) {
 			try {
-				const data: Image[] = await response.json();
-				stores.value = data;
+				const data: Directory = await response.json();
+				registry.value = data;
 			} catch (error) {
-				console.error('Parse Error <Stores>:', error);
+				console.error('Parse Error <Registry>:', error);
 			}
 		} else {
-			console.error('Response Error <Stores>:', response.status, response.statusText);
+			console.error('Response Error <Registry>:', response.status, response.statusText);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Stores>:', error);
+		console.error('Fetch Error <Registry>:', error);
 	}
 }
 
 export async function GetMetadata(id: number) {
 	try {
-		const response = await fetch(METADATA_URL, {
+		const response = await fetch(IMAGE_METADATA_URL, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -157,23 +170,23 @@ export async function GetMetadata(id: number) {
 				image.init();
 				GetAnnotations(id);
 			} catch (error) {
-				console.error('Parse Error <Metadata: ' + loadedImage.value?.path + '>:', error);
+				console.error('Parse Error <Metadata: ' + loadedImage.value?.name + '>:', error);
 			}
 		} else {
 			console.error(
-				'Response Error <Metadata: ' + loadedImage.value?.path + '>:',
+				'Response Error <Metadata: ' + loadedImage.value?.name + '>:',
 				response.status,
 				response.statusText
 			);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Metadata: ' + loadedImage.value?.path + '>:', error);
+		console.error('Fetch Error <Metadata: ' + loadedImage.value?.name + '>:', error);
 	}
 }
 
 export async function GetAnnotations(id: number) {
 	try {
-		const response = await fetch(ANNOTATIONS_URL, {
+		const response = await fetch(IMAGE_ANNOTATIONS_URL, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -191,17 +204,17 @@ export async function GetAnnotations(id: number) {
 				// 	annotations: annotationLayer.annotations.map((annotation) => sort(annotation))
 				// }));
 			} catch (error) {
-				console.error('Parse Error <Annotations: ' + loadedImage.value?.path + '>:', error);
+				console.error('Parse Error <Annotations: ' + loadedImage.value?.name + '>:', error);
 			}
 		} else {
 			console.error(
-				'Response Error <Annotations: ' + loadedImage.value?.path + '>:',
+				'Response Error <Annotations: ' + loadedImage.value?.name + '>:',
 				response.status,
 				response.statusText
 			);
 		}
 	} catch (error) {
-		console.error('Fetch Error <Annotations: ' + loadedImage.value?.path + '>:', error);
+		console.error('Fetch Error <Annotations: ' + loadedImage.value?.name + '>:', error);
 	}
 }
 
