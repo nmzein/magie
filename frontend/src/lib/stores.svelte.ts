@@ -1,33 +1,40 @@
-import type { MetadataLayer, AnnotationLayer, ImageLayer, Image, TileRequest } from '$types';
+import type {
+	MetadataLayer,
+	AnnotationLayer,
+	ImageLayer,
+	Image,
+	TileRequest,
+	Directory
+} from '$types';
 import { WEBSOCKET_URL } from '$api';
 
-const state = <T>(initial: T | undefined = undefined) => {
+export function state<T>(initial: T): { value: T };
+export function state<T = undefined>(initial?: T): { value: T };
+export function state<T>(initial?: T) {
 	let state = $state({ value: initial });
 	return state;
-};
+}
 
-const definedState = <T>(initial: T) => {
-	let state = $state({ value: initial });
-	return state;
-};
+export const loadedImage = state<Image | undefined>();
+export const registry = state<Directory | undefined>();
+export const generators = state<string[] | undefined>();
+export const selectedGenerator = state<string | undefined>();
+export const metadata = state<MetadataLayer[] | undefined>();
+export const annotations = state<AnnotationLayer[] | undefined>();
+export const imageUpload = state<File | undefined>();
+export const annotationsUpload = state<File | undefined>();
 
-export const loadedImage = state<Image>();
-export const stores = state<Image[]>();
-export const generators = state<string[]>();
-export const selectedGenerator = state<string>();
-export const metadata = state<MetadataLayer[]>();
-export const annotations = state<AnnotationLayer[]>();
-export const imageUpload = state<File>();
-export const annotationsUpload = state<File>();
-
-export const autogenerateAnnotations = definedState<boolean>(true);
+export const fileExplorerState = state<{ activeDirectoryId: string }>({
+	activeDirectoryId: ''
+});
+export const autogenerateAnnotations = state<boolean>(false);
 
 export const image = (() => {
 	let image = state<ImageLayer[]>();
 
 	// Run as soon as metadata is parsed and loaded in GetMetadata.
 	const init = () => {
-		let levels = metadata.value?.length;
+		const levels = metadata.value?.length;
 		if (image === undefined || levels === undefined) return;
 
 		image.value = new Array(levels).fill([]);
@@ -43,7 +50,7 @@ export const image = (() => {
 })();
 
 const _websocket = () => {
-	let socket = definedState<WebSocket>(new WebSocket(WEBSOCKET_URL));
+	let socket = state<WebSocket>(new WebSocket(WEBSOCKET_URL));
 
 	socket.value.addEventListener('message', (event: MessageEvent) => {
 		processTile(event).catch((error) => {
@@ -57,9 +64,9 @@ const _websocket = () => {
 		const data: Blob = event.data;
 		const arr = new Uint8Array(await data.arrayBuffer());
 
-		let level = arr[0];
-		let x = arr[1];
-		let y = arr[2];
+		const level = arr[0];
+		const x = arr[1];
+		const y = arr[2];
 
 		const newTile = new Image();
 		// Remove position and level values from start of array.

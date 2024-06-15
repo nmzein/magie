@@ -18,6 +18,7 @@ pub async fn websocket(
 }
 
 // TODO: Send error messages to frontend.
+// TODO: Capture large rectangles of selections rather than individual tiles.
 async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
     let (mut sink, mut stream) = socket.split();
     // Credit: https://gist.github.com/hexcowboy/8ebcf13a5d3b681aa6c684ad51dd6e0c
@@ -51,7 +52,8 @@ async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
                 }
             };
 
-            let paths = match crate::db::get_paths(tile_request.id, Arc::clone(&conn)).await {
+            // TODO: Cache in an in-memory HashMap.
+            let (_, path) = match crate::db::image::get(tile_request.id, Arc::clone(&conn)) {
                 Ok(paths) => paths,
                 Err(e) => {
                     log(
@@ -67,8 +69,9 @@ async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
                 }
             };
 
-            let store_path = paths.directory_path.join(&paths.store_name);
-            let tile = match crate::io::retrieve(&store_path, &tile_request).await {
+            // TODO: Remove hardcoding, import from consts.
+            let encoded_img_path = path.join("encoded_image.zarr");
+            let tile = match crate::io::retrieve(&encoded_img_path, &tile_request).await {
                 Ok(tile) => tile,
                 Err(e) => {
                     log(

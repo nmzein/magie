@@ -8,5 +8,14 @@ pub async fn generators() -> Response {
         None,
     );
 
-    Json(generators::export::names()).into_response()
+    let generators = generators::export::names();
+
+    #[cfg(feature = "log.success")]
+    log(
+        StatusCode::OK,
+        "Successfully retrieved annotation generators.",
+        Some(&generators),
+    );
+
+    Json(generators).into_response()
 }

@@ -1,5 +1,5 @@
 FROM node:21.6.2-bookworm-slim AS node
-FROM rust:slim-bookworm AS rust
+FROM rust:1.79.0-slim-bookworm AS rust
 
 FROM node AS frontend
 
@@ -7,7 +7,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
     apt-get update
 
 RUN --mount=type=cache,target=/var/cache/npm \
-    npm install -g npm@10.5.0 && \
     npm install -g vite
 
 COPY ./frontend /app/frontend

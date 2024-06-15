@@ -1,7 +1,5 @@
 use crate::api::common::*;
-use crate::consts::LOCAL_STORE_PATH;
 use serde::Serialize;
-use std::path::PathBuf;
 
 #[derive(Serialize)]
 struct AnnotationLayerResponse {
@@ -35,7 +33,7 @@ pub async fn annotations(Extension(conn): Extension<AppState>, Json(id): Json<u3
     );
 
     let annotation_layer_paths =
-        match crate::db::get_annotation_layer_paths(id, Arc::clone(&conn)).await {
+        match crate::db::image::get_annotation_layer_paths(id, Arc::clone(&conn)) {
             Ok(layers) => layers,
             Err(e) => {
                 return log(
@@ -48,9 +46,7 @@ pub async fn annotations(Extension(conn): Extension<AppState>, Json(id): Json<u3
 
     let mut annotation_layers = Vec::new();
     for (tag, path) in annotation_layer_paths {
-        if let Ok(geometry) =
-            std::fs::read_to_string(&PathBuf::from(LOCAL_STORE_PATH).join(path.clone()))
-        {
+        if let Ok(geometry) = std::fs::read_to_string(&path) {
             annotation_layers.push(AnnotationLayerResponse::new(tag.to_owned(), geometry));
         } else {
             return log::<()>(

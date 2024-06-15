@@ -17,12 +17,12 @@ impl Generator for Module {
     fn translate(&self, annotations_path: &PathBuf) -> Result<Vec<AnnotationLayer>> {
         let start = std::time::Instant::now();
 
-        let database_url = format!("sqlite://../store/{}", annotations_path.display());
-        let conn = Connection::open(database_url)?;
+        // ! Might need to prepend "../".
+        let conn = Connection::open(annotations_path)?;
 
         let mut stmt = conn.prepare(
             r#"
-                SELECT cx, cy, geometry, properties, CAST(area AS REAL) as area
+                SELECT cx, cy, geometry, properties, CAST(area AS REAL) AS area
                 FROM annotations
                 ORDER BY area DESC
                 LIMIT 200000;

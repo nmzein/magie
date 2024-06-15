@@ -11,7 +11,7 @@
 	import UploadAsset from '$control/UploadAsset.svelte';
 
 	// TODO: Get path from file explorer.
-	let directory_path = '';
+	let parent_directory_id = 1;
 
 	function handleUpload() {
 		if (imageUpload.value === undefined || selectedGenerator.value === undefined) {
@@ -23,11 +23,11 @@
 		// uploaded an annotation file earlier and then
 		// switched to autogeneration.
 		if (autogenerateAnnotations.value) {
-			SendUploadAssets(directory_path, imageUpload.value, undefined, selectedGenerator.value);
+			SendUploadAssets(parent_directory_id, imageUpload.value, undefined, selectedGenerator.value);
 			imageUpload.value = undefined;
 		} else if (annotationsUpload) {
 			SendUploadAssets(
-				directory_path,
+				parent_directory_id,
 				imageUpload.value,
 				annotationsUpload.value,
 				selectedGenerator.value
@@ -41,7 +41,7 @@
 <div>
 	<div class="outer-container">
 		<div class="inner-container" style="border-radius: 10px 10px 0 0;">
-			<span class="secondary-text"> ANNOTATION GENERATION </span>
+			<span class="grey-text"> ANNOTATION GENERATION </span>
 			<div style="display: flex;">
 				<div style="flex: 1; display: flex; gap: 5px; padding-top: 3px;">
 					AUTOGENERATE
@@ -67,7 +67,7 @@
 		</div>
 
 		<div
-			class="inner-container secondary-text"
+			class="inner-container grey-text"
 			style="padding: 5px 10px; font-size: 12px; border-radius: 0 0 10px 10px;"
 		>
 			Drag file onto/click on icon to browse fs.
