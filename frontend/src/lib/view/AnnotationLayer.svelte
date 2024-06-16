@@ -14,6 +14,7 @@
 	} = $props();
 
 	import type { AnnotationLayer } from '$types';
+	import { untrack } from 'svelte';
 	import {
 		BufferGeometryLoader,
 		Scene,
@@ -51,14 +52,14 @@
 	);
 
 	$effect(() => {
-		geometry = loader.parse(JSON.parse(annotationLayer.geometry));
-		annotationLayer.geometry = '';
-		render();
+		untrack(() => (geometry = loader.parse(JSON.parse(annotationLayer.geometry))));
+		untrack(() => (annotationLayer.geometry = ''));
 	});
+
+	$effect(() => render());
 
 	function render() {
 		if (!geometry) return;
-
 		let start = performance.now();
 		// renderer.clear();
 		// Create a mesh with the geometries and materials.
