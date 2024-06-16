@@ -9,7 +9,7 @@
 		display: boolean;
 	} = $props();
 
-	import { websocket, loadedImage, metadata } from '$stores';
+	import { websocket, loadedImage, metadata } from '$states';
 	import type { ImageLayer } from '$types';
 
 	const options = {

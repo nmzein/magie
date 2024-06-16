@@ -4,7 +4,7 @@
 <script lang="ts">
 	import { directoryStack } from './state.svelte';
 	import Item from './Item.svelte';
-	import { registry } from '$stores';
+	import { registry } from '$states';
 
 	let currentDirectory = $derived.by(() => {
 		if (registry.value === undefined) return;

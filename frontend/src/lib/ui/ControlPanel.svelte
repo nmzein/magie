@@ -12,12 +12,11 @@
 
 	import Settings from '~icons/material-symbols-light/settings-outline-rounded';
 
-	import * as Tabs from '$control/tabs/index.ts';
+	import * as Tabs from '$ui/tabs/index.ts';
 
-	// import Uploader from '$control/Uploader.svelte';
 	import { Explorer } from './explorer';
-	import ImageControls from '$control/ImageControls.svelte';
-	import Uploader from './Uploader.svelte';
+	import ImageControls from '$ui/ImageControls.svelte';
+	// import Uploader from '$ui/Uploader.svelte';
 
 	const ICON_SIZE = '2.3em';
 
@@ -66,10 +65,8 @@
 				<Explorer />
 			</Tabs.Content>
 			<Tabs.Content value="control" {currentTab} class="control-panel-tab-content">
-				<div class="panel" style="padding: 5px;">
-					<Uploader />
-					<ImageControls />
-				</div>
+				<!-- <Uploader /> -->
+				<ImageControls />
 			</Tabs.Content>
 		</Tabs.Root>
 		<div class="group panel">

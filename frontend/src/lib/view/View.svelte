@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { annotations, image, metadata } from '$stores';
+	import { annotations, image, metadata } from '$states';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
 	import { OrthographicCamera } from 'three';

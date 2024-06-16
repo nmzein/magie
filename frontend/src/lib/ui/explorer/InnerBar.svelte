@@ -10,7 +10,7 @@
 	import ListView from '~icons/ic/round-format-list-bulleted';
 	import GridView from '~icons/material-symbols/grid-view-outline-rounded';
 
-	import * as Dropdown from '$control/dropdown/index.ts';
+	import * as Dropdown from '$ui/dropdown/index.ts';
 
 	const ICON_SIZE = '1.25em';
 

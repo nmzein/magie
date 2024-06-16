@@ -6,7 +6,7 @@ import {
 	generators,
 	selectedGenerator,
 	image
-} from '$stores';
+} from '$states';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,

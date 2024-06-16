@@ -6,9 +6,9 @@
 		generators,
 		selectedGenerator,
 		autogenerateAnnotations
-	} from '$stores';
-	import Switch from '$control/Switch.svelte';
-	import UploadAsset from '$control/UploadAsset.svelte';
+	} from '$states';
+	import Switch from '$ui/Switch.svelte';
+	import UploadAsset from '$ui/UploadAsset.svelte';
 
 	// TODO: Get path from file explorer.
 	let parent_directory_id = 1;
