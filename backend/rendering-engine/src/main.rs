@@ -68,18 +68,19 @@ async fn main() {
 
     let app = Router::new()
         // Directory routes.
-        // TODO: Move into submodule.
-        .route(directory_create_url, post(api::directory::create))
-        .route(directory_delete_url, post(api::directory::delete))
-        .route(directory_rename_url, post(api::directory::rename))
-        .route(directory_move_url, post(api::directory::r#move))
+        .route(directory_create_url, post(api::directory::create::create))
+        .route(directory_delete_url, post(api::directory::delete::delete))
+        .route(directory_rename_url, post(api::directory::rename::rename))
+        .route(directory_move_url, post(api::directory::r#move::r#move))
         // Image routes.
-        // TODO: Move into submodule.
-        .route(image_upload_url, post(api::upload::upload))
-        .route(image_delete_url, post(api::delete::delete))
-        .route(image_metadata_url, post(api::metadata::metadata))
-        .route(image_annotation_url, post(api::annotations::annotations))
-        .route(image_tiles_url, get(api::tiles::websocket))
+        .route(image_upload_url, post(api::image::upload::upload))
+        .route(image_delete_url, post(api::image::delete::delete))
+        .route(image_metadata_url, post(api::image::metadata::metadata))
+        .route(
+            image_annotation_url,
+            post(api::image::annotations::annotations),
+        )
+        .route(image_tiles_url, get(api::image::tiles::websocket))
         // General routes.
         .route(registry_url, get(api::registry::registry))
         .route(generators_url, get(api::generators::generators))

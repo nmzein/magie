@@ -76,7 +76,7 @@ pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
     )?;
 
     #[cfg(feature = "log.database")]
-    log::<()>(&format!("DELETE <Image: {}>", id), None);
+    log::<()>(&format!("DELETE <Image: {id}>"), None);
 
     Ok(())
 }
@@ -93,7 +93,10 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
     let exists = stmt.exists(&[name, &parent_id.to_string()])?;
 
     #[cfg(feature = "log.database")]
-    log(&format!("CONTAINS <Image: {}>", parent_id), Some(&exists));
+    log(
+        &format!("CONTAINS <Image: {parent_id}/{name}>"),
+        Some(&exists),
+    );
 
     Ok(exists)
 }
@@ -116,7 +119,7 @@ pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
     let path = crate::db::directory::path_internal(parent_id, &conn)?.join(&name);
 
     #[cfg(feature = "log.database")]
-    log(&format!("GET <Image: {:?}>", path), Some(&path));
+    log(&format!("GET <Image: {path:?}>"), Some(&path));
 
     Ok((name, path))
 }
@@ -145,7 +148,7 @@ pub fn get_metadata_layers(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<
         .collect::<Result<Vec<_>, _>>()?;
 
     #[cfg(feature = "log.database")]
-    log(&format!("GET <Metadata: {}>", id), Some(&metadata_layer));
+    log(&format!("GET <Metadata: {id}>"), Some(&metadata_layer));
 
     Ok(metadata_layer)
 }
@@ -174,7 +177,7 @@ pub fn get_annotation_layer_paths(
 
     #[cfg(feature = "log.database")]
     log(
-        &format!("GET <Annotation Paths: {}>", id),
+        &format!("GET <Annotation Paths: {id}>"),
         Some(&annotation_layers),
     );
 

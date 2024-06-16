@@ -23,11 +23,11 @@ static TILE_LENGTH: usize = (TILE_SIZE * TILE_SIZE) as usize;
 static TILE_SPLIT_LENGTH: usize = (TILE_SIZE * TILE_SIZE * RGB_CHANNELS) as usize;
 static GROUP_PATH: &str = "/group";
 
-pub async fn create(path: &PathBuf) -> Result<PathBuf> {
+pub async fn create(path: &PathBuf) -> Result<()> {
     // Create directory.
     fs::create_dir_all(&path).await?;
 
-    Ok(path.clone())
+    Ok(())
 }
 
 pub async fn delete(path: &PathBuf) -> Result<()> {

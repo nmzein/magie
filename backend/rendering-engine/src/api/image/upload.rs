@@ -307,7 +307,7 @@ async fn translate_annotations(
     // TODO: Use capnproto rather than storing an intermediate translated annotations json file.
     // TODO: Or, try writing own buffer geometry creator/gltf lib in Rust.
     // Serialize annotation layers.
-    let Ok(annotation_layers_json) = serde_json::to_string(&annotation_layers) else {
+    let Ok(serialized_annotation_layers) = serde_json::to_string(&annotation_layers) else {
         let resp = log::<()>(
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to serialize annotation layers.",
@@ -319,7 +319,8 @@ async fn translate_annotations(
 
     // Save json string to file.
     let transl_anno_path = path.join(TRANSLATED_ANNOTATIONS_NAME);
-    std::fs::write(transl_anno_path, annotation_layers_json).expect("Unable to write file");
+    std::fs::write(transl_anno_path.clone(), serialized_annotation_layers)
+        .expect("Unable to write file");
 
     // Compute annotation positions and normals.
     match Command::new("node")
