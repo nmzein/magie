@@ -326,6 +326,7 @@ async fn translate_annotations(
     match Command::new("node")
         .arg("--max-old-space-size=4096")
         .arg("./geometry-computer/index.js")
+        .arg(transl_anno_path)
         .arg(path)
         .output()
     {

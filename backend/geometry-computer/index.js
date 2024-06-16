@@ -6,24 +6,23 @@ import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js"
 // We want to start reading the arguments from the third element.
 const args = process.argv.slice(2);
 
-// Now, you can access the inputted variables.
-// For example, if you run 'node index.js arg1 arg2', args will be ['arg1', 'arg2'].
-const path = args[0];
-
-console.log("Path: ", path);
+const sourceFile = args[0];
+const outputDirectory = args[1];
+console.log("Source File: ", sourceFile);
+console.log("Output Directory: ", outputDirectory);
 
 // Read the JSON file
-fs.readFile(path + "/annotations.json", "utf8", (err, data) => {
+fs.readFile(sourceFile, "utf8", (err, data) => {
   if (err) {
     console.error("Error reading file:", err);
     return;
   }
 
   const annotationLayers = JSON.parse(data);
-  draw(path, annotationLayers);
+  draw(annotationLayers);
 });
 
-function draw(path, annotationLayers) {
+function draw(annotationLayers) {
   console.log(annotationLayers.length);
   for (const annotationLayer of annotationLayers) {
     console.log(annotationLayer.tag, annotationLayer.annotations.length);
@@ -46,7 +45,7 @@ function draw(path, annotationLayers) {
 
     // Save geometries to JSON file
     fs.writeFileSync(
-      path + "/" + annotationLayer.tag + ".json",
+      outputDirectory + "/" + annotationLayer.tag + ".json",
       JSON.stringify(mergedGeometry),
       function (err) {
         if (err) {
