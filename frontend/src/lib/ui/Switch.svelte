@@ -3,8 +3,10 @@
 	let { checked = $bindable() }: { checked: boolean } = $props();
 </script>
 
-<label id="switch" for="switch">
-	<input id="switch" type="checkbox" {checked} onclick={() => (checked = !checked)} />
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<label id="switch" for="switch" onclick={() => (checked = !checked)}>
+	<input id="switch" type="checkbox" {checked} />
 	<span id="slider"></span>
 </label>
 
