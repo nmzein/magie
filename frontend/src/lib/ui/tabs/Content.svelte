@@ -3,12 +3,19 @@
 	let {
 		class: className,
 		value,
+		disabled = false,
 		currentTab,
 		children
-	}: { class: string; value: string; currentTab: string | undefined; children: Snippet } = $props();
+	}: {
+		class: string;
+		value: string;
+		disabled: boolean;
+		currentTab: string | undefined;
+		children: Snippet;
+	} = $props();
 </script>
 
-{#if value === currentTab}
+{#if !disabled && value === currentTab}
 	<div class={className}>
 		{@render children()}
 	</div>

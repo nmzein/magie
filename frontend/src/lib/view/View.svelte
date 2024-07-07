@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { image } from '$states';
+	import { image, transformer } from '$states';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
 	import { OrthographicCamera } from 'three';
@@ -7,33 +7,9 @@
 	let panStartX = $state(0);
 	let panStartY = $state(0);
 	let isDragging = $state(false);
-	let offsetX = $state(0);
-	let offsetY = $state(0);
-	let scale = $state(1);
-	// Still some clunky behaviour.
+	// FIX: Broken!
 	let x = $state(0);
 	let y = $state(0);
-
-	const minScale = 0.1;
-	const maxScale = 100;
-	const minLevel = 0;
-	let maxLevel: number | undefined = $state();
-	let currentLevel: number | undefined = $state();
-
-	let scaleBreakpoints: number[] | undefined = $derived.by(() => {
-		if (image.metadata === undefined || maxLevel === undefined) return;
-
-		let lowestResolution = image.metadata[maxLevel].width * image.metadata[maxLevel].height;
-		let scaleBreakpoints = [];
-		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
-		for (let i = minLevel; i < maxLevel; i++) {
-			scaleBreakpoints.push(
-				Math.sqrt((image.metadata[i].width * image.metadata[i].height) / lowestResolution)
-			);
-		}
-
-		return scaleBreakpoints;
-	});
 
 	let camera: OrthographicCamera | undefined = $derived.by(() => {
 		if (image.width === undefined || image.height === undefined) return;
@@ -45,45 +21,29 @@
 
 	// TODO: FIX
 	$effect(() => {
-		if (image.levels === undefined || image.metadata === undefined) return;
+		if (!image.initialised || image.levels === undefined || image.metadata === undefined) return;
 
 		for (let i = 0; i < image.levels; i++) {
 			if (image.metadata[i].cols <= 4 || image.metadata[i].rows <= 4) {
-				maxLevel = i - 1;
-				currentLevel = i - 1;
+				transformer.maxLevel = i - 1;
+				transformer.currentLevel = i - 1;
 				break;
 			}
 		}
 
-		// maxLevel = metadata.value.length - 1;
-		// currentLevel = metadata.value.length - 1;
+		// maxLevel = image.metadata.length - 1;
+		// currentLevel = image.metadata.length - 1;
 	});
 
 	$effect(() => {
-		// document.addEventListener('touchmove', handleTouchMove);
-		// document.addEventListener('touchend', handlePanEnd);
+		document.addEventListener('touchmove', handleTouchMove);
+		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
-		// (() => {
-		// 	let script = document.createElement('script');
-		// 	script.onload = function () {
-		// 		let stats = new Stats();
-
-		// 		stats.showPanel(2);
-		// 		document.body.appendChild(stats.dom);
-		// 		requestAnimationFrame(function loop() {
-		// 			stats.update();
-		// 			requestAnimationFrame(loop);
-		// 		});
-		// 	};
-		// 	script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
-		// 	document.head.appendChild(script);
-		// })();
-
 		return () => {
-			// document.removeEventListener('touchmove', handleTouchMove);
-			// document.removeEventListener('touchend', handlePanEnd);
+			document.removeEventListener('touchmove', handleTouchMove);
+			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('mouseup', handlePanEnd);
 			document.removeEventListener('wheel', handleWheel);
 		};
@@ -107,19 +67,19 @@
 	function handleMouseMove(event: MouseEvent) {
 		event.preventDefault();
 
+		// Logic for calculating the coordinates of the mouse pointer.
 		if (!isDragging) {
 			if (image.width === undefined || image.height === undefined) return;
+
+			// TODO: Don't do this on every mouse move.
 			const currentLayer = document
-				.getElementById('image-layer-' + currentLevel)
+				.getElementById('image-layer-' + transformer.currentLevel)
 				?.getBoundingClientRect();
 
-			const currentLayerWidth = currentLayer?.width;
-			const currentLayerHeight = currentLayer?.height;
+			if (!currentLayer) return;
 
-			if (!currentLayerWidth || !currentLayerHeight) return;
-
-			x = Math.floor((event.clientX - offsetX) * (image.width / currentLayerWidth));
-			y = Math.floor((event.clientY - offsetY) * (image.height / currentLayerHeight));
+			x = Math.floor((event.clientX - transformer.offsetX) * (image.width / currentLayer.width));
+			y = Math.floor((event.clientY - transformer.offsetY) * (image.height / currentLayer.height));
 
 			return;
 		}
@@ -133,8 +93,8 @@
 	}
 
 	function handlePan(event: MouseEvent | Touch) {
-		offsetX += event.clientX - panStartX;
-		offsetY += event.clientY - panStartY;
+		transformer.offsetX += event.clientX - panStartX;
+		transformer.offsetY += event.clientY - panStartY;
 
 		panStartX = event.clientX;
 		panStartY = event.clientY;
@@ -144,61 +104,8 @@
 		isDragging = false;
 	}
 
-	function zoom(delta: number, mouseX: number | 0, mouseY: number | 0) {
-		let newScale = scale * Math.exp(delta * -0.005);
-
-		// Limit the scale factor within a reasonable range.
-		if (newScale < minScale) {
-			newScale = minScale;
-		} else if (newScale > maxScale) {
-			newScale = maxScale;
-		}
-
-		let ratio = 1 - newScale / scale;
-
-		offsetX += (mouseX - offsetX) * ratio;
-		offsetY += (mouseY - offsetY) * ratio;
-
-		scale = newScale;
-
-		handleLevelChange(delta);
-	}
-
-	function handleLevelChange(delta: number) {
-		if (currentLevel === undefined || maxLevel === undefined || scaleBreakpoints === undefined)
-			return;
-
-		// If at highest detail level and zooming in,
-		// or if at lowest detail level and zooming out, do nothing.
-		if ((currentLevel == minLevel && delta < 0) || (currentLevel == maxLevel && delta > 0)) {
-			let s = delta < 0 ? 'in' : 'out';
-			console.log('At level', currentLevel, 'and zooming', s + '. Skip computation.');
-			return;
-		}
-
-		// If zooming out (not at lowest detail)
-		// check current breakpoint (at currentLevel)
-		// if scale <>> sB[cL] then cL += 1 (move to lower reso.)
-		// e.g. sB = [32, 8] and currently at level 1 and zooming out
-		// desired result: move to level 2 (cL + 1)
-		// should happen when: scale < 8 (sB[cl])
-		// result: cL += 1 (cL = 2)
-		if (delta > 0 && scale < scaleBreakpoints[currentLevel]) {
-			currentLevel += 1;
-			console.log('Switching to lower resolution level:', currentLevel + '.');
-		}
-
-		// If zooming in (not at highest detail),
-		// check next breakpoint (at currentLevel - 1)
-		// if scale > sB[cL - 1] then cL -= 1 (move to higher reso.)
-		if (delta < 0 && scale > scaleBreakpoints[currentLevel - 1]) {
-			currentLevel -= 1;
-			console.log('Switching to higher resolution level:', currentLevel + '.');
-		}
-	}
-
 	function handleWheel(event: WheelEvent) {
-		zoom(event.deltaY, event.clientX, event.clientY);
+		transformer.zoom(event.deltaY, event.clientX, event.clientY);
 	}
 </script>
 
@@ -208,14 +115,13 @@
 	role="img"
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
+	ontouchstart={handleTouchStart}
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
-	<!-- ontouchstart={handleTouchStart} -->
 	<div
 		id="container"
-		style="transform: translate({offsetX}px, {offsetY}px) scale({scale}); {isDragging
-			? ''
-			: 'transition: transform 0.2s;'}"
+		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
+			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
 		<div id="annotation-layers">
 			{#if camera !== undefined}
@@ -225,9 +131,9 @@
 			{/if}
 		</div>
 		<div id="image-layers">
-			{#if currentLevel !== undefined}
+			{#if transformer.currentLevel !== undefined}
 				{#each image.tiles as layer, layerIndex}
-					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
+					<ImageLayer {layer} {layerIndex} display={layerIndex === transformer.currentLevel} />
 				{/each}
 			{/if}
 		</div>
@@ -235,7 +141,8 @@
 	{#if image.initialised}
 		<div id="coordinates-panel" class="panel">
 			<span>x:</span>
-			{x}, <span>y:</span>
+			{x},
+			<span>y:</span>
 			{y}
 		</div>
 	{/if}
