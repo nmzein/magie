@@ -63,7 +63,7 @@
 					value=""
 					sideEffect={() => transformer.zoom(-100)}
 					bind:currentTab={fakeState}
-					disabled={transformer.atMaxScale()}
+					disabled={!image.initialised || transformer.atMaxScale()}
 					class="control-panel-tab-trigger"
 					activeClass="control-panel-tab-trigger-active"
 					disabledClass="control-panel-tab-trigger-disabled"
@@ -73,8 +73,12 @@
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<span
-					onclick={() => transformer.resetScale()}
-					style="cursor: pointer; text-align: center; margin: 5px 0;"
+					onclick={() => {
+						if (!image.initialised) return;
+						transformer.resetScale();
+					}}
+					style="cursor: pointer; text-align: center; margin: 5px 0; user-select: none;"
+					class:control-panel-tab-trigger-disabled={!image.initialised}
 				>
 					{formatNumber(transformer.scale)}x
 				</span>
@@ -83,7 +87,7 @@
 					value=""
 					sideEffect={() => transformer.zoom(100)}
 					bind:currentTab={fakeState}
-					disabled={transformer.atMinScale()}
+					disabled={!image.initialised || transformer.atMinScale()}
 					class="control-panel-tab-trigger"
 					activeClass="control-panel-tab-trigger-active"
 					disabledClass="control-panel-tab-trigger-disabled"

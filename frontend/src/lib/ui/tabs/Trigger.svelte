@@ -31,7 +31,7 @@
 		{disabled ? disabledClassName : ''}
 	"
 	onclick={() => {
-		if (sideEffect !== undefined) sideEffect();
+		if (!disabled && sideEffect !== undefined) sideEffect();
 
 		if (mode !== '0' && currentTab !== value) {
 			// Only allow toggle if mode is '=1' or '<=1'.

@@ -129,6 +129,7 @@ export const image = (() => {
 	async function load(_info: Image) {
 		initialised = false;
 		reset();
+		transformer.resetScale();
 
 		info = _info;
 
