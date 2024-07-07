@@ -5,7 +5,7 @@ edition = "2021"
 
 [build-dependencies]
 shared = { version = "0.1.0", path = "../shared" }
-syn = "2.0.66"
+syn = "2.0.69"
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }

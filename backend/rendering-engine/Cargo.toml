@@ -20,8 +20,8 @@ futures-util = "0.3.30"
 image = "0.24.9" # Stuck on version 0.24.9 because of turbojpeg.
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 rusqlite_migration = "1.2.0"
-serde = { version = "1.0.203", features = ["derive"] }
-serde_json = "1.0.117"
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.120"
 tempfile = "3.10.1"
 tokio = { version = "1.38.0", features = ["full"] }
 tower-http = { version = "0.5.2", features = ["cors"] }
