@@ -7,7 +7,7 @@ import type {
 	UploaderSettings,
 	TileRequest
 } from '$types';
-import { api, websocket } from '$api';
+import { http, websocket } from '$api';
 
 export function state<T>(initial: T): { value: T };
 export function state<T = undefined>(initial?: T): { value: T };
@@ -20,7 +20,7 @@ export const registry = (() => {
 	let value: Directory | undefined = $state();
 
 	async function init() {
-		let registry = await api.GetRegistry();
+		let registry = await http.GetRegistry();
 		if (registry === undefined) return;
 		value = registry;
 	}
@@ -39,7 +39,7 @@ export const generators = (() => {
 	let value: string[] = $state([]);
 
 	async function init() {
-		let generators = await api.GetGenerators();
+		let generators = await http.GetGenerators();
 		if (generators === undefined) return;
 		value = generators;
 		uploader.settings.generator = value[0];
@@ -66,9 +66,9 @@ export const uploader = (() => {
 		if (parentDirectoryId === undefined || image === undefined) return;
 
 		if (settings.annotations === 'provide') {
-			await api.SendUploadAssets(parentDirectoryId, image, annotations, settings);
+			await http.SendUploadAssets(parentDirectoryId, image, annotations, settings);
 		} else {
-			await api.SendUploadAssets(parentDirectoryId, image, undefined, settings);
+			await http.SendUploadAssets(parentDirectoryId, image, undefined, settings);
 		}
 
 		reset();
@@ -133,7 +133,7 @@ export const image = (() => {
 
 		info = _info;
 
-		const _metadata = await api.GetMetadata(info.id);
+		const _metadata = await http.GetMetadata(info.id);
 		if (_metadata === undefined || _metadata.length === 0) {
 			reset();
 			return;
@@ -154,7 +154,7 @@ export const image = (() => {
 		// TODO: Move annotation metadata into GetMetadata request
 		// TODO: and have the actual geometry info be requested by each
 		// TODO: layer individually inside of a web worker.
-		const _annotations = await api.GetAnnotations(info.id);
+		const _annotations = await http.GetAnnotations(info.id);
 		if (_annotations === undefined) {
 			reset();
 			return;
@@ -167,7 +167,7 @@ export const image = (() => {
 			return false;
 		}
 
-		return websocket.send(JSON.stringify(data));
+		return websocket.send(data);
 	}
 
 	async function insertTile(event: MessageEvent) {

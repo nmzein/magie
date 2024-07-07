@@ -24,7 +24,13 @@ import {
 	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
 
-import type { AnnotationLayer, MetadataLayer, Directory, UploaderSettings } from './types';
+import type {
+	AnnotationLayer,
+	MetadataLayer,
+	Directory,
+	UploaderSettings,
+	WebSocketRequest
+} from './types';
 
 const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
@@ -47,7 +53,7 @@ const WEBSOCKET_URL = WS_URL + PUBLIC_IMAGE_TILES_SUBDIR;
 const REGISTRY_URL = HTTP_URL + PUBLIC_REGISTRY_SUBDIR;
 const GENERATORS_URL = HTTP_URL + PUBLIC_GENERATORS_SUBDIR;
 
-export const api = (() => {
+export const http = (() => {
 	async function GetGenerators() {
 		return await GET<string[]>('Generators', GENERATORS_URL);
 	}
@@ -71,8 +77,8 @@ export const api = (() => {
 			{ parent_id, name }
 		);
 
-		// TODO: Have endpoint actually return new directory
-		// TODO: and just insert it into the registry.
+		// TODO: Have endpoint actually return new registry
+		// TODO: and just update the registry (thus removing one network call).
 		if (data !== undefined) {
 			registry.reload();
 		}
@@ -93,19 +99,17 @@ export const api = (() => {
 		}
 		formData.append('generator_name', settings.generator);
 
-		try {
-			const response = await fetch(IMAGE_UPLOAD_URL, {
-				method: 'POST',
-				body: formData
-			});
+		let data = await POST<FormData, void>(
+			'Send Upload Assets',
+			IMAGE_UPLOAD_URL,
+			formData,
+			'multipart'
+		);
 
-			if (response.ok) {
-				api.GetRegistry();
-			} else {
-				console.error('Response Error <Upload>:', response.status, response.statusText);
-			}
-		} catch (error) {
-			console.error('Fetch Error <Upload>:', error);
+		// TODO: Have endpoint actually return new registry
+		// TODO: and just update the registry (thus removing one network call).
+		if (data !== undefined) {
+			registry.reload();
 		}
 	}
 
@@ -128,15 +132,29 @@ export const api = (() => {
 		}
 	}
 
-	async function POST<Req, Resp>(name: string, url: string, data: Req) {
+	async function POST<Req, Resp>(
+		name: string,
+		url: string,
+		data: Req,
+		contentType: 'json' | 'multipart' = 'json'
+	) {
 		try {
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(data)
-			});
+			let response: Response;
+
+			switch (contentType) {
+				case 'json':
+					response = await fetch(url, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(data)
+					});
+					break;
+				case 'multipart':
+					response = await fetch(url, {
+						method: 'POST',
+						body: data as FormData
+					});
+			}
 
 			if (response.ok) {
 				try {
@@ -174,9 +192,9 @@ const _websocket = () => {
 		});
 	}
 
-	function send(data: string): boolean {
+	function send(data: WebSocketRequest): boolean {
 		if (socket?.readyState !== WebSocket.OPEN) return false;
-		socket.send(data);
+		socket.send(JSON.stringify(data));
 		return true;
 	}
 

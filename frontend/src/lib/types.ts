@@ -3,6 +3,8 @@ export type UploaderSettings = {
 	annotations: 'none' | 'provide' | 'generate';
 };
 
+export type WebSocketRequest = TileRequest;
+
 export type TileRequest = {
 	id: number;
 	level: number;
