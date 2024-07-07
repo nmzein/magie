@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	let {
 		class: className,
 		activeClass: activeClassName,
@@ -10,7 +12,7 @@
 		activeClass: string;
 		value: string;
 		currentTab: string | undefined;
-		children: any;
+		children: Snippet;
 	} = $props();
 </script>
 
