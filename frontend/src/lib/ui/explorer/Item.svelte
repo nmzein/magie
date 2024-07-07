@@ -4,7 +4,7 @@
 
 	import type { Directory, Image } from '$types';
 	import { directoryStack } from './state.svelte';
-	import { LoadImage } from '$api';
+	import { image } from '$states';
 
 	let { type, value, index }: { type: string; value: Directory | Image; index: number } = $props();
 	let selected = $state(false);
@@ -19,7 +19,7 @@
 		if (type === 'directory') {
 			directoryStack.value.push(index);
 		} else if (type === 'file') {
-			LoadImage(value);
+			image.load(value);
 		}
 	}
 </script>

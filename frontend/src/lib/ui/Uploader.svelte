@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
 	import { SendUploadAssets } from '$api';
 	import {
 		imageUpload,
@@ -107,4 +107,4 @@
 			background-color: rgba(255, 255, 255, 0.15);
 		}
 	}
-</style>
+</style> -->

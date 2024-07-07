@@ -9,7 +9,7 @@
 		display: boolean;
 	} = $props();
 
-	import { websocket, loadedImage, metadata } from '$states';
+	import { image } from '$states';
 	import type { ImageLayer } from '$types';
 
 	const options = {
@@ -18,7 +18,7 @@
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach((entry) => {
-			if (loadedImage.value === undefined || !entry.isIntersecting) return;
+			if (!image.initialised || image.info === undefined || !entry.isIntersecting) return;
 
 			let levelString = (entry.target as HTMLElement).dataset.level;
 			let xString = (entry.target as HTMLElement).dataset.x;
@@ -29,8 +29,8 @@
 			let x = parseInt(xString);
 			let y = parseInt(yString);
 
-			const ready = websocket.GetTile({
-				id: loadedImage.value.id,
+			const ready = image.getTile({
+				id: image.info.id,
 				level,
 				x,
 				y
@@ -55,11 +55,11 @@
 	});
 </script>
 
-{#if metadata.value != undefined}
+{#if image.metadata !== undefined}
 	<div
 		id="image-layer-{layerIndex}"
 		class="image-layer"
-		style="--no-of-columns: {metadata.value[layerIndex].cols}; z-index: {metadata.value.length -
+		style="--no-of-columns: {image.metadata[layerIndex].cols}; z-index: {image.metadata.length -
 			layerIndex};"
 	>
 		{#each layer as row, rowIndex (rowIndex)}

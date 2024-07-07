@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { annotations } from '$states';
+	import { image } from '$states';
 	import AnnotationLayerControls from '$ui/AnnotationLayerControls.svelte';
 </script>
 
@@ -8,8 +8,8 @@
 		<div class="inner-container" style="border-radius: 10px 10px 0 0;">
 			<span class="grey-text"> ANNOTATIONS </span>
 		</div>
-		{#if annotations.value}
-			{#each annotations.value as layer}
+		{#if image.initialised}
+			{#each image.annotations as layer}
 				<AnnotationLayerControls {layer} />
 			{/each}
 		{:else}

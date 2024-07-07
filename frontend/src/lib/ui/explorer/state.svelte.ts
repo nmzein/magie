@@ -1,4 +1,3 @@
-import { registry, state } from '$states';
-import type { Directory } from '$types';
+import { state } from '$states';
 
 export const directoryStack = state<number[]>([0]);

@@ -1,3 +1,8 @@
+export type UploaderSettings = {
+	generator: string;
+	annotations: 'none' | 'provide' | 'generate';
+};
+
 export type TileRequest = {
 	id: number;
 	level: number;

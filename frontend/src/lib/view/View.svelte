@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { annotations, image, metadata } from '$states';
+	import { image } from '$states';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
 	import { OrthographicCamera } from 'three';
@@ -19,18 +19,16 @@
 	const minLevel = 0;
 	let maxLevel: number | undefined = $state();
 	let currentLevel: number | undefined = $state();
-	let imageWidth: number | undefined = $state();
-	let imageHeight: number | undefined = $state();
 
 	let scaleBreakpoints: number[] | undefined = $derived.by(() => {
-		if (metadata.value === undefined || maxLevel === undefined) return;
+		if (image.metadata === undefined || maxLevel === undefined) return;
 
-		let lowestResolution = metadata.value[maxLevel].width * metadata.value[maxLevel].height;
+		let lowestResolution = image.metadata[maxLevel].width * image.metadata[maxLevel].height;
 		let scaleBreakpoints = [];
 		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
 		for (let i = minLevel; i < maxLevel; i++) {
 			scaleBreakpoints.push(
-				Math.sqrt((metadata.value[i].width * metadata.value[i].height) / lowestResolution)
+				Math.sqrt((image.metadata[i].width * image.metadata[i].height) / lowestResolution)
 			);
 		}
 
@@ -38,19 +36,19 @@
 	});
 
 	let camera: OrthographicCamera | undefined = $derived.by(() => {
-		if (imageWidth === undefined || imageHeight === undefined) return;
-
-		const camera = new OrthographicCamera(0, imageWidth, 0, -1 * imageHeight, 0.1, 10);
+		if (image.width === undefined || image.height === undefined) return;
+		const camera = new OrthographicCamera(0, image.width, 0, -1 * image.height, 0.1, 10);
 		camera.position.z = 1;
 
 		return camera;
 	});
 
+	// TODO: FIX
 	$effect(() => {
-		if (metadata.value === undefined) return;
+		if (image.levels === undefined || image.metadata === undefined) return;
 
-		for (let i = 0; i < metadata.value.length; i++) {
-			if (metadata.value[i].cols <= 4 || metadata.value[i].rows <= 4) {
+		for (let i = 0; i < image.levels; i++) {
+			if (image.metadata[i].cols <= 4 || image.metadata[i].rows <= 4) {
 				maxLevel = i - 1;
 				currentLevel = i - 1;
 				break;
@@ -59,9 +57,6 @@
 
 		// maxLevel = metadata.value.length - 1;
 		// currentLevel = metadata.value.length - 1;
-
-		imageWidth = metadata.value[0].width * 1.003;
-		imageHeight = metadata.value[0].height * 1.003;
 	});
 
 	$effect(() => {
@@ -113,8 +108,7 @@
 		event.preventDefault();
 
 		if (!isDragging) {
-			if (imageWidth === undefined || imageHeight === undefined) return;
-
+			if (image.width === undefined || image.height === undefined) return;
 			const currentLayer = document
 				.getElementById('image-layer-' + currentLevel)
 				?.getBoundingClientRect();
@@ -124,8 +118,8 @@
 
 			if (!currentLayerWidth || !currentLayerHeight) return;
 
-			x = Math.floor((event.clientX - offsetX) * (imageWidth / currentLayerWidth));
-			y = Math.floor((event.clientY - offsetY) * (imageHeight / currentLayerHeight));
+			x = Math.floor((event.clientX - offsetX) * (image.width / currentLayerWidth));
+			y = Math.floor((event.clientY - offsetY) * (image.height / currentLayerHeight));
 
 			return;
 		}
@@ -223,24 +217,22 @@
 			? ''
 			: 'transition: transform 0.2s;'}"
 	>
-		{#if metadata.value != undefined && image.state.value != undefined}
-			{#if annotations.value != undefined && imageWidth != undefined && imageHeight != undefined && camera != undefined}
-				<div id="annotation-layers">
-					{#each annotations.value as annotationLayer, layerIndex}
-						<AnnotationLayer {annotationLayer} {layerIndex} {imageWidth} {imageHeight} {camera} />
-					{/each}
-				</div>
+		<div id="annotation-layers">
+			{#if camera !== undefined}
+				{#each image.annotations as annotationLayer, layerIndex}
+					<AnnotationLayer {annotationLayer} {layerIndex} {camera} />
+				{/each}
 			{/if}
-			{#if currentLevel != undefined}
-				<div id="image-layers">
-					{#each image.state.value as layer, layerIndex}
-						<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
-					{/each}
-				</div>
+		</div>
+		<div id="image-layers">
+			{#if currentLevel !== undefined}
+				{#each image.tiles as layer, layerIndex}
+					<ImageLayer {layer} {layerIndex} display={layerIndex === currentLevel} />
+				{/each}
 			{/if}
-		{/if}
+		</div>
 	</div>
-	{#if metadata.value != undefined}
+	{#if image.initialised}
 		<div id="coordinates-panel" class="panel">
 			<span>x:</span>
 			{x}, <span>y:</span>

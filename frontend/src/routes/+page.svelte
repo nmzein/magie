@@ -2,13 +2,13 @@
 	import '../global.scss';
 	import View from '$view/View.svelte';
 	import ControlPanel from '$ui/ControlPanel.svelte';
-	import { GetGenerators, GetRegistry } from '$api';
-	import { ConnectWebSocket } from '$states';
+	import { generators, registry } from '$states';
+	import { ConnectWebSocket } from '$api';
 
 	$effect(() => {
 		ConnectWebSocket();
-		GetRegistry();
-		GetGenerators();
+		generators.init();
+		registry.init();
 	});
 </script>
 

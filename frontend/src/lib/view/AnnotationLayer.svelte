@@ -2,17 +2,14 @@
 	let {
 		annotationLayer,
 		layerIndex,
-		imageWidth,
-		imageHeight,
 		camera
 	}: {
 		annotationLayer: AnnotationLayer;
 		layerIndex: number;
-		imageWidth: number;
-		imageHeight: number;
 		camera: Camera;
 	} = $props();
 
+	import { image } from '$states';
 	import type { AnnotationLayer } from '$types';
 	import { untrack } from 'svelte';
 	import {
@@ -23,12 +20,15 @@
 		WebGLRenderer
 	} from 'three';
 
+	const CANVAS_HEIGHT = 8000;
+	let CANVAS_WIDTH = $derived.by(() => {
+		if (image.width === undefined || image.height === undefined) return;
+		return CANVAS_HEIGHT * (image.width / image.height);
+	});
+
 	import type { Camera, BufferGeometry } from 'three';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
-
-	const CANVAS_HEIGHT = 8000;
-	const CANVAS_WIDTH = CANVAS_HEIGHT * (imageWidth / imageHeight);
 
 	const scene = new Scene();
 	const loader = new BufferGeometryLoader();
@@ -60,6 +60,7 @@
 
 	function render() {
 		if (!geometry) return;
+
 		let start = performance.now();
 		// renderer.clear();
 		// Create a mesh with the geometries and materials.
@@ -70,7 +71,6 @@
 		renderer.render(scene, camera);
 
 		console.log('Rendering Layer', layerIndex, 'took', performance.now() - start, 'ms');
-
 		console.log('Scene Polycount: ', renderer.info.render.triangles);
 		console.log('Active Drawcalls: ', renderer.info.render.calls);
 		console.log('Textures in Memory:', renderer.info.memory.textures);

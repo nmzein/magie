@@ -15,9 +15,9 @@ const config = {
 		alias: {
 			$ui: './src/lib/ui',
 			$view: './src/lib/view',
-			$states: './src/lib/states.svelte',
-			$types: './src/lib/types.ts',
-			$api: './src/lib/api.ts'
+			$api: './src/lib/api.svelte.ts',
+			$states: './src/lib/states.svelte.ts',
+			$types: './src/lib/types.ts'
 		}
 	}
 };
