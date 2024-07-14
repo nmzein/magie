@@ -24,7 +24,7 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
         r#"
             UPDATE directories
             SET rgt = rgt + 2
-            WHERE rgt > ?1;
+            WHERE rgt >= ?1;
         "#,
         [parent_rgt],
     )?;
@@ -48,8 +48,8 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
         [
             name,
             &parent_id.to_string(),
+            &(parent_rgt).to_string(),
             &(parent_rgt + 1).to_string(),
-            &(parent_rgt + 2).to_string(),
         ],
     )?;
 
