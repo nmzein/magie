@@ -136,14 +136,37 @@ pub async fn upload(
         annotation_layers,
         Arc::clone(&conn),
     ) {
-        Ok(_) => log::<()>(
-            StatusCode::CREATED,
-            "Successfully saved uploaded file(s) metadata to database.",
-            None,
-        ),
+        Ok(_) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::CREATED,
+                "Successfully saved uploaded file(s) metadata to database.",
+                None,
+            );
+        }
+        Err(e) => {
+            return log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to save uploaded file(s) metadata to database.",
+                Some(e),
+            );
+        }
+    };
+
+    match crate::db::general::get_registry(Arc::clone(&conn)) {
+        Ok(registry) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::OK,
+                "Successfully retrieved registry from the state database.",
+                None,
+            );
+
+            Json(registry).into_response()
+        }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to save uploaded file(s) metadata to database.",
+            "Failed to retrieve registry from the state database.",
             Some(e),
         ),
     }

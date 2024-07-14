@@ -14,7 +14,7 @@ pub async fn create(
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!("Received request to create directory with name: {name} under parent with id {parent_id}."),
+        &format!("Received request to create directory with name `{name}` under parent with id `{parent_id}`."),
         None,
     );
 
@@ -25,7 +25,7 @@ pub async fn create(
             return log::<()>(
                 StatusCode::CONFLICT,
                 &format!(
-                    "Directory with name {name} already exists under parent with id {parent_id}."
+                    "Directory with name `{name}` already exists under parent with id `{parent_id}`."
                 ),
                 None,
             );
@@ -33,7 +33,7 @@ pub async fn create(
         Err(e) => {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to check if directory with name {name} exists under parent with id {parent_id}."),
+                &format!("Failed to check if directory with name `{name}` exists under parent with id `{parent_id}`."),
                 Some(e),
             );
         }
@@ -44,7 +44,7 @@ pub async fn create(
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "Failed to create directory with name {name} under parent with id {parent_id}."
+                "Failed to create directory with name `{name}` under parent with id `{parent_id}`."
             ),
             Some(e),
         );
@@ -55,15 +55,27 @@ pub async fn create(
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "Failed to insert directory with name {name} under parent with id {parent_id} into the database."
+                "Failed to insert directory with name `{name}` under parent with id `{parent_id}` into the database."
             ),
             Some(e),
         );
     });
 
-    return log::<()>(
-        StatusCode::CREATED,
-        &format!("Created directory with name {name} under parent with id {parent_id}."),
-        None,
-    );
+    match crate::db::general::get_registry(Arc::clone(&conn)) {
+        Ok(registry) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::OK,
+                "Successfully retrieved registry from the state database.",
+                None,
+            );
+
+            Json(registry).into_response()
+        }
+        Err(e) => log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to retrieve registry from the state database.",
+            Some(e),
+        ),
+    }
 }
