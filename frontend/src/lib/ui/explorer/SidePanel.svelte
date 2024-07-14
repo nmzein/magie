@@ -1,6 +1,3 @@
-<script lang="ts">
-</script>
-
 <div class="light-layer">
 	<span class="grey-text"> PINNED </span>
 </div>

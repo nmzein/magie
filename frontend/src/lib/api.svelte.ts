@@ -2,7 +2,7 @@
 /// state directly. Instead, they should return data that
 /// can be processed to update state in other parts of the app.
 
-import { image, registry } from '$states';
+import { image, explorer } from '$states';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
@@ -70,47 +70,43 @@ export const http = (() => {
 		return await POST<number, AnnotationLayer[]>('Annotations', IMAGE_ANNOTATIONS_URL, id);
 	}
 
-	async function CreateDirectory(parent_id: number | undefined, name: string) {
-		let data = await POST<{ parent_id: number | undefined; name: string }, void>(
+	async function CreateDirectory(parent_id: number, name: string) {
+		let registry = await POST<{ parent_id: number; name: string }, Directory>(
 			'Create Directory',
 			DIRECTORY_CREATE_URL,
 			{ parent_id, name }
 		);
 
-		// TODO: Have endpoint actually return new registry
-		// TODO: and just update the registry (thus removing one network call).
-		if (data !== undefined) {
-			registry.reload();
-		}
+		if (registry === undefined) return;
+
+		explorer.registry = registry;
 	}
 
 	async function SendUploadAssets(
-		parentDirectoryID: number,
-		imageFile: File,
-		annotationsFile: File | undefined,
+		parent_directory_id: number,
+		image_file: File,
+		annotations_file: File | undefined,
 		settings: UploaderSettings
 	) {
 		const formData = new FormData();
 
-		formData.append('parent_directory_id', parentDirectoryID.toString());
-		formData.append('image_file', imageFile);
-		if (annotationsFile) {
-			formData.append('annotations_file', annotationsFile);
+		formData.append('parent_directory_id', parent_directory_id.toString());
+		formData.append('image_file', image_file);
+		if (annotations_file !== undefined) {
+			formData.append('annotations_file', annotations_file);
 		}
 		formData.append('generator_name', settings.generator);
 
-		let data = await POST<FormData, void>(
+		let registry = await POST<FormData, Directory>(
 			'Send Upload Assets',
 			IMAGE_UPLOAD_URL,
 			formData,
 			'multipart'
 		);
 
-		// TODO: Have endpoint actually return new registry
-		// TODO: and just update the registry (thus removing one network call).
-		if (data !== undefined) {
-			registry.reload();
-		}
+		if (registry === undefined) return;
+
+		explorer.registry = registry;
 	}
 
 	async function GET<Resp>(name: string, url: string) {

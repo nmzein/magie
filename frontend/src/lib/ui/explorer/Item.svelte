@@ -1,23 +1,23 @@
 <script lang="ts">
+	import type { Directory, Image } from '$types';
+	import { image, explorer } from '$states';
+
 	import Folder from '~icons/material-symbols-light/folder';
 	import File from '~icons/ph/image-light';
 
-	import type { Directory, Image } from '$types';
-	import { directoryStack } from './state.svelte';
-	import { image } from '$states';
-
 	let { type, value, index }: { type: string; value: Directory | Image; index: number } = $props();
+
 	let selected = $state(false);
 
 	function handleKeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
-			handleAction();
+			handleOpen();
 		}
 	}
 
-	function handleAction() {
+	function handleOpen() {
 		if (type === 'directory') {
-			directoryStack.value.push(index);
+			explorer.navigateTo(index);
 		} else if (type === 'file') {
 			image.load(value);
 		}
@@ -27,7 +27,7 @@
 <button
 	class="flex-column"
 	onclick={() => (selected = !selected)}
-	ondblclick={() => handleAction()}
+	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
 	class:selected
 >

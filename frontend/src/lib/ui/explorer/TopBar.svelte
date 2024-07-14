@@ -1,6 +1,3 @@
-<!-- 
-    Top bar of the explorer, contains the navigation buttons, address bar, and search bar.
--->
 <script lang="ts">
 	import NavigationButtons from './NavigationButtons.svelte';
 	import AddressBar from './AddressBar.svelte';

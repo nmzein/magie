@@ -1,16 +1,18 @@
 <script lang="ts">
+	import { explorer } from '$states';
+
+	import * as Dropdown from '$ui/dropdown/index.ts';
+
 	import New from '~icons/ant-design/plus-circle-outlined';
 	import View from '~icons/material-symbols/view-day-outline';
 	import Sort from '~icons/fluent/arrow-sort-28-filled';
 	import DownArrow from '~icons/mdi/chevron-down';
 
+	import NewImage from '~icons/mdi/image-add-outline';
 	import NewDirectory from '~icons/mdi/folder-add';
-	import NewImage from '~icons/uis/upload-alt';
 
 	import ListView from '~icons/ic/round-format-list-bulleted';
 	import GridView from '~icons/material-symbols/grid-view-outline-rounded';
-
-	import * as Dropdown from '$ui/dropdown/index.ts';
 
 	const ICON_SIZE = '1.25em';
 
@@ -19,23 +21,43 @@
 	let showSort = $state(false);
 </script>
 
-<div class="flex-row light-layer">
+<div id="inner-bar" class="flex-row light-layer">
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showNew}>
-			<New /> New <DownArrow />
+			<New /> New
+			<div class="down-arrow">
+				<DownArrow />
+			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showNew}>
-			<button class="flex-row dropdown-content-button">
-				<NewDirectory width={ICON_SIZE} height={ICON_SIZE} /> New Directory
+			<button
+				style="position: relative;"
+				class="flex-row dropdown-content-button"
+				onclick={() => {
+					explorer.showUploader = true;
+					showNew = false;
+				}}
+			>
+				<NewImage width={ICON_SIZE} height={ICON_SIZE} /> Image
 			</button>
-			<button class="flex-row dropdown-content-button">
-				<NewImage width={ICON_SIZE} height={ICON_SIZE} /> New Image
+			<button
+				class="flex-row dropdown-content-button"
+				onclick={() => {
+					explorer.showDirectoryCreator = true;
+					showNew = false;
+				}}
+			>
+				<NewDirectory width={ICON_SIZE} height={ICON_SIZE} /> Directory
 			</button>
 		</Dropdown.Content>
 	</Dropdown.Root>
+
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showView}>
-			<View /> View <DownArrow />
+			<View /> View
+			<div class="down-arrow">
+				<DownArrow />
+			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showView}>
 			<button class="flex-row dropdown-content-button">
@@ -46,9 +68,13 @@
 			</button>
 		</Dropdown.Content>
 	</Dropdown.Root>
+
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showSort}>
-			<Sort /> Sort <DownArrow />
+			<Sort /> Sort
+			<div class="down-arrow">
+				<DownArrow />
+			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showSort}>
 			<button class="flex-row dropdown-content-button">Name</button>
@@ -58,14 +84,21 @@
 </div>
 
 <style lang="scss">
-	div {
-		padding: 0px 5px;
+	#inner-bar {
 		z-index: 2;
 		position: relative;
+		padding: 0 1px;
+	}
+
+	.down-arrow {
+		opacity: 40%;
+		display: flex;
 	}
 
 	:global(.dropdown-trigger-button) {
-		padding: 10px 5px 10px 10px;
+		margin: 4px;
+		padding: 7.5px 5px 7.5px 7.5px;
+		border-radius: 5px;
 		gap: 7px;
 		align-items: center;
 		z-index: 3;
@@ -78,6 +111,7 @@
 	:global(.dropdown-content) {
 		position: absolute;
 		margin-top: 4px;
+		margin-left: 4px;
 		z-index: 3;
 
 		border-radius: 5px;

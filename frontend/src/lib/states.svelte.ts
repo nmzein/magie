@@ -16,22 +16,116 @@ export function state<T>(initial?: T) {
 	return state;
 }
 
-export const registry = (() => {
-	let value: Directory | undefined = $state();
-
-	async function init() {
-		let registry = await http.GetRegistry();
+export const explorer = (() => {
+	// Holds information about the directory structure.
+	let registry: Directory | undefined = $state();
+	// Pinned directories (in side panel).
+	let pinned: number[][] = $state([]);
+	// Stack of directories to keep track of navigation.
+	let stack: number[][] = $state([[0]]);
+	// Pointer to current directory in stack (for back and forward).
+	let stackPointer = $state(0);
+	// Current directory in stack pointed to by stackPointer.
+	let current: number[] = $derived(stack[stackPointer]);
+	// Actual current directory information obtained from registry.
+	let currentDirectory = $derived.by(() => {
 		if (registry === undefined) return;
-		value = registry;
+
+		let path = [];
+		let currentDirectory = registry; // Initial root node.
+
+		for (const index of current) {
+			currentDirectory = currentDirectory.subdirectories[index];
+			path.push(currentDirectory.name);
+		}
+
+		return { path, directory: currentDirectory };
+	});
+
+	let showUploader: boolean = $state(false);
+	let showDirectoryCreator: boolean = $state(false);
+
+	function insertIntoStack(dir: number[]) {
+		// Slice stack to current pointer and insert new directory.
+		stack = stack.slice(0, stackPointer + 1);
+		stack.push(dir);
+		stackPointer += 1;
 	}
-	const reload = init;
+
+	// Defaults to going up to parent directory.
+	function up(index: number = current.length - 2) {
+		if (current.length <= 1) return;
+
+		let dir = current.slice(0, index + 1);
+
+		insertIntoStack(dir);
+	}
+
+	function backward() {
+		if (stackPointer <= 0) return;
+
+		stackPointer -= 1;
+	}
+
+	function forward() {
+		if (stackPointer >= stack.length - 1) return;
+
+		stackPointer += 1;
+	}
+
+	function navigateTo(index: number) {
+		// Important: concat() creates a copy of current.
+		let dir = current.concat(index);
+
+		insertIntoStack(dir);
+	}
+
+	function pin(dir: number[]) {
+		// Check not already pinned.
+		if (pinned.some((pinnedDir) => pinnedDir === dir)) return;
+		pinned.push(dir);
+	}
+
+	function unpin(dir: number[]) {
+		// Search for index of dir in pinned.
+		let index = pinned.findIndex((pinnedDir) => pinnedDir === dir);
+		if (index === -1) return;
+		pinned.splice(index, 1);
+	}
+
+	async function loadRegistry() {
+		let _registry = await http.GetRegistry();
+		if (_registry === undefined) return;
+		registry = _registry;
+	}
 
 	return {
-		get value() {
-			return value;
+		get registry() {
+			return registry;
 		},
-		init,
-		reload
+		set registry(value: Directory | undefined) {
+			registry = value;
+		},
+		get currentDirectory() {
+			return currentDirectory;
+		},
+		get showUploader() {
+			return showUploader;
+		},
+		set showUploader(value: boolean) {
+			showUploader = value;
+		},
+		get showDirectoryCreator() {
+			return showDirectoryCreator;
+		},
+		set showDirectoryCreator(value: boolean) {
+			showDirectoryCreator = value;
+		},
+		up,
+		backward,
+		forward,
+		navigateTo,
+		loadRegistry
 	};
 })();
 
@@ -81,9 +175,6 @@ export const uploader = (() => {
 	}
 
 	return {
-		get settings() {
-			return settings;
-		},
 		set parentDirectoryId(value: number | undefined) {
 			parentDirectoryId = value;
 		},
@@ -93,15 +184,7 @@ export const uploader = (() => {
 		set annotations(value: File | undefined) {
 			annotations = value;
 		},
-		set settings(value: UploaderSettings) {
-			settings = value;
-		},
-		set settings_generator(value: string) {
-			settings.generator = value;
-		},
-		set settings_annotations(value: 'none' | 'provide' | 'generate') {
-			settings.annotations = value;
-		},
+		settings,
 		upload,
 		reset
 	};
