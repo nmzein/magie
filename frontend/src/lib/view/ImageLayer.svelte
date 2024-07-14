@@ -20,10 +20,11 @@
 		entries.forEach((entry) => {
 			if (!image.initialised || image.info === undefined || !entry.isIntersecting) return;
 
-			let levelString = (entry.target as HTMLElement).dataset.level;
-			let xString = (entry.target as HTMLElement).dataset.x;
-			let yString = (entry.target as HTMLElement).dataset.y;
-			if (!levelString || !xString || !yString) return;
+			let target = entry.target as HTMLElement;
+			let levelString = target.dataset.level;
+			let xString = target.dataset.x;
+			let yString = target.dataset.y;
+			if (levelString === undefined || xString === undefined || yString === undefined) return;
 
 			let level = parseInt(levelString);
 			let x = parseInt(xString);
@@ -63,7 +64,7 @@
 			layerIndex};"
 	>
 		{#each layer as row, rowIndex (rowIndex)}
-			{#each row as tile, tileIndex (tileIndex)}
+			{#each row as tile, colIndex (colIndex)}
 				<!--
 					We want this to always be mounted, however, it should only
 					show to the IntersectionObserver (and the user) in two cases.
@@ -72,13 +73,13 @@
 					2) The tile has been loaded (i.e. tile.src != '').
 				-->
 				<img
-					src={tile.src || '/placeholder.png'}
-					style="display: {display || tile.src != '' ? 'block' : 'none'};"
+					src={tile.src || 'placeholder.png'}
+					style="display: {display || tile.src !== '' ? 'block' : 'none'};"
 					data-level={layerIndex}
-					data-x={tileIndex}
+					data-x={colIndex}
 					data-y={rowIndex}
-					alt="Tile ({tileIndex}, {rowIndex})"
-					onerror={() => console.error('Tile Load Error <' + rowIndex + ', ' + tileIndex + '>')}
+					alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
+					onerror={() => console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
 				/>
 
 				<!-- 
@@ -87,8 +88,8 @@
 					or else the loaded tiles would not be in the correct position.	
 					This tile should never be observable by the IntersectionObserver.	
 				 -->
-				{#if tile.src == '' && !display}
-					<img src="/placeholder.png" alt="" />
+				{#if tile.src === '' && !display}
+					<img src="placeholder.png" alt="" />
 				{/if}
 			{/each}
 		{/each}
