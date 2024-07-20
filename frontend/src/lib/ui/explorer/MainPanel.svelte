@@ -49,10 +49,10 @@
 <div id="main-panel" bind:this={mainPanel} onmousedown={handleMouseDown}>
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
 		{#each explorer.currentDirectory.directory.subdirectories as subdirectory, index}
-			<Item type="directory" value={subdirectory} {index} {selectionBox} />
+			<Item variant="directory" value={subdirectory} {index} {selectionBox} />
 		{/each}
 		{#each explorer.currentDirectory.directory.files as file, index}
-			<Item type="file" value={file} {index} {selectionBox} />
+			<Item variant="image" value={file} {index} {selectionBox} />
 		{/each}
 		{#if explorer.showDirectoryCreator}
 			<DirectoryCreator />

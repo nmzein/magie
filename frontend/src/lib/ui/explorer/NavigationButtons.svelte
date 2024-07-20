@@ -1,28 +1,12 @@
 <script lang="ts">
 	import { explorer } from '$states';
+	import Icon from '$icon';
 
-	import Back from '~icons/material-symbols-light/chevron-left-rounded';
-	import Forward from '~icons/material-symbols-light/chevron-right-rounded';
-	import Up from '~icons/material-symbols-light/keyboard-arrow-up-rounded';
-
-	const ICON_SIZE = '2.5em';
+	const ICON_SIZE = 2.5;
 </script>
 
 <div class="flex-row">
-	<button onclick={() => explorer.backward()}>
-		<Back width={ICON_SIZE} height={ICON_SIZE} />
-	</button>
-	<button onclick={() => explorer.forward()}>
-		<Forward width={ICON_SIZE} height={ICON_SIZE} />
-	</button>
-	<button onclick={() => explorer.up()}>
-		<Up width={ICON_SIZE} height={ICON_SIZE} />
-	</button>
+	<Icon variant="back" width={ICON_SIZE} height={ICON_SIZE} onclick={() => explorer.backward()} />
+	<Icon variant="forward" width={ICON_SIZE} height={ICON_SIZE} onclick={() => explorer.forward()} />
+	<Icon variant="up" width={ICON_SIZE} height={ICON_SIZE} onclick={() => explorer.up()} />
 </div>
-
-<style lang="scss">
-	button {
-		height: 2.5em;
-		width: 2.5em;
-	}
-</style>

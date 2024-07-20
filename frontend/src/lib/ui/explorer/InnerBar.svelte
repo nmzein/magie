@@ -1,20 +1,10 @@
 <script lang="ts">
 	import { explorer } from '$states';
+	import Icon from '$icon';
 
 	import * as Dropdown from '$ui/dropdown/index.ts';
 
-	import New from '~icons/ant-design/plus-circle-outlined';
-	import View from '~icons/material-symbols/view-day-outline';
-	import Sort from '~icons/fluent/arrow-sort-28-filled';
-	import DownArrow from '~icons/mdi/chevron-down';
-
-	import NewImage from '~icons/mdi/image-add-outline';
-	import NewDirectory from '~icons/mdi/folder-add';
-
-	import ListView from '~icons/ic/round-format-list-bulleted';
-	import GridView from '~icons/material-symbols/grid-view-outline-rounded';
-
-	const ICON_SIZE = '1.25em';
+	const ICON_SIZE = 1.25;
 
 	let showNew = $state(false);
 	let showView = $state(false);
@@ -24,9 +14,9 @@
 <div id="inner-bar" class="flex-row light-layer">
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showNew}>
-			<New /> New
+			<Icon variant="new" width={ICON_SIZE} height={ICON_SIZE} /> New
 			<div class="down-arrow">
-				<DownArrow />
+				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
 			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showNew}>
@@ -38,7 +28,7 @@
 					showNew = false;
 				}}
 			>
-				<NewImage width={ICON_SIZE} height={ICON_SIZE} /> Image
+				<Icon variant="new-image" width={ICON_SIZE} height={ICON_SIZE} /> Image
 			</button>
 			<button
 				class="flex-row dropdown-content-button"
@@ -47,33 +37,33 @@
 					showNew = false;
 				}}
 			>
-				<NewDirectory width={ICON_SIZE} height={ICON_SIZE} /> Directory
+				<Icon variant="directory" width={ICON_SIZE} height={ICON_SIZE} /> Directory
 			</button>
 		</Dropdown.Content>
 	</Dropdown.Root>
 
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showView}>
-			<View /> View
+			<Icon variant="view" width={ICON_SIZE} height={ICON_SIZE} /> View
 			<div class="down-arrow">
-				<DownArrow />
+				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
 			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showView}>
 			<button class="flex-row dropdown-content-button">
-				<ListView width={ICON_SIZE} height={ICON_SIZE} /> List
+				<Icon variant="list-view" width={ICON_SIZE} height={ICON_SIZE} /> List
 			</button>
 			<button class="flex-row dropdown-content-button">
-				<GridView width={ICON_SIZE} height={ICON_SIZE} /> Grid
+				<Icon variant="grid-view" width={ICON_SIZE} height={ICON_SIZE} /> Grid
 			</button>
 		</Dropdown.Content>
 	</Dropdown.Root>
 
 	<Dropdown.Root>
 		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showSort}>
-			<Sort /> Sort
+			<Icon variant="sort" width={ICON_SIZE} height={ICON_SIZE} /> Sort
 			<div class="down-arrow">
-				<DownArrow />
+				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
 			</div>
 		</Dropdown.Trigger>
 		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showSort}>

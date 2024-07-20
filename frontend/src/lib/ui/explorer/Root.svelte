@@ -6,8 +6,8 @@
 	import Uploader from './uploader/index.ts';
 </script>
 
+<Uploader />
 <div id="outer" class="flex-column panel">
-	<Uploader />
 	<TopBar />
 	<div id="inner" class="flex-row">
 		<SidePanel />

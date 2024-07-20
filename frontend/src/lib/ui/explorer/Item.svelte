@@ -2,16 +2,15 @@
 	import type { Directory, Image } from '$types';
 	import { image, explorer, type SelectionBox } from '$states';
 	import { defined } from '$helpers';
-	import Folder from '~icons/material-symbols-light/folder';
-	import File from '~icons/ph/image-light';
+	import Icon from '$icon';
 
 	let {
-		type,
+		variant,
 		value,
 		index,
 		selectionBox
 	}: {
-		type: string;
+		variant: string;
 		value: Directory | Image;
 		index: number;
 		selectionBox: SelectionBox;
@@ -52,9 +51,9 @@
 	}
 
 	function handleOpen() {
-		if (type === 'directory') {
+		if (variant === 'directory') {
 			explorer.navigateTo(index);
-		} else if (type === 'file') {
+		} else if (variant === 'file') {
 			image.load(value);
 		}
 	}
@@ -70,11 +69,7 @@
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
 >
-	{#if type === 'directory'}
-		<Folder width="5em" height="5em" />
-	{:else if type === 'file'}
-		<File width="5em" height="5em" />
-	{/if}
+	<Icon {variant} width={5} height={5} />
 	{value.name}
 </button>
 

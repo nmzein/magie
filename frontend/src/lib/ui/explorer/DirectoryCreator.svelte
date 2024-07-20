@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { http } from '$api';
 	import { explorer } from '$states';
-	import Folder from '~icons/material-symbols-light/folder';
+	import Icon from '$icon';
 
 	let button: HTMLButtonElement | undefined;
 	let name = $state('');
@@ -57,7 +57,7 @@
 </script>
 
 <button bind:this={button} class="flex-column" onkeypress={(e) => handleKeypress(e)}>
-	<Folder width="5em" height="5em" />
+	<Icon variant="directory" width={5} height={5} />
 	<!-- svelte-ignore a11y_autofocus -->
 	<input autofocus type="text" class="light-layer" bind:value={name} placeholder="New Directory" />
 </button>
