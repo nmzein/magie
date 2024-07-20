@@ -77,7 +77,8 @@
 						if (!image.initialised) return;
 						transformer.resetScale();
 					}}
-					style="cursor: pointer; text-align: center; margin: 5px 0; user-select: none;"
+					style="text-align: center; margin: 5px 0; user-select: none;
+						   {image.initialised ? 'cursor: pointer' : ''};"
 					class:control-panel-tab-trigger-disabled={!image.initialised}
 				>
 					{formatNumber(transformer.scale)}x
