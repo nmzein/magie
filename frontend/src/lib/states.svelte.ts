@@ -3,11 +3,16 @@ import type {
 	AnnotationLayer,
 	ImageLayer,
 	Image,
+	Route,
 	Directory,
+	DirectoryExt,
 	UploaderSettings,
 	TileRequest
 } from '$types';
 import { http, websocket } from '$api';
+import { DEFAULT_BOUND, type Bounds, DEFAULT_POINT, type Point } from '$types';
+import { appendPx, defined } from '$helpers';
+import { SvelteSet } from 'svelte/reactivity';
 
 export function state<T>(initial: T): { value: T };
 export function state<T = undefined>(initial?: T): { value: T };
@@ -16,17 +21,123 @@ export function state<T>(initial?: T) {
 	return state;
 }
 
+export class SelectionBox<T = any> {
+	private _dragging: boolean = $state(false);
+	private startPosition: Point = DEFAULT_POINT;
+	private selectionBox: HTMLElement;
+	private bounds: Bounds = $state(DEFAULT_BOUND);
+	private parentBounds: DOMRect | Bounds;
+	private intersected: SvelteSet<T> = new SvelteSet();
+
+	constructor(selectionBox: HTMLElement, parentBounds: DOMRect | Bounds) {
+		this.selectionBox = selectionBox;
+		this.parentBounds = parentBounds;
+	}
+
+	public get dragging(): boolean {
+		return this._dragging;
+	}
+
+	public start(cursor: Point) {
+		if (this._dragging) return;
+
+		this._dragging = true;
+
+		this.startPosition = {
+			x: cursor.x - this.parentBounds.left,
+			y: cursor.y - this.parentBounds.top
+		};
+
+		this.bounds = {
+			width: 0,
+			height: 0,
+			left: this.startPosition.x,
+			top: this.startPosition.y
+		};
+
+		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+	}
+
+	public update(cursor: Point) {
+		if (!this._dragging) return;
+
+		// Clamp current mouse position between 0 and parent's width/height.
+		const currentX = Math.max(
+			0,
+			Math.min(cursor.x - this.parentBounds.left, this.parentBounds.width)
+		);
+		const currentY = Math.max(
+			0,
+			Math.min(cursor.y - this.parentBounds.top, this.parentBounds.height)
+		);
+
+		const width = currentX - this.startPosition.x;
+		const height = currentY - this.startPosition.y;
+
+		this.bounds = {
+			width: Math.abs(width),
+			height: Math.abs(height),
+			left: width < 0 ? currentX : this.startPosition.x,
+			top: height < 0 ? currentY : this.startPosition.y
+		};
+
+		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+	}
+
+	public stop(): T[] {
+		if (!this._dragging) return [];
+
+		let intersected = Array.from(this.intersected);
+
+		this.startPosition = DEFAULT_POINT;
+		this.bounds = DEFAULT_BOUND;
+		this.intersected.clear();
+
+		this._dragging = false;
+
+		return intersected;
+	}
+
+	public intersecting(target: DOMRect | Bounds, item: T | undefined = undefined): boolean {
+		if (!this._dragging) return false;
+
+		let targetLeft = target.left - this.parentBounds.left;
+		let targetTop = target.top - this.parentBounds.top;
+
+		let isIntersecting = !(
+			this.bounds.left + this.bounds.width < targetLeft ||
+			targetLeft + target.width < this.bounds.left ||
+			this.bounds.top + this.bounds.height < targetTop ||
+			targetTop + target.height < this.bounds.top
+		);
+
+		if (defined(item)) {
+			let isTracked = this.intersected.has(item);
+
+			if (isIntersecting && !isTracked) {
+				this.intersected.add(item);
+			} else if (!isIntersecting && isTracked) {
+				this.intersected.delete(item);
+			}
+		}
+
+		return isIntersecting;
+	}
+}
+
 export const explorer = (() => {
 	// Holds information about the directory structure.
 	let registry: Directory | undefined = $state();
+	// Selected directories (in main panel).
+	let selected: (Directory | Image)[] = $state([]);
 	// Pinned directories (in side panel).
-	let pinned: number[][] = $state([]);
+	let pinned: DirectoryExt[] = $state([]);
 	// Stack of directories to keep track of navigation.
-	let stack: number[][] = $state([[0]]);
+	let stack: Route[] = $state([[0]]);
 	// Pointer to current directory in stack (for back and forward).
 	let stackPointer = $state(0);
 	// Current directory in stack pointed to by stackPointer.
-	let current: number[] = $derived(stack[stackPointer]);
+	let currentRoute: Route = $derived(stack[stackPointer]);
 	// Actual current directory information obtained from registry.
 	let currentDirectory = $derived.by(() => {
 		if (registry === undefined) return;
@@ -34,7 +145,7 @@ export const explorer = (() => {
 		let path = [];
 		let currentDirectory = registry; // Initial root node.
 
-		for (const index of current) {
+		for (const index of currentRoute) {
 			currentDirectory = currentDirectory.subdirectories[index];
 			path.push(currentDirectory.name);
 		}
@@ -53,40 +164,76 @@ export const explorer = (() => {
 	}
 
 	// Defaults to going up to parent directory.
-	function up(index: number = current.length - 2) {
-		if (current.length <= 1) return;
+	function up(index: number = currentRoute.length - 2) {
+		if (currentRoute.length <= 1) return;
 
-		let dir = current.slice(0, index + 1);
+		deselectAll();
 
+		let dir = currentRoute.slice(0, index + 1);
+
+		let current = currentDirectory?.directory;
 		insertIntoStack(dir);
+
+		if (current === undefined) return;
+		select(current);
 	}
 
 	function backward() {
 		if (stackPointer <= 0) return;
 
+		deselectAll();
+
+		let current = currentDirectory?.directory;
 		stackPointer -= 1;
+
+		if (current === undefined) return;
+		select(current);
 	}
 
 	function forward() {
 		if (stackPointer >= stack.length - 1) return;
 
+		deselectAll();
+
+		let current = currentDirectory?.directory;
 		stackPointer += 1;
+
+		if (current === undefined) return;
+		select(current);
 	}
 
 	function navigateTo(index: number) {
+		deselectAll();
+
 		// Important: concat() creates a copy of current.
-		let dir = current.concat(index);
+		let dir = currentRoute.concat(index);
 
 		insertIntoStack(dir);
 	}
 
-	function pin(dir: number[]) {
+	function isSelected(item: Directory | Image): boolean {
+		return selected.includes(item);
+	}
+
+	function select(item: Directory | Image) {
+		selected.push(item);
+	}
+
+	function deselect(item: Directory | Image) {
+		selected = selected.filter((d) => d !== item);
+	}
+
+	function deselectAll() {
+		selected = [];
+	}
+
+	function pin(dir: DirectoryExt) {
 		// Check not already pinned.
 		if (pinned.some((pinnedDir) => pinnedDir === dir)) return;
 		pinned.push(dir);
 	}
 
-	function unpin(dir: number[]) {
+	function unpin(dir: DirectoryExt) {
 		// Search for index of dir in pinned.
 		let index = pinned.findIndex((pinnedDir) => pinnedDir === dir);
 		if (index === -1) return;
@@ -105,6 +252,9 @@ export const explorer = (() => {
 		},
 		set registry(value: Directory | undefined) {
 			registry = value;
+		},
+		set selected(value: (Directory | Image)[]) {
+			selected = value;
 		},
 		get currentDirectory() {
 			return currentDirectory;
@@ -125,6 +275,12 @@ export const explorer = (() => {
 		backward,
 		forward,
 		navigateTo,
+		isSelected,
+		select,
+		deselect,
+		deselectAll,
+		pin,
+		unpin,
 		loadRegistry
 	};
 })();
@@ -151,6 +307,7 @@ export const uploader = (() => {
 	let parentDirectoryId: number | undefined = $state();
 	let image: File | undefined = $state();
 	let annotations: File | undefined = $state();
+	// TODO: Rename to options
 	let settings: UploaderSettings = {
 		generator: '',
 		annotations: 'none'

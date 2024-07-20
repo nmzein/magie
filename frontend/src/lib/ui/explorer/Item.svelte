@@ -1,13 +1,49 @@
 <script lang="ts">
 	import type { Directory, Image } from '$types';
-	import { image, explorer } from '$states';
-
+	import { image, explorer, type SelectionBox } from '$states';
+	import { defined } from '$helpers';
 	import Folder from '~icons/material-symbols-light/folder';
 	import File from '~icons/ph/image-light';
 
-	let { type, value, index }: { type: string; value: Directory | Image; index: number } = $props();
+	let {
+		type,
+		value,
+		index,
+		selectionBox
+	}: {
+		type: string;
+		value: Directory | Image;
+		index: number;
+		selectionBox: SelectionBox;
+	} = $props();
 
-	let selected = $state(false);
+	let item: HTMLButtonElement | undefined = $state();
+	let itemBounds = $derived(item?.getBoundingClientRect());
+	let intersected = $derived(defined(itemBounds) && selectionBox.intersecting(itemBounds, value));
+
+	function handleMouseDown(event: MouseEvent) {
+		// Stop the mousedown event from
+		// propagating to main panel which would
+		// trigger a deselectAll()
+		event.stopPropagation();
+
+		if (event.ctrlKey) {
+			// If ctrl key is pressed, the user wants
+			// to select more than one item.
+			// Toggle selection based on current value.
+			if (explorer.isSelected(value)) {
+				explorer.deselect(value);
+			} else {
+				explorer.select(value);
+			}
+		} else {
+			// Else the user only wants to select this item
+			// we deselect all other items and then only select
+			// the one we want.
+			explorer.deselectAll();
+			explorer.select(value);
+		}
+	}
 
 	function handleKeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
@@ -24,12 +60,15 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <button
+	bind:this={item}
 	class="flex-column"
-	onclick={() => (selected = !selected)}
+	class:intersected
+	class:selected={explorer.isSelected(value)}
+	onmousedown={(e) => handleMouseDown(e)}
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
-	class:selected
 >
 	{#if type === 'directory'}
 		<Folder width="5em" height="5em" />
@@ -46,25 +85,26 @@
 		padding: 0 10px 10px 10px;
 		z-index: 0;
 
-		&:hover {
-			backdrop-filter: blur(15px);
+		&:hover,
+		&.intersected {
 			background-color: rgba(255, 255, 255, 0.1);
+			backdrop-filter: blur(15px);
 		}
 
 		&:active {
 			background-color: rgba(255, 255, 255, 0.2);
 		}
-	}
 
-	.selected {
-		background-color: rgba(51, 156, 255, 0.2) !important;
+		&.selected {
+			background-color: rgba(51, 156, 255, 0.2) !important;
 
-		&:hover {
-			background-color: rgba(51, 156, 255, 0.3) !important;
-		}
+			&:hover {
+				background-color: rgba(51, 156, 255, 0.3) !important;
+			}
 
-		&:active {
-			background-color: rgba(51, 156, 255, 0.4) !important;
+			&:active {
+				background-color: rgba(51, 156, 255, 0.4) !important;
+			}
 		}
 	}
 </style>

@@ -17,7 +17,8 @@ const config = {
 			$view: './src/lib/view',
 			$api: './src/lib/api.svelte.ts',
 			$states: './src/lib/states.svelte.ts',
-			$types: './src/lib/types.ts'
+			$types: './src/lib/types.ts',
+			$helpers: './src/lib/helpers.ts'
 		}
 	}
 };
