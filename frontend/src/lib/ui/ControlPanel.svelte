@@ -2,39 +2,11 @@
 	import { image, transformer } from '$states';
 	import * as Tabs from '$ui/tabs/index.ts';
 	import { Explorer } from './explorer';
-	import AnnotationControls from '$ui/AnnotationControls.svelte';
 	import Icon from '$icon';
+	import AnnotationControls from '$ui/AnnotationControls.svelte';
+	import { truncateNumber } from '$helpers';
 
 	const ICON_SIZE = 2.3;
-
-	function formatNumber(num: number, digits: number = 2) {
-		// Convert the number to a string with 2 decimal places
-		let number = num.toString();
-
-		if (number.includes('.')) {
-			let [integer, decimal] = number.split('.');
-
-			if (integer.length >= digits) {
-				// For when scale == 101.2
-				return integer;
-			} else if (integer.length + decimal.length >= digits) {
-				// Most cases.
-				return integer + '.' + decimal.slice(0, digits - integer.length);
-			} else {
-				// For when scale is number like 0.1, 6.0, etc.
-				return integer + '.' + decimal + '0'.repeat(digits - integer.length - decimal.length);
-			}
-		} else {
-			let integer = number;
-
-			if (integer.length >= digits) {
-				return integer;
-			} else {
-				// For when scale is integer like 1.
-				return integer + '.' + '0'.repeat(digits - integer.length);
-			}
-		}
-	}
 
 	let classes = {
 		list: 'panel control-panel-tab-list',
@@ -66,7 +38,7 @@
 						   {image.initialised ? 'cursor: pointer' : ''};"
 					class:control-panel-tab-trigger-disabled={!image.initialised}
 				>
-					{formatNumber(transformer.scale)}x
+					{truncateNumber(transformer.scale)}x
 				</span>
 				<Tabs.Trigger
 					value=""
