@@ -30,6 +30,19 @@
 	import GridView from '~icons/material-symbols/grid-view-outline-rounded';
 
 	import Close from '~icons/material-symbols/close';
+
+	import ZoomIn from '~icons/mdi/plus';
+	import ZoomOut from '~icons/mdi/minus';
+
+	import Cursor from '~icons/material-symbols/point-scan-rounded';
+	import Freehand from '~icons/material-symbols-light/draw';
+	import Square from '~icons/material-symbols-light/square-outline';
+
+	import Explorer from '~icons/material-symbols-light/folder-rounded';
+	import Control from '~icons/codicon/settings';
+	import Info from '~icons/material-symbols-light/info-rounded';
+
+	import Settings from '~icons/material-symbols-light/settings-outline-rounded';
 </script>
 
 {#if defined(onclick)}
@@ -69,5 +82,23 @@
 		<GridView {width} {height} />
 	{:else if variant === 'close'}
 		<Close {width} {height} />
+	{:else if variant === 'zoom-in'}
+		<ZoomIn {width} {height} />
+	{:else if variant === 'zoom-out'}
+		<ZoomOut {width} {height} />
+	{:else if variant === 'cursor'}
+		<Cursor {width} {height} />
+	{:else if variant === 'freehand'}
+		<Freehand {width} {height} />
+	{:else if variant === 'square'}
+		<Square {width} {height} />
+	{:else if variant === 'explorer'}
+		<Explorer {width} {height} />
+	{:else if variant === 'control'}
+		<Control {width} {height} />
+	{:else if variant === 'info'}
+		<Info {width} {height} />
+	{:else if variant === 'settings'}
+		<Settings {width} {height} />
 	{/if}
 {/snippet}

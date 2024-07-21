@@ -1,24 +1,11 @@
 <script lang="ts">
-	import ZoomIn from '~icons/mdi/plus';
-	import ZoomOut from '~icons/mdi/minus';
-
-	import Cursor from '~icons/material-symbols/point-scan-rounded';
-	import Freehand from '~icons/material-symbols-light/draw';
-	import Square from '~icons/material-symbols-light/square-outline';
-
-	import Folder from '~icons/material-symbols-light/folder-rounded';
-	import Control from '~icons/codicon/settings';
-	import Info from '~icons/material-symbols-light/info-rounded';
-
-	import Settings from '~icons/material-symbols-light/settings-outline-rounded';
-
+	import { image, transformer } from '$states';
 	import * as Tabs from '$ui/tabs/index.ts';
-
 	import { Explorer } from './explorer';
 	import AnnotationControls from '$ui/AnnotationControls.svelte';
-	import { image, transformer } from '$states';
+	import Icon from '$icon';
 
-	const ICON_SIZE = '2.3em';
+	const ICON_SIZE = 2.3;
 
 	function formatNumber(num: number, digits: number = 2) {
 		// Convert the number to a string with 2 decimal places
@@ -69,7 +56,7 @@
 					sideEffect={() => transformer.zoom(-100)}
 					disabled={!image.initialised || transformer.atMaxScale()}
 				>
-					<ZoomIn width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="zoom-in" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -86,7 +73,7 @@
 					sideEffect={() => transformer.zoom(100)}
 					disabled={!image.initialised || transformer.atMinScale()}
 				>
-					<ZoomOut width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="zoom-out" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
@@ -94,13 +81,13 @@
 		<Tabs.Root mode="<=1" initialTab="" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="explorer" sideEffect={undefined} disabled={false}>
-					<Folder width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="explorer" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="control" sideEffect={undefined} disabled={!image.initialised}>
-					<Control width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="control" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="info" sideEffect={undefined} disabled={!image.initialised}>
-					<Info width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="info" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
 			<Tabs.Content value="explorer" disabled={false}>
@@ -114,20 +101,20 @@
 		<Tabs.Root mode="1" initialTab="move" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="move" sideEffect={undefined} disabled={false}>
-					<Cursor width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="cursor" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="freehand-draw" sideEffect={undefined} disabled={true}>
-					<Freehand width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="freehand" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="square" sideEffect={undefined} disabled={true}>
-					<Square width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon variant="square" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
 
 		<div class="group panel anchor-bottom">
 			<button>
-				<Settings width={ICON_SIZE} height={ICON_SIZE} />
+				<Icon variant="settings" width={ICON_SIZE} height={ICON_SIZE} />
 			</button>
 		</div>
 	</div>
@@ -166,21 +153,10 @@
 		margin-top: auto;
 	}
 
-	button {
-		border-radius: 8px;
-		height: 3em;
-
-		padding: 5px;
-
-		&:hover {
-			backdrop-filter: blur(15px);
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
+	button,
 	:global(.control-panel-tab-trigger) {
 		border-radius: 8px;
-		height: 3em;
+		height: 3rem;
 
 		padding: 5px;
 
