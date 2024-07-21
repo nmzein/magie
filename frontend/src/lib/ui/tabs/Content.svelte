@@ -1,22 +1,22 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { getTabState } from './context.svelte.ts';
+
 	let {
-		class: className,
 		value,
 		disabled = false,
-		currentTab,
 		children
 	}: {
-		class: string;
 		value: string;
 		disabled: boolean;
-		currentTab: string | undefined;
 		children: Snippet;
 	} = $props();
+
+	let state = getTabState();
 </script>
 
-{#if !disabled && value === currentTab}
-	<div class={className}>
+{#if !disabled && value === state.currentTab}
+	<div class={state.classes.content}>
 		{@render children()}
 	</div>
 {/if}

@@ -20,10 +20,6 @@
 
 	const ICON_SIZE = '2.3em';
 
-	let panelCurrentTab = $state(undefined);
-	let cursorCurrentTab = $state('move');
-	let fakeState = $state(undefined);
-
 	function formatNumber(num: number, digits: number = 2) {
 		// Convert the number to a string with 2 decimal places
 		let number = num.toString();
@@ -52,31 +48,33 @@
 			}
 		}
 	}
+
+	let classes = {
+		list: 'panel control-panel-tab-list',
+		trigger: {
+			regular: 'control-panel-tab-trigger',
+			active: 'control-panel-tab-trigger-active',
+			disabled: 'control-panel-tab-trigger-disabled'
+		},
+		content: 'control-panel-tab-content'
+	};
 </script>
 
 <nav>
 	<div class="groups">
-		<Tabs.Root>
-			<Tabs.List class="panel control-panel-tab-list">
+		<Tabs.Root mode="0" initialTab="" {classes}>
+			<Tabs.List>
 				<Tabs.Trigger
-					mode="0"
 					value=""
 					sideEffect={() => transformer.zoom(-100)}
-					bind:currentTab={fakeState}
 					disabled={!image.initialised || transformer.atMaxScale()}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
 				>
 					<ZoomIn width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<span
-					onclick={() => {
-						if (!image.initialised) return;
-						transformer.resetScale();
-					}}
+					onclick={() => transformer.resetScale()}
 					style="text-align: center; margin: 5px 0; user-select: none;
 						   {image.initialised ? 'cursor: pointer' : ''};"
 					class:control-panel-tab-trigger-disabled={!image.initialised}
@@ -84,113 +82,44 @@
 					{formatNumber(transformer.scale)}x
 				</span>
 				<Tabs.Trigger
-					mode="0"
 					value=""
 					sideEffect={() => transformer.zoom(100)}
-					bind:currentTab={fakeState}
 					disabled={!image.initialised || transformer.atMinScale()}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
 				>
 					<ZoomOut width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
 
-		<Tabs.Root>
-			<Tabs.List class="panel control-panel-tab-list">
-				<Tabs.Trigger
-					mode="<=1"
-					value="explorer"
-					sideEffect={undefined}
-					bind:currentTab={panelCurrentTab}
-					disabled={false}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+		<Tabs.Root mode="<=1" initialTab="" {classes}>
+			<Tabs.List>
+				<Tabs.Trigger value="explorer" sideEffect={undefined} disabled={false}>
 					<Folder width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger
-					mode="<=1"
-					value="control"
-					sideEffect={undefined}
-					bind:currentTab={panelCurrentTab}
-					disabled={!image.initialised}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+				<Tabs.Trigger value="control" sideEffect={undefined} disabled={!image.initialised}>
 					<Control width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger
-					mode="<=1"
-					value="info"
-					sideEffect={undefined}
-					bind:currentTab={panelCurrentTab}
-					disabled={!image.initialised}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+				<Tabs.Trigger value="info" sideEffect={undefined} disabled={!image.initialised}>
 					<Info width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content
-				value="explorer"
-				currentTab={panelCurrentTab}
-				disabled={false}
-				class="control-panel-tab-content"
-			>
+			<Tabs.Content value="explorer" disabled={false}>
 				<Explorer />
 			</Tabs.Content>
-			<Tabs.Content
-				value="control"
-				currentTab={panelCurrentTab}
-				disabled={!image.initialised}
-				class="control-panel-tab-content"
-			>
+			<Tabs.Content value="control" disabled={!image.initialised}>
 				<AnnotationControls />
 			</Tabs.Content>
 		</Tabs.Root>
 
-		<Tabs.Root>
-			<Tabs.List class="panel control-panel-tab-list">
-				<Tabs.Trigger
-					mode="=1"
-					value="move"
-					sideEffect={undefined}
-					bind:currentTab={cursorCurrentTab}
-					disabled={false}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+		<Tabs.Root mode="1" initialTab="move" {classes}>
+			<Tabs.List>
+				<Tabs.Trigger value="move" sideEffect={undefined} disabled={false}>
 					<Cursor width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger
-					mode="=1"
-					value="freehand-draw"
-					sideEffect={undefined}
-					bind:currentTab={cursorCurrentTab}
-					disabled={true}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+				<Tabs.Trigger value="freehand-draw" sideEffect={undefined} disabled={true}>
 					<Freehand width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger
-					mode="=1"
-					value="square"
-					sideEffect={undefined}
-					bind:currentTab={cursorCurrentTab}
-					disabled={true}
-					class="control-panel-tab-trigger"
-					activeClass="control-panel-tab-trigger-active"
-					disabledClass="control-panel-tab-trigger-disabled"
-				>
+				<Tabs.Trigger value="square" sideEffect={undefined} disabled={true}>
 					<Square width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>

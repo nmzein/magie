@@ -1,45 +1,38 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { getTabState } from './context.svelte.ts';
 
 	let {
-		class: className,
-		activeClass: activeClassName,
-		disabledClass: disabledClassName,
-		mode = '=1',
-		value,
+		value = '',
 		sideEffect = undefined,
 		disabled = false,
-		currentTab = $bindable(),
 		children
 	}: {
-		class: string;
-		activeClass: string;
-		disabledClass: string;
-		mode: '0' | '=1' | '<=1';
 		value: string;
 		sideEffect: (() => void) | undefined;
 		disabled: boolean;
-		currentTab: string | undefined;
 		children: Snippet;
 	} = $props();
+
+	let state = getTabState();
 </script>
 
 <button
 	class="
-		{className}
-		{!disabled && currentTab === value ? activeClassName : ''}
-		{disabled ? disabledClassName : ''}
+		{state.classes.trigger.regular}
+		{!disabled && state.currentTab === value ? state.classes.trigger.active : ''}
+		{disabled ? state.classes.trigger.disabled : ''}
 	"
 	onclick={() => {
 		if (disabled) return;
 		if (sideEffect !== undefined) sideEffect();
 
-		if (mode !== '0' && currentTab !== value) {
+		if (state.mode !== '0' && state.currentTab !== value) {
 			// Only allow toggle if mode is '=1' or '<=1'.
-			currentTab = value;
-		} else if (mode === '<=1') {
+			state.currentTab = value;
+		} else if (state.mode === '<=1') {
 			// Only allow untoggle if mode is '<=1'.
-			currentTab = undefined;
+			state.currentTab = undefined;
 		}
 	}}
 >

@@ -1,9 +1,12 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { getTabState } from './context.svelte.ts';
 
-	let { class: className, children }: { class: string; children: Snippet } = $props();
+	let { children }: { children: Snippet } = $props();
+
+	let state = getTabState();
 </script>
 
-<div class={className}>
+<div class={state.classes.list}>
 	{@render children()}
 </div>
