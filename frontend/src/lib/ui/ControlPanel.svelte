@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { image, transformer } from '$states';
-	import * as Tabs from '$ui/tabs/index.ts';
+	import * as Tabs from '$components/tabs/index.ts';
 	import { Explorer } from './explorer';
 	import Icon from '$icon';
 	import AnnotationControls from '$ui/AnnotationControls.svelte';
 	import { truncateNumber } from '$helpers';
 
 	const ICON_SIZE = 2.3;
-
-	let classes = {
+	const classes = {
 		list: 'panel control-panel-tab-list',
 		trigger: {
 			regular: 'control-panel-tab-trigger',
@@ -21,10 +20,9 @@
 
 <nav>
 	<div class="groups">
-		<Tabs.Root mode="0" initialTab="" {classes}>
+		<Tabs.Root mode="0" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger
-					value=""
 					sideEffect={() => transformer.zoom(-100)}
 					disabled={!image.initialised || transformer.atMaxScale()}
 				>
@@ -41,7 +39,6 @@
 					{truncateNumber(transformer.scale)}x
 				</span>
 				<Tabs.Trigger
-					value=""
 					sideEffect={() => transformer.zoom(100)}
 					disabled={!image.initialised || transformer.atMinScale()}
 				>
@@ -50,19 +47,19 @@
 			</Tabs.List>
 		</Tabs.Root>
 
-		<Tabs.Root mode="<=1" initialTab="" {classes}>
+		<Tabs.Root mode="<=1" {classes}>
 			<Tabs.List>
-				<Tabs.Trigger value="explorer" sideEffect={undefined} disabled={false}>
+				<Tabs.Trigger value="explorer">
 					<Icon variant="explorer" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger value="control" sideEffect={undefined} disabled={!image.initialised}>
+				<Tabs.Trigger value="control" disabled={!image.initialised}>
 					<Icon variant="control" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
-				<Tabs.Trigger value="info" sideEffect={undefined} disabled={!image.initialised}>
+				<Tabs.Trigger value="info" disabled={!image.initialised}>
 					<Icon variant="info" width={ICON_SIZE} height={ICON_SIZE} />
 				</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content value="explorer" disabled={false}>
+			<Tabs.Content value="explorer">
 				<Explorer />
 			</Tabs.Content>
 			<Tabs.Content value="control" disabled={!image.initialised}>
@@ -127,7 +124,8 @@
 
 	button,
 	:global(.control-panel-tab-trigger) {
-		border-radius: 8px;
+		border-radius: 7px;
+		height: 3rem;
 		height: 3rem;
 
 		padding: 5px;
@@ -162,7 +160,7 @@
 		position: absolute;
 
 		right: 0;
-		margin-right: 57px;
+		margin-right: 65px;
 		width: auto;
 	}
 </style>

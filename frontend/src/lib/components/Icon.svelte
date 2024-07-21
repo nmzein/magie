@@ -47,13 +47,13 @@
 
 {#if defined(onclick)}
 	<button {onclick} style="width: {width}; height: {height};">
-		{@render icon()}
+		{@render Icon()}
 	</button>
 {:else}
-	{@render icon()}
+	{@render Icon()}
 {/if}
 
-{#snippet icon()}
+{#snippet Icon()}
 	{#if variant === 'directory'}
 		<Directory {width} {height} />
 	{:else if variant === 'image'}

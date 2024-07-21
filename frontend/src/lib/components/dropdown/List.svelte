@@ -1,13 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { getDropdownState } from './context.svelte';
 
-	let {
-		showContent = $bindable(),
-		class: className,
-		children
-	}: { showContent: boolean; class: string; children: Snippet } = $props();
+	let { children }: { children: Snippet } = $props();
 
 	let dropdown: HTMLDivElement | undefined = $state();
+	let dState = getDropdownState();
 
 	function addEventListener() {
 		$effect(() => {
@@ -22,15 +20,15 @@
 	}
 
 	function handleClickOutside(event: MouseEvent) {
-		if (showContent && dropdown && !dropdown.contains(event.target as Node)) {
-			showContent = false;
+		if (dropdown && !dropdown.contains(event.target as Node)) {
+			dState.close();
 		}
 	}
 </script>
 
-{#if showContent}
+{#if dState.show}
 	{addEventListener()}
-	<div class={className} bind:this={dropdown}>
+	<div class={dState.classes.list} bind:this={dropdown}>
 		{@render children()}
 	</div>
 {/if}

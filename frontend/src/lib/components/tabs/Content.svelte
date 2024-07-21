@@ -12,11 +12,11 @@
 		children: Snippet;
 	} = $props();
 
-	let state = getTabState();
+	let tState = getTabState();
 </script>
 
-{#if !disabled && value === state.currentTab}
-	<div class={state.classes.content}>
+{#if !disabled && value === tState.currentTab}
+	<div class={tState.classes.content}>
 		{@render children()}
 	</div>
 {/if}

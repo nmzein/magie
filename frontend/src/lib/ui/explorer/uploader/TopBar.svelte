@@ -27,8 +27,8 @@
 
 	button {
 		border-radius: 50%;
-		height: 2em;
-		width: 2em;
+		height: 2rem;
+		width: 2rem;
 		position: absolute;
 		right: 10px;
 	}

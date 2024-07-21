@@ -50,21 +50,29 @@
 	});
 
 	function handleMouseDown(event: MouseEvent) {
+		if (!image.initialised) return;
+
 		event.preventDefault();
 		handlePanStart(event);
 	}
 
 	function handleTouchStart(event: TouchEvent) {
+		if (!image.initialised) return;
+
 		handlePanStart(event.touches[0]);
 	}
 
 	function handlePanStart(event: MouseEvent | Touch) {
+		if (!image.initialised) return;
+
 		isDragging = true;
 		panStartX = event.clientX;
 		panStartY = event.clientY;
 	}
 
 	function handleMouseMove(event: MouseEvent) {
+		if (!image.initialised) return;
+
 		event.preventDefault();
 
 		// Logic for calculating the coordinates of the mouse pointer.
@@ -88,11 +96,15 @@
 	}
 
 	function handleTouchMove(event: TouchEvent) {
+		if (!image.initialised) return;
+
 		if (!isDragging) return;
 		handlePan(event.touches[0]);
 	}
 
 	function handlePan(event: MouseEvent | Touch) {
+		if (!image.initialised) return;
+
 		transformer.offsetX += event.clientX - panStartX;
 		transformer.offsetY += event.clientY - panStartY;
 
@@ -101,10 +113,14 @@
 	}
 
 	function handlePanEnd() {
+		if (!image.initialised) return;
+
 		isDragging = false;
 	}
 
 	function handleWheel(event: WheelEvent) {
+		if (!image.initialised) return;
+
 		transformer.zoom(event.deltaY, event.clientX, event.clientY);
 	}
 </script>

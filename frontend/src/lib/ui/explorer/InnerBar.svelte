@@ -2,74 +2,62 @@
 	import { explorer } from '$states';
 	import Icon from '$icon';
 
-	import * as Dropdown from '$ui/dropdown/index.ts';
+	import * as Dropdown from '$components/dropdown/index.ts';
 
-	const ICON_SIZE = 1.25;
-
-	let showNew = $state(false);
-	let showView = $state(false);
-	let showSort = $state(false);
+	const ICON_SIZE = 1.15;
+	const classes = {
+		trigger: 'flex-row dropdown-trigger-button',
+		list: 'flex-column dropdown-content',
+		item: 'flex-row dropdown-content-button'
+	};
 </script>
 
+{#snippet DownArrow()}
+	<div class="down-arrow">
+		<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
+	</div>
+{/snippet}
+
 <div id="inner-bar" class="flex-row light-layer">
-	<Dropdown.Root>
-		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showNew}>
+	<Dropdown.Root {classes}>
+		<Dropdown.Trigger>
 			<Icon variant="new" width={ICON_SIZE} height={ICON_SIZE} /> New
-			<div class="down-arrow">
-				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
-			</div>
+			{@render DownArrow()}
 		</Dropdown.Trigger>
-		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showNew}>
-			<button
-				style="position: relative;"
-				class="flex-row dropdown-content-button"
-				onclick={() => {
-					explorer.showUploader = true;
-					showNew = false;
-				}}
-			>
+		<Dropdown.List>
+			<Dropdown.Item onclick={() => (explorer.showUploader = true)}>
 				<Icon variant="new-image" width={ICON_SIZE} height={ICON_SIZE} /> Image
-			</button>
-			<button
-				class="flex-row dropdown-content-button"
-				onclick={() => {
-					explorer.showDirectoryCreator = true;
-					showNew = false;
-				}}
-			>
+			</Dropdown.Item>
+			<Dropdown.Item onclick={() => (explorer.showDirectoryCreator = true)}>
 				<Icon variant="directory" width={ICON_SIZE} height={ICON_SIZE} /> Directory
-			</button>
-		</Dropdown.Content>
+			</Dropdown.Item>
+		</Dropdown.List>
 	</Dropdown.Root>
 
-	<Dropdown.Root>
-		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showView}>
+	<Dropdown.Root {classes}>
+		<Dropdown.Trigger>
 			<Icon variant="view" width={ICON_SIZE} height={ICON_SIZE} /> View
-			<div class="down-arrow">
-				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
-			</div>
+			{@render DownArrow()}
 		</Dropdown.Trigger>
-		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showView}>
-			<button class="flex-row dropdown-content-button">
+		<Dropdown.List>
+			<Dropdown.Item onclick={() => {}}>
 				<Icon variant="list-view" width={ICON_SIZE} height={ICON_SIZE} /> List
-			</button>
-			<button class="flex-row dropdown-content-button">
+			</Dropdown.Item>
+			<Dropdown.Item onclick={() => {}}>
 				<Icon variant="grid-view" width={ICON_SIZE} height={ICON_SIZE} /> Grid
-			</button>
-		</Dropdown.Content>
+			</Dropdown.Item>
+		</Dropdown.List>
 	</Dropdown.Root>
 
-	<Dropdown.Root>
-		<Dropdown.Trigger class="flex-row dropdown-trigger-button" bind:showContent={showSort}>
+	<Dropdown.Root {classes}>
+		<Dropdown.Trigger>
 			<Icon variant="sort" width={ICON_SIZE} height={ICON_SIZE} /> Sort
-			<div class="down-arrow">
-				<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
-			</div>
+			{@render DownArrow()}
 		</Dropdown.Trigger>
-		<Dropdown.Content class="flex-column dropdown-content" bind:showContent={showSort}>
-			<button class="flex-row dropdown-content-button">Name</button>
-			<button class="flex-row dropdown-content-button">Date Created</button>
-		</Dropdown.Content>
+		<Dropdown.List>
+			<Dropdown.Item onclick={() => {}}>Name</Dropdown.Item>
+			<Dropdown.Item onclick={() => {}}>Date Created</Dropdown.Item>
+		</Dropdown.List>
 	</Dropdown.Root>
 </div>
 

@@ -3,9 +3,9 @@
 
 	import type { AnnotationLayer } from '$types';
 
-	import Switch from '$ui/Switch.svelte';
-	import Slider from '$ui/Slider.svelte';
-	import ColourPicker from '$ui/ColourPicker.svelte';
+	import Switch from '$components/Switch.svelte';
+	import Slider from '$components/Slider.svelte';
+	import ColourPicker from '$components/ColourPicker.svelte';
 </script>
 
 <div style="display: flex; flex-direction: column; gap: 5px; padding: 10px;">
