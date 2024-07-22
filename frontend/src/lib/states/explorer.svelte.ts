@@ -122,6 +122,8 @@ export class Explorer {
 		this.selected.forEach((item) => {
 			if (!defined(this.currentDirectory)) return;
 
+			if (this.pinned.some((i) => i.data.id === item.id)) return;
+
 			this.pin({
 				path: this.currentDirectory.path.concat(item.name),
 				route: this.currentRoute.concat(item.id),
