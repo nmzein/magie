@@ -7,12 +7,10 @@
 	let {
 		variant,
 		value,
-		index,
 		selectionBox
 	}: {
 		variant: string;
 		value: Directory | Image;
-		index: number;
 		selectionBox: SelectionBox;
 	} = $props();
 
@@ -52,7 +50,7 @@
 
 	function handleOpen() {
 		if (variant === 'directory') {
-			explorer.navigateTo(index);
+			explorer.navigateTo(value.id);
 		} else if (variant === 'file') {
 			image.load(value);
 		}

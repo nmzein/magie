@@ -1,6 +1,6 @@
 <script lang="ts">
 	import TopBar from './TopBar.svelte';
-	import SidePanel from './SidePanel.svelte';
+	import SidePanel from './sidepanel/SidePanel.svelte';
 	import MainPanel from './MainPanel.svelte';
 	import InnerBar from './InnerBar.svelte';
 	import Uploader from './uploader/index.ts';
@@ -29,7 +29,7 @@
 	}
 
 	#inner-inner {
-		flex: 5;
+		flex: 8;
 		position: relative;
 	}
 </style>

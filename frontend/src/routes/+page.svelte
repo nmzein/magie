@@ -8,7 +8,6 @@
 	$effect(() => {
 		ConnectWebSocket();
 		generators.init();
-		explorer.loadRegistry();
 	});
 </script>
 

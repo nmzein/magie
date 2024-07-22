@@ -42,9 +42,19 @@ export type Image = {
 	name: string;
 };
 
+export type Path = string[];
 export type Route = number[];
 
+export type ItemExt = DirectoryExt | ImageExt;
+
+export type ImageExt = {
+	path: Path;
+	route: Route;
+	data: Image;
+};
+
 export type DirectoryExt = {
+	path: Path;
 	route: Route;
 	data: Directory;
 };

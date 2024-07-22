@@ -29,6 +29,8 @@
 	import ListView from '~icons/ic/round-format-list-bulleted';
 	import GridView from '~icons/material-symbols/grid-view-outline-rounded';
 
+	import Trash from '~icons/material-symbols-light/delete-outline';
+
 	import Close from '~icons/material-symbols/close';
 
 	import ZoomIn from '~icons/mdi/plus';
@@ -80,6 +82,8 @@
 		<ListView {width} {height} />
 	{:else if variant === 'grid-view'}
 		<GridView {width} {height} />
+	{:else if variant === 'trash'}
+		<Trash {width} {height} />
 	{:else if variant === 'close'}
 		<Close {width} {height} />
 	{:else if variant === 'zoom-in'}

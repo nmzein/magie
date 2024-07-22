@@ -5,9 +5,10 @@ import type {
 	Image,
 	Route,
 	Directory,
-	DirectoryExt,
+	ItemExt,
 	UploaderSettings,
-	TileRequest
+	TileRequest,
+	DirectoryExt
 } from '$types';
 import { http, websocket } from '$api';
 import { DEFAULT_BOUND, type Bounds, DEFAULT_POINT, type Point } from '$types';
@@ -125,165 +126,168 @@ export class SelectionBox<T = any> {
 	}
 }
 
-export const explorer = (() => {
-	// Holds information about the directory structure.
-	let registry: Directory | undefined = $state();
+// Holds information about the directory structure.
+class Registry {
+	private registry: Directory | undefined = $state();
+
+	constructor() {
+		http.GetRegistry().then((registry) => {
+			if (registry === undefined) return;
+			// TODO: Actually store on server and make it so that it always has index 0.
+			registry.subdirectories.push({ id: -1, name: 'Trash Bin', subdirectories: [], files: [] });
+			this.registry = registry;
+		});
+	}
+
+	get reg() {
+		return this.registry;
+	}
+}
+
+class Explorer {
 	// Selected directories (in main panel).
-	let selected: (Directory | Image)[] = $state([]);
+	public selected: (Directory | Image)[] = $state([]);
 	// Pinned directories (in side panel).
-	let pinned: DirectoryExt[] = $state([]);
+	public pinned: ItemExt[] = $state([]);
 	// Stack of directories to keep track of navigation.
-	let stack: Route[] = $state([[0]]);
+	private stack: Route[] = $state([[1]]);
 	// Pointer to current directory in stack (for back and forward).
-	let stackPointer = $state(0);
-	// Current directory in stack pointed to by stackPointer.
-	let currentRoute: Route = $derived(stack[stackPointer]);
+	private stackPointer = $state(0);
+	// Route to current directory in stack pointed to by stackPointer.
+	private currentRoute = $derived.by(() => {
+		return this.stack[this.stackPointer];
+	});
 	// Actual current directory information obtained from registry.
-	let currentDirectory = $derived.by(() => {
-		if (registry === undefined) return;
+	public currentDirectory: DirectoryExt | undefined = $derived.by(() => {
+		if (!defined(registry.reg) || !defined(this.currentRoute)) return;
 
 		let path = [];
-		let currentDirectory = registry; // Initial root node.
+		let currentDirectory = registry.reg; // Initial root node.
 
-		for (const index of currentRoute) {
-			currentDirectory = currentDirectory.subdirectories[index];
+		for (const id of this.currentRoute) {
+			let potentialDir = currentDirectory.subdirectories.find((value) => value.id === id);
+			if (potentialDir === undefined) return;
+			currentDirectory = potentialDir;
 			path.push(currentDirectory.name);
 		}
 
-		return { path, directory: currentDirectory };
+		return { path, route: this.currentRoute, data: currentDirectory };
 	});
 
-	let showUploader: boolean = $state(false);
-	let showDirectoryCreator: boolean = $state(false);
+	public showUploader: boolean = $state(false);
+	public showDirectoryCreator: boolean = $state(false);
 
-	function insertIntoStack(dir: number[]) {
+	constructor() {
+		if (!defined(registry.reg)) return;
+
+		this.stack = [[registry.reg.subdirectories[0].id]];
+	}
+
+	public insertIntoStack(route: Route) {
 		// Slice stack to current pointer and insert new directory.
-		stack = stack.slice(0, stackPointer + 1);
-		stack.push(dir);
-		stackPointer += 1;
+		this.stack = this.stack?.slice(0, this.stackPointer + 1);
+		this.stack?.push(route);
+		this.stackPointer += 1;
 	}
 
 	// Defaults to going up to parent directory.
-	function up(index: number = currentRoute.length - 2) {
-		if (currentRoute.length <= 1) return;
+	public up(index: number = this.currentRoute.length - 2) {
+		if (this.currentRoute.length <= 1) return;
 
-		deselectAll();
+		this.deselectAll();
 
-		let dir = currentRoute.slice(0, index + 1);
+		let route = this.currentRoute.slice(0, index + 1);
 
-		let current = currentDirectory?.directory;
-		insertIntoStack(dir);
+		let current = this.currentDirectory?.data;
+		this.insertIntoStack(route);
 
-		if (current === undefined) return;
-		select(current);
+		if (!defined(current)) return;
+		this.select(current);
 	}
 
-	function backward() {
-		if (stackPointer <= 0) return;
+	public backward() {
+		if (this.stackPointer <= 0) return;
 
-		deselectAll();
+		this.deselectAll();
 
-		let current = currentDirectory?.directory;
-		stackPointer -= 1;
+		let current = this.currentDirectory?.data;
+		this.stackPointer -= 1;
 
-		if (current === undefined) return;
-		select(current);
+		if (!defined(current)) return;
+		this.select(current);
 	}
 
-	function forward() {
-		if (stackPointer >= stack.length - 1) return;
+	public forward() {
+		if (this.stackPointer >= this.stack.length - 1) return;
 
-		deselectAll();
+		this.deselectAll();
 
-		let current = currentDirectory?.directory;
-		stackPointer += 1;
+		let current = this.currentDirectory?.data;
+		this.stackPointer += 1;
 
-		if (current === undefined) return;
-		select(current);
+		if (!defined(current)) return;
+		this.select(current);
 	}
 
-	function navigateTo(index: number) {
-		deselectAll();
+	public routeTo(route: Route) {
+		this.deselectAll();
+
+		this.insertIntoStack(route);
+	}
+
+	public navigateTo(id: number) {
+		this.deselectAll();
 
 		// Important: concat() creates a copy of current.
-		let dir = currentRoute.concat(index);
+		let route = this.currentRoute.concat(id);
 
-		insertIntoStack(dir);
+		this.insertIntoStack(route);
 	}
 
-	function isSelected(item: Directory | Image): boolean {
-		return selected.includes(item);
+	public isSelected(item: Directory | Image): boolean {
+		return this.selected.includes(item);
 	}
 
-	function select(item: Directory | Image) {
-		selected.push(item);
+	public select(item: Directory | Image) {
+		this.selected.push(item);
 	}
 
-	function deselect(item: Directory | Image) {
-		selected = selected.filter((d) => d !== item);
+	public deselect(item: Directory | Image) {
+		this.selected = this.selected.filter((i) => i !== item);
 	}
 
-	function deselectAll() {
-		selected = [];
+	public deselectAll() {
+		this.selected = [];
 	}
 
-	function pin(dir: DirectoryExt) {
+	public pinSelected() {
+		this.selected.forEach((item) => {
+			if (!defined(this.currentDirectory)) return;
+
+			this.pin({
+				path: this.currentDirectory.path.concat(item.name),
+				route: this.currentRoute.concat(item.id),
+				data: item
+			});
+		});
+	}
+
+	public pin(item: ItemExt) {
 		// Check not already pinned.
-		if (pinned.some((pinnedDir) => pinnedDir === dir)) return;
-		pinned.push(dir);
+		if (this.pinned.some((i) => i === item)) return;
+		this.pinned.push(item);
 	}
 
-	function unpin(dir: DirectoryExt) {
+	public unpin(item: ItemExt) {
 		// Search for index of dir in pinned.
-		let index = pinned.findIndex((pinnedDir) => pinnedDir === dir);
+		let index = this.pinned.findIndex((i) => i === item);
 		if (index === -1) return;
-		pinned.splice(index, 1);
+		this.pinned.splice(index, 1);
 	}
+}
 
-	async function loadRegistry() {
-		let _registry = await http.GetRegistry();
-		if (_registry === undefined) return;
-		registry = _registry;
-	}
-
-	return {
-		get registry() {
-			return registry;
-		},
-		set registry(value: Directory | undefined) {
-			registry = value;
-		},
-		set selected(value: (Directory | Image)[]) {
-			selected = value;
-		},
-		get currentDirectory() {
-			return currentDirectory;
-		},
-		get showUploader() {
-			return showUploader;
-		},
-		set showUploader(value: boolean) {
-			showUploader = value;
-		},
-		get showDirectoryCreator() {
-			return showDirectoryCreator;
-		},
-		set showDirectoryCreator(value: boolean) {
-			showDirectoryCreator = value;
-		},
-		up,
-		backward,
-		forward,
-		navigateTo,
-		isSelected,
-		select,
-		deselect,
-		deselectAll,
-		pin,
-		unpin,
-		loadRegistry
-	};
-})();
+export const registry = new Registry();
+export const explorer = new Explorer();
 
 export const generators = (() => {
 	let value: string[] = $state([]);

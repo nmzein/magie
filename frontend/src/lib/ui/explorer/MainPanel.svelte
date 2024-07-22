@@ -15,10 +15,12 @@
 	});
 
 	$effect(() => {
+		document.addEventListener('keydown', handleKeyDown);
 		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('mouseup', handleMouseUp);
 
 		return () => {
+			document.removeEventListener('keydown', handleKeyDown);
 			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('mouseup', handleMouseUp);
 		};
@@ -43,16 +45,23 @@
 
 		explorer.selected = selectionBox.stop();
 	}
+
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.ctrlKey && event.key === 'p') {
+			event.preventDefault();
+			explorer.pinSelected();
+		}
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div id="main-panel" bind:this={mainPanel} onmousedown={handleMouseDown}>
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
-		{#each explorer.currentDirectory.directory.subdirectories as subdirectory, index}
-			<Item variant="directory" value={subdirectory} {index} {selectionBox} />
+		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
+			<Item variant="directory" value={subdirectory} {selectionBox} />
 		{/each}
-		{#each explorer.currentDirectory.directory.files as file, index}
-			<Item variant="image" value={file} {index} {selectionBox} />
+		{#each explorer.currentDirectory.data.files as file}
+			<Item variant="image" value={file} {selectionBox} />
 		{/each}
 		{#if explorer.showDirectoryCreator}
 			<DirectoryCreator />
