@@ -18,11 +18,9 @@
 
 	async function create(name: string) {
 		if (explorer.currentDirectory === undefined) return;
-		await http.CreateDirectory(explorer.currentDirectory.directory.id, name);
+		await http.CreateDirectory(explorer.currentDirectory.data.id, name);
 		explorer.showDirectoryCreator = false;
 	}
-
-	$inspect(explorer.registry);
 
 	function cancel() {
 		explorer.showDirectoryCreator = false;

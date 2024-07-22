@@ -1,10 +1,6 @@
 <script lang="ts">
 	import Icon from '$components/Icon.svelte';
 	import { explorer } from '$states';
-
-	import type { SvelteHTMLElements } from 'svelte/elements';
-
-	let x: SvelteHTMLElements['svg'];
 </script>
 
 <button onclick={() => explorer.routeTo([-1])}>

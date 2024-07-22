@@ -9,7 +9,8 @@
 		{#each explorer.pinned as item}
 			<Item route={item.route}>
 				<div class="item">
-					{item.data.name}<span class="id grey-text">{item.path.join('/')}</span>
+					{item.data.name}
+					<!-- <span class="id grey-text">{item.path.join('/')}</span> -->
 				</div>
 			</Item>
 		{/each}
@@ -45,12 +46,12 @@
 		justify-content: space-between;
 	}
 
-	.id {
-		font-size: 10px;
-		height: 100%;
-		overflow: hidden; /* Hides any overflowed content */
-		text-overflow: ellipsis; /* Displays an ellipsis (...) for truncated text */
-		white-space: nowrap;
-		max-width: 125px;
-	}
+	// .id {
+	// 	font-size: 10px;
+	// 	height: 100%;
+	// 	overflow: hidden;
+	// 	text-overflow: ellipsis;
+	// 	white-space: nowrap;
+	// 	max-width: 125px;
+	// }
 </style>

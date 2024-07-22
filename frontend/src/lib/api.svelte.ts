@@ -2,7 +2,7 @@
 /// state directly. Instead, they should return data that
 /// can be processed to update state in other parts of the app.
 
-import { image, explorer } from '$states';
+import { image, repository } from '$states';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
@@ -79,7 +79,7 @@ export const http = (() => {
 
 		if (registry === undefined) return;
 
-		explorer.registry = registry;
+		repository.registry = registry;
 	}
 
 	async function SendUploadAssets(
@@ -106,7 +106,7 @@ export const http = (() => {
 
 		if (registry === undefined) return;
 
-		explorer.registry = registry;
+		repository.registry = registry;
 	}
 
 	async function GET<Resp>(name: string, url: string) {

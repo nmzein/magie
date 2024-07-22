@@ -1,14 +1,14 @@
 <script lang="ts">
 	import Item from './Item.svelte';
 	import { defined } from '$helpers';
-	import { registry } from '$states';
+	import { repository } from '$states';
 </script>
 
 <div id="cont">
 	<span id="title" class="grey-text"> STORES </span>
 	<div>
-		{#if defined(registry.reg)}
-			{#each registry.reg.subdirectories as item}
+		{#if defined(repository.registry)}
+			{#each repository.registry.subdirectories as item}
 				<!-- TODO: Change completely. -->
 				{#if item.id !== -1}
 					<Item route={[item.id]}>
