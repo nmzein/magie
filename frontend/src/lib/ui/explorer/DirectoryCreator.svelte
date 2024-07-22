@@ -3,7 +3,7 @@
 	import { explorer } from '$states';
 	import Icon from '$icon';
 
-	let button: HTMLButtonElement | undefined;
+	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
 
 	$effect(() => {
