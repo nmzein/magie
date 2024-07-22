@@ -8,7 +8,7 @@
 		children
 	}: {
 		value: string;
-		disabled: boolean;
+		disabled?: boolean;
 		children: Snippet;
 	} = $props();
 

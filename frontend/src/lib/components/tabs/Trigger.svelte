@@ -8,9 +8,9 @@
 		disabled = false,
 		children
 	}: {
-		value: string;
-		sideEffect: (() => void) | undefined;
-		disabled: boolean;
+		value?: string;
+		sideEffect?: () => void;
+		disabled?: boolean;
 		children: Snippet;
 	} = $props();
 

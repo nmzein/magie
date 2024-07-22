@@ -7,7 +7,7 @@
 		classes,
 		initialTab,
 		children
-	}: { mode: Modes; classes: TabClasses; initialTab: string; children: Snippet } = $props();
+	}: { mode: Modes; classes: TabClasses; initialTab?: string; children: Snippet } = $props();
 
 	setTabState(mode, initialTab, classes);
 </script>
