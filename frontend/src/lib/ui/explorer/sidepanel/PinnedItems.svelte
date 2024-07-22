@@ -21,7 +21,7 @@
 	#cont {
 		display: flex;
 		flex-direction: column;
-		flex-grow: 1;
+		flex: 2;
 		gap: 5px;
 		overflow-y: auto;
 	}
