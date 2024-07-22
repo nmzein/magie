@@ -177,29 +177,28 @@ export const http = (() => {
 	};
 })();
 
-const _websocket = () => {
-	let socket: WebSocket = $state(new WebSocket(WEBSOCKET_URL));
+export class WebSocketState {
+	private socket: WebSocket;
 
-	function init() {
-		socket.addEventListener('message', (event: MessageEvent) => {
+	constructor() {
+		this.socket = new WebSocket(WEBSOCKET_URL);
+
+		this.socket.addEventListener('message', (event: MessageEvent) => {
 			image.insertTile(event).catch((error) => {
 				console.error('Tile Processing Error:', error);
 			});
 		});
 	}
 
-	function send(data: WebSocketRequest): boolean {
-		if (socket?.readyState !== WebSocket.OPEN) return false;
-		socket.send(JSON.stringify(data));
+	public send(data: WebSocketRequest): boolean {
+		if (this.socket?.readyState !== WebSocket.OPEN) return false;
+		this.socket.send(JSON.stringify(data));
 		return true;
 	}
+}
 
-	return { init, send };
-};
-
-export let websocket: ReturnType<typeof _websocket>;
+export let websocket: WebSocketState;
 
 export function ConnectWebSocket() {
-	websocket = _websocket();
-	websocket.init();
+	websocket = new WebSocketState();
 }
