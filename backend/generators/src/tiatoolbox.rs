@@ -14,7 +14,7 @@ pub const NAME: &str = "TIAToolbox";
 pub struct Module;
 
 impl Generator for Module {
-    fn translate(&self, annotations_path: &PathBuf) -> Result<Vec<AnnotationLayer>> {
+    fn translate(&self, annotations_path: &Path) -> Result<Vec<AnnotationLayer>> {
         let start = std::time::Instant::now();
 
         // ! Might need to prepend "../".
