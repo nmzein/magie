@@ -66,7 +66,7 @@ pub async fn retrieve(path: &PathBuf, tile_request: &TileRequest) -> Result<Vec<
     let start = Instant::now();
 
     let store = Arc::new(FilesystemStore::new(path)?);
-    let array = Arc::new(Array::new(
+    let array = Arc::new(Array::open(
         store,
         &format!("{GROUP_PATH}/{}", tile_request.level),
     )?);
@@ -79,7 +79,7 @@ pub async fn retrieve(path: &PathBuf, tile_request: &TileRequest) -> Result<Vec<
     let start = time("Tile initialisation", level, x, y, start);
 
     // Retrieve tile for each RGB channel.
-    let channels = array.retrieve_chunks(&ArraySubset::new_with_start_end_inc(
+    let channels = array.retrieve_chunks_elements(&ArraySubset::new_with_start_end_inc(
         vec![0, 0, 0, y, x],
         vec![0, 2, 0, y, x],
     )?)?;
@@ -234,7 +234,7 @@ pub async fn try_convert(
                     )
                     .into_iter()
                     .flatten()
-                    .collect();
+                    .collect::<Vec<u8>>();
 
                 #[cfg(feature = "time")]
                 let start = time(
@@ -245,12 +245,12 @@ pub async fn try_convert(
                     start,
                 );
 
-                array.store_chunks(
+                array.store_chunks_elements(
                     &ArraySubset::new_with_start_end_inc(
                         vec![0, 0, 0, y.into(), x.into()],
                         vec![0, 2, 0, y.into(), x.into()],
                     )?,
-                    tile,
+                    &tile,
                 )?;
 
                 #[cfg(feature = "time")]
