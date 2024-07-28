@@ -3,7 +3,8 @@
 	import { explorer } from '$states';
 </script>
 
-<button onclick={() => explorer.routeTo([-1])}>
+<!-- Directory with id of 1 is always set to the global bin. -->
+<button onclick={() => explorer.routeTo([1])}>
 	<Icon variant="trash" width={1.5} height={1.5} />
 	Bin
 </button>

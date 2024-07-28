@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { image, transformer } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
-	import { Explorer } from './explorer';
+	import { Explorer } from './Explorer';
 	import Icon from '$icon';
 	import AnnotationControls from '$ui/AnnotationControls.svelte';
 	import { truncateNumber } from '$helpers';

@@ -9,8 +9,8 @@
 	<div id="content">
 		{#if defined(repository.registry)}
 			{#each repository.registry.subdirectories as item}
-				<!-- TODO: Change completely. -->
-				{#if item.id !== -1}
+				<!-- If not the Bin. -->
+				{#if item.id !== 1}
 					<Item route={[item.id]}>
 						<div class="item">
 							{item.name}

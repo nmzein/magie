@@ -8,8 +8,9 @@ CREATE TABLE IF NOT EXISTS directories (
   UNIQUE(parent_id, name) -- Enforce that for each parent directory, there is only one directory with a given name.
 );
 
-INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (0, NULL, '', 1, 4); -- '/'
-INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (1, 0, 'store', 2, 3); -- '/store'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (0, NULL, '', 1, 6); -- '/'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (1, 0, 'Bin', 2, 3); -- '/Bin'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (2, 0, 'LocalStorage', 4, 5); -- '/LocalStorage'
 
 CREATE TABLE IF NOT EXISTS images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -2,14 +2,14 @@
 	import Separator from '$components/Separator.svelte';
 	import PinnedItems from './PinnedItems.svelte';
 	import StoresList from './StoresList.svelte';
-	import TrashBin from './TrashBin.svelte';
+	import Bin from './Bin.svelte';
 </script>
 
 <div class="light-layer">
 	<PinnedItems />
 	<Separator />
 	<StoresList />
-	<TrashBin />
+	<Bin />
 </div>
 
 <style lang="scss">

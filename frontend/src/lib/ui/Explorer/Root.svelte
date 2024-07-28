@@ -1,9 +1,9 @@
 <script lang="ts">
 	import TopBar from './TopBar.svelte';
-	import SidePanel from './sidepanel/SidePanel.svelte';
+	import SidePanel from './SidePanel';
 	import MainPanel from './MainPanel.svelte';
 	import InnerBar from './InnerBar.svelte';
-	import Uploader from './uploader/index.ts';
+	import Uploader from './Uploader';
 </script>
 
 <Uploader />

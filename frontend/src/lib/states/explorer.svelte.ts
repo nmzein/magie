@@ -8,7 +8,8 @@ export class Explorer {
 	// Pinned directories (in side panel).
 	public pinned: ItemExt[] = $state([]);
 	// Stack of directories to keep track of navigation.
-	private stack: Route[] = $state([[1]]);
+	// TODO: Default to directory last opened by the user.
+	private stack: Route[] = $state([[2]]);
 	// Pointer to current directory in stack (for back and forward).
 	private stackPointer = $state(0);
 	// Route to current directory in stack pointed to by stackPointer.
