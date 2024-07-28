@@ -12,7 +12,6 @@ use axum::{
     routing::{get, post},
     Extension, Router,
 };
-use dotenv::dotenv;
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -23,7 +22,7 @@ use tower_http::cors::CorsLayer;
 #[tokio::main]
 async fn main() {
     // Load environment variables from .env file.
-    dotenv().ok();
+    dotenvy::dotenv().expect("Could not load .env file.");
 
     let database_url = &fetch_env_var("DATABASE_URL");
     let domain = &fetch_env_var("PUBLIC_DOMAIN");

@@ -15,7 +15,7 @@ generators = { version = "0.1.0", path = "../generators" }
 anyhow = "1.0.86"
 axum = { version = "0.7.5", features = ["ws", "json"] }
 axum_typed_multipart = "0.11.1"
-dotenv = "0.15.0"
+dotenvy = "0.15.7"
 futures-util = "0.3.30"
 image = "0.24.9" # Stuck on version 0.24.9 because of turbojpeg.
 rusqlite = { version = "0.31.0", features = ["bundled"] }
