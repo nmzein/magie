@@ -12,17 +12,16 @@
 
 <style lang="scss">
 	button {
-		background-color: rgba(255, 255, 255, 0.1);
 		width: 100%;
 		gap: 10px;
 		display: flex;
 		align-items: center;
 		text-align: left;
-		padding: 7.5px 10px;
+		padding: 7.5px 10px 7.5px 10px;
 		border-radius: 7px;
 
 		&:hover {
-			background-color: rgba(255, 255, 255, 0.15);
+			background-color: rgba(255, 255, 255, 0.1);
 		}
 	}
 </style>

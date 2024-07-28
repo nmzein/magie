@@ -10,7 +10,6 @@
 			<Item route={item.route}>
 				<div class="item">
 					{item.data.name}
-					<!-- <span class="id grey-text">{item.path.join('/')}</span> -->
 				</div>
 			</Item>
 		{/each}
@@ -35,6 +34,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 5px;
+		overflow-y: auto;
+		padding-right: 10px;
 	}
 
 	.item {

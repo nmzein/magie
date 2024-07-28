@@ -11,7 +11,7 @@ export class Repository {
 		http.GetRegistry().then((registry) => {
 			if (registry === undefined) return;
 			// TODO: Actually store on server and make it so that it always has index 0.
-			registry.subdirectories.push({ id: -1, name: 'Trash Bin', subdirectories: [], files: [] });
+			registry.subdirectories.push({ id: -1, name: 'Bin', subdirectories: [], files: [] });
 			this.registry = registry;
 		});
 

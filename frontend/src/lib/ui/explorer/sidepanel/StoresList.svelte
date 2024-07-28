@@ -6,7 +6,7 @@
 
 <div id="cont">
 	<span id="title" class="grey-text"> STORES </span>
-	<div>
+	<div id="content">
 		{#if defined(repository.registry)}
 			{#each repository.registry.subdirectories as item}
 				<!-- TODO: Change completely. -->
@@ -28,11 +28,20 @@
 		flex-direction: column;
 		flex: 2;
 		gap: 5px;
+		overflow-y: auto;
 	}
 
 	#title {
 		font-size: 14px;
 		user-select: none;
+	}
+
+	#content {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+		overflow-y: auto;
+		padding-right: 10px;
 	}
 
 	.item {

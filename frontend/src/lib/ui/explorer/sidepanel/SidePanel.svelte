@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Separator from '$components/Separator.svelte';
 	import PinnedItems from './PinnedItems.svelte';
 	import StoresList from './StoresList.svelte';
 	import TrashBin from './TrashBin.svelte';
@@ -6,6 +7,7 @@
 
 <div class="light-layer">
 	<PinnedItems />
+	<Separator />
 	<StoresList />
 	<TrashBin />
 </div>
