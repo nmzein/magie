@@ -90,6 +90,18 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
+	async function MoveDirectory(target_id: number, dest_id: number) {
+		const registry = await POST<{ target_id: number; dest_id: number }, Directory>(
+			'Move Directory',
+			DIRECTORY_MOVE_URL,
+			{ target_id, dest_id }
+		);
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
 	async function SendUploadAssets(
 		parent_directory_id: number,
 		image_file: File,
@@ -201,6 +213,7 @@ export const http = (() => {
 		GetAnnotations,
 		CreateDirectory,
 		DeleteDirectory,
+		MoveDirectory,
 		SendUploadAssets
 	};
 })();

@@ -6,6 +6,11 @@ import { http } from '$api';
 export class Explorer {
 	// Selected directories (in main panel).
 	public selected: (Directory | Image)[] = $state([]);
+	// Clipboard for cut/copy/paste.
+	public clipboard: { mode: 'cut' | 'copy' | undefined; items: (Directory | Image)[] } = $state({
+		mode: undefined,
+		items: []
+	});
 	// Pinned directories (in side panel).
 	public pinned: ItemExt[] = $state([]);
 	// Stack of directories to keep track of navigation.
@@ -151,5 +156,23 @@ export class Explorer {
 		this.selected.forEach((item) => {
 			http.DeleteDirectory(item.id);
 		});
+	}
+
+	public clipSelected(mode: 'cut' | 'copy') {
+		this.clipboard = {
+			mode,
+			items: this.selected
+		};
+	}
+
+	public paste() {
+		if (this.clipboard.mode === 'cut') {
+			this.clipboard.items.forEach((item) => {
+				if (!defined(this.currentDirectory)) return;
+				http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+			});
+		} else if (this.clipboard.mode === 'copy') {
+			// TODO
+		}
 	}
 }

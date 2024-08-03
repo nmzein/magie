@@ -50,6 +50,15 @@
 		if (event.ctrlKey && event.key === 'p') {
 			event.preventDefault();
 			explorer.pinSelected();
+		} else if (event.ctrlKey && event.key === 'x') {
+			event.preventDefault();
+			explorer.clipSelected('cut');
+		} else if (event.ctrlKey && event.key === 'c') {
+			event.preventDefault();
+			explorer.clipSelected('copy');
+		} else if (event.ctrlKey && event.key === 'v') {
+			event.preventDefault();
+			explorer.paste();
 		} else if (event.key === 'Delete') {
 			event.preventDefault();
 			explorer.deleteSelected();
