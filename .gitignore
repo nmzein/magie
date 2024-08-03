@@ -8,6 +8,5 @@ node_modules/
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-/backend/state/*
+/backend/state
 !/backend/state/schema.sql
-!/backend/state/db.sqlite

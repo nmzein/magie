@@ -1,9 +1,14 @@
 use crate::db::common::*;
 use crate::types::{Directory, File};
 use rusqlite_migration::{Migrations, M};
-use std::collections::HashMap;
+use std::{collections::HashMap, fs, path::Path};
 
-pub fn connect(database_url: &str) -> Result<Connection> {
+pub fn connect(database_path: &str, database_url: &str) -> Result<Connection> {
+    // Create the database file if it does not exist.
+    if !Path::new(database_path).exists() {
+        fs::File::create(database_path)?;
+    }
+
     let mut conn = Connection::open(database_url)?;
 
     let migrations = Migrations::new(vec![M::up(include_str!("../../../state/schema.sql"))]);

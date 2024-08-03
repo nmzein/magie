@@ -24,6 +24,7 @@ async fn main() {
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
+    let database_path = &fetch_env_var("DATABASE_PATH");
     let database_url = &fetch_env_var("DATABASE_URL");
     let domain = &fetch_env_var("PUBLIC_DOMAIN");
     let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
@@ -47,7 +48,7 @@ async fn main() {
     let registry_url = &fetch_env_var("PUBLIC_REGISTRY_SUBDIR");
     let generators_url = &fetch_env_var("PUBLIC_GENERATORS_SUBDIR");
 
-    let conn = db::general::connect(database_url)
+    let conn = db::general::connect(database_path, database_url)
         .expect("Could not establish a connection to the state database.");
 
     let backend_url = format!("{domain}:{backend_port}");
