@@ -25,7 +25,7 @@ export class Explorer {
 		let currentDirectory = repository.registry; // Initial root node.
 
 		for (const id of this.currentRoute) {
-			let potentialDir = currentDirectory.subdirectories.find((value) => value.id === id);
+			const potentialDir = currentDirectory.subdirectories.find((value) => value.id === id);
 			if (potentialDir === undefined) return;
 			currentDirectory = potentialDir;
 			path.push(currentDirectory.name);
@@ -56,9 +56,9 @@ export class Explorer {
 
 		this.deselectAll();
 
-		let route = this.currentRoute.slice(0, index + 1);
+		const route = this.currentRoute.slice(0, index + 1);
 
-		let current = this.currentDirectory?.data;
+		const current = this.currentDirectory?.data;
 		this.insertIntoStack(route);
 
 		if (!defined(current)) return;
@@ -70,7 +70,7 @@ export class Explorer {
 
 		this.deselectAll();
 
-		let current = this.currentDirectory?.data;
+		const current = this.currentDirectory?.data;
 		this.stackPointer -= 1;
 
 		if (!defined(current)) return;
@@ -82,7 +82,7 @@ export class Explorer {
 
 		this.deselectAll();
 
-		let current = this.currentDirectory?.data;
+		const current = this.currentDirectory?.data;
 		this.stackPointer += 1;
 
 		if (!defined(current)) return;
@@ -99,7 +99,7 @@ export class Explorer {
 		this.deselectAll();
 
 		// Important: concat() creates a copy of current.
-		let route = this.currentRoute.concat(id);
+		const route = this.currentRoute.concat(id);
 
 		this.insertIntoStack(route);
 	}
@@ -142,7 +142,7 @@ export class Explorer {
 
 	public unpin(item: ItemExt) {
 		// Search for index of dir in pinned.
-		let index = this.pinned.findIndex((i) => i === item);
+		const index = this.pinned.findIndex((i) => i === item);
 		if (index === -1) return;
 		this.pinned.splice(index, 1);
 	}

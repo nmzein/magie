@@ -6,16 +6,16 @@ export const ImageViewer = () => {
 	let info: Image | undefined = $state();
 	let metadata: MetadataLayer[] = $state([]);
 	// TODO: Figure out why this scaling is needed.
-	let width = $derived.by(() => {
+	const width = $derived.by(() => {
 		if (metadata.length === 0) return undefined;
 		return metadata[0].width * 1.003;
 	});
 
-	let height = $derived.by(() => {
+	const height = $derived.by(() => {
 		if (metadata.length === 0) return undefined;
 		return metadata[0].height * 1.003;
 	});
-	let levels: number = $derived(metadata.length);
+	const levels: number = $derived(metadata.length);
 	let tiles: ImageLayer[] = $state([]);
 	let annotations: AnnotationLayer[] = $state([]);
 	let initialised: boolean = $state(false);

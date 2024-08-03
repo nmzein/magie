@@ -12,10 +12,10 @@ export function defined<T>(value: T | undefined): value is T {
 
 export function truncateNumber(num: number, digits: number = 2) {
 	// Convert the number to a string with 2 decimal places
-	let number = num.toString();
+	const number = num.toString();
 
 	if (number.includes('.')) {
-		let [integer, decimal] = number.split('.');
+		const [integer, decimal] = number.split('.');
 
 		if (integer.length >= digits) {
 			// For when scale == 101.2
@@ -28,7 +28,7 @@ export function truncateNumber(num: number, digits: number = 2) {
 			return integer + '.' + decimal + '0'.repeat(digits - integer.length - decimal.length);
 		}
 	} else {
-		let integer = number;
+		const integer = number;
 
 		if (integer.length >= digits) {
 			return integer;

@@ -57,7 +57,6 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_mouse_events_have_key_events -->
 <button
 	bind:this={item}
 	class="flex-column"

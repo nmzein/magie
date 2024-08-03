@@ -11,10 +11,10 @@ export const Transformer = () => {
 	let offsetX = $state(0);
 	let offsetY = $state(0);
 	let scale = $state(1);
-	let scaleBreakpoints: number[] | undefined = $derived.by(() => {
+	const scaleBreakpoints: number[] | undefined = $derived.by(() => {
 		if (!image.initialised || image.metadata === undefined || maxLevel === undefined) return;
 
-		let lowestResolution = image.metadata[maxLevel].width * image.metadata[maxLevel].height;
+		const lowestResolution = image.metadata[maxLevel].width * image.metadata[maxLevel].height;
 		let scaleBreakpoints = [];
 		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
 		for (let i = MIN_LEVEL; i < maxLevel; i++) {
@@ -54,7 +54,7 @@ export const Transformer = () => {
 			newScale = MAX_SCALE;
 		}
 
-		let ratio = 1 - newScale / scale;
+		const ratio = 1 - newScale / scale;
 
 		offsetX += (mouseX - offsetX) * ratio;
 		offsetY += (mouseY - offsetY) * ratio;

@@ -68,7 +68,7 @@ export class SelectionBox<T = any> {
 	public stop(): T[] {
 		if (!this._dragging) return [];
 
-		let intersected = Array.from(this.intersected);
+		const intersected = Array.from(this.intersected);
 
 		this.startPosition = DEFAULT_POINT;
 		this.bounds = DEFAULT_BOUND;
@@ -82,10 +82,10 @@ export class SelectionBox<T = any> {
 	public intersecting(target: DOMRect | Bounds, item: T | undefined = undefined): boolean {
 		if (!this._dragging) return false;
 
-		let targetLeft = target.left - this.parentBounds.left;
-		let targetTop = target.top - this.parentBounds.top;
+		const targetLeft = target.left - this.parentBounds.left;
+		const targetTop = target.top - this.parentBounds.top;
 
-		let isIntersecting = !(
+		const isIntersecting = !(
 			this.bounds.left + this.bounds.width < targetLeft ||
 			targetLeft + target.width < this.bounds.left ||
 			this.bounds.top + this.bounds.height < targetTop ||
@@ -93,7 +93,7 @@ export class SelectionBox<T = any> {
 		);
 
 		if (defined(item)) {
-			let isTracked = this.intersected.has(item);
+			const isTracked = this.intersected.has(item);
 
 			if (isIntersecting && !isTracked) {
 				this.intersected.add(item);

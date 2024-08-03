@@ -71,7 +71,7 @@ export const http = (() => {
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
-		let registry = await POST<{ parent_id: number; name: string }, Directory>(
+		const registry = await POST<{ parent_id: number; name: string }, Directory>(
 			'Create Directory',
 			DIRECTORY_CREATE_URL,
 			{ parent_id, name }
@@ -83,7 +83,7 @@ export const http = (() => {
 	}
 
 	async function DeleteDirectory(id: number) {
-		let registry = await DELETE<Directory>('Delete Directory', `${DIRECTORY_DELETE_URL}/${id}`);
+		const registry = await DELETE<Directory>('Delete Directory', `${DIRECTORY_DELETE_URL}/${id}`);
 
 		if (registry === undefined) return;
 
@@ -105,7 +105,7 @@ export const http = (() => {
 		}
 		formData.append('generator_name', settings.generator);
 
-		let registry = await POST<FormData, Directory>(
+		const registry = await POST<FormData, Directory>(
 			'Send Upload Assets',
 			IMAGE_UPLOAD_URL,
 			formData,
