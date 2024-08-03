@@ -37,6 +37,24 @@ pub async fn delete(path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+pub async fn r#move(source_path: &PathBuf, destination_base: &PathBuf) -> Result<()> {
+    // Extract the last segment of the source path
+    let last_segment = match source_path.file_name() {
+        Some(name) => name,
+        None => {
+            return Err(anyhow::anyhow!(
+                "Could not extract last segment from source path."
+            ))
+        }
+    };
+
+    let destination_path = destination_base.join(last_segment);
+
+    let _ = fs::rename(source_path, destination_path).await?;
+
+    return Ok(());
+}
+
 pub async fn save_asset(file: NamedTempFile, path: &PathBuf) -> Result<()> {
     file.persist(path)?;
 

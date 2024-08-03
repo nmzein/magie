@@ -82,6 +82,14 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
+	async function DeleteDirectory(id: number) {
+		let registry = await DELETE<Directory>('Delete Directory', `${DIRECTORY_DELETE_URL}/${id}`);
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
 	async function SendUploadAssets(
 		parent_directory_id: number,
 		image_file: File,
@@ -167,12 +175,32 @@ export const http = (() => {
 		}
 	}
 
+	async function DELETE<Resp>(name: string, url: string) {
+		try {
+			const response = await fetch(url, { method: 'DELETE' });
+
+			if (response.ok) {
+				try {
+					const data: Resp = await response.json();
+					return data;
+				} catch (error) {
+					console.error(`Parse Error <${name}>:`, error);
+				}
+			} else {
+				console.error(`Response Error <${name}>:`, response.status, response.statusText);
+			}
+		} catch (error) {
+			console.error(`Fetch Error <${name}>:`, error);
+		}
+	}
+
 	return {
 		GetGenerators,
 		GetRegistry,
 		GetMetadata,
 		GetAnnotations,
 		CreateDirectory,
+		DeleteDirectory,
 		SendUploadAssets
 	};
 })();

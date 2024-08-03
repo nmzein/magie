@@ -50,6 +50,9 @@
 		if (event.ctrlKey && event.key === 'p') {
 			event.preventDefault();
 			explorer.pinSelected();
+		} else if (event.key === 'Delete') {
+			event.preventDefault();
+			explorer.deleteSelected();
 		}
 	}
 </script>

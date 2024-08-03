@@ -1,6 +1,7 @@
 import type { Image, Route, Directory, ItemExt, DirectoryExt } from '$types';
 import { defined } from '$helpers';
 import { repository } from '$states';
+import { http } from '$api';
 
 export class Explorer {
 	// Selected directories (in main panel).
@@ -144,5 +145,11 @@ export class Explorer {
 		let index = this.pinned.findIndex((i) => i === item);
 		if (index === -1) return;
 		this.pinned.splice(index, 1);
+	}
+
+	public deleteSelected() {
+		this.selected.forEach((item) => {
+			http.DeleteDirectory(item.id);
+		});
 	}
 }

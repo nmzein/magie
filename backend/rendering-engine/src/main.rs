@@ -9,7 +9,7 @@ mod types;
 use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, HeaderValue, Method},
-    routing::{get, post},
+    routing::{delete, get, post},
     Extension, Router,
 };
 use std::{
@@ -62,13 +62,17 @@ async fn main() {
                 .parse::<HeaderValue>()
                 .expect("Could not parse frontend url."),
         )
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::DELETE])
         .allow_headers([CONTENT_TYPE]);
 
     let app = Router::new()
         // Directory routes.
         .route(directory_create_url, post(api::directory::create::create))
-        .route(directory_delete_url, post(api::directory::delete::delete))
+        // TODO: Reflect this in env file.
+        .route(
+            &format!("{}/{}", directory_delete_url, ":id"),
+            delete(api::directory::delete::delete),
+        )
         .route(directory_rename_url, post(api::directory::rename::rename))
         .route(directory_move_url, post(api::directory::r#move::r#move))
         // Image routes.

@@ -30,6 +30,11 @@ pub struct File {
     pub parent_id: u32,
 }
 
+pub enum MoveMode {
+    Regular,
+    SoftDelete,
+}
+
 // #[derive(Clone, Debug)]
 // pub struct ImageState {
 //     pub directory_path: PathBuf,
