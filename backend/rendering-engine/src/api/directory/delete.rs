@@ -12,7 +12,7 @@ pub async fn delete(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("DD1: Directory with id `{id}` does not exist."),
+                &format!("[DD/E00]: Directory with id `{id}` does not exist in the database."),
                 Some(e),
             );
         }
@@ -24,7 +24,7 @@ pub async fn delete(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("DD2: Bin directory does not exist."),
+                &format!("[DD/E01]: Bin directory was not found in the database."),
                 Some(e),
             );
         }
@@ -43,23 +43,71 @@ pub async fn delete(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -
     }
 
     if in_bin {
-        // Hard delete
-        todo!();
+        hard_delete(id, &directory_path, Arc::clone(&conn)).await
     } else {
-        soft_delete(Arc::clone(&conn), id, &directory_path, &bin_path).await
+        soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await
+    }
+}
+
+pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> Response {
+    #[cfg(feature = "log.request")]
+    log::<()>(
+        StatusCode::ACCEPTED,
+        &format!("[DD-H/M00]: Received request to hard delete directory with id `{id}`."),
+        None,
+    );
+
+    // Remove the directory from the filesystem.
+    let _ = crate::io::delete(&directory_path).await.map_err(|e| async {
+        return log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!(
+                "[DD-H/E00]: Failed to hard delete directory with id `{id}` from the filesystem."
+            ),
+            Some(e),
+        );
+    });
+
+    // Remove the directory from the database.
+    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| async {
+        return log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!(
+                "[DD-H/E01]: Failed to hard delete directory with id `{id}` from the database."
+            ),
+            Some(e),
+        );
+    });
+
+    match crate::db::general::get_registry(Arc::clone(&conn)) {
+        Ok(registry) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::OK,
+                "[DD-H/M01]: Successfully retrieved registry from the database.",
+                None,
+            );
+
+            Json(registry).into_response()
+        }
+        Err(e) => log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "[DD-H/E02]: Failed to retrieve registry from the database.",
+            Some(e),
+        ),
     }
 }
 
 pub async fn soft_delete(
-    conn: AppState,
     id: u32,
     directory_path: &PathBuf,
     bin_path: &PathBuf,
+    conn: AppState,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!("Received request to soft delete directory with id: {id}."),
+        &format!("[DD-S/M00]: Received request to soft delete directory with id `{id}`."),
         None,
     );
 
@@ -70,7 +118,7 @@ pub async fn soft_delete(
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!(
-                    "DD3: Failed to soft delete directory with id `{id}` from the filesystem."
+                    "[DD-S/E00]: Failed to soft delete directory with id `{id}` from the filesystem."
                 ),
                 Some(e),
             );
@@ -81,7 +129,9 @@ pub async fn soft_delete(
         .map_err(|e| async {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("DD4: Failed to soft delete directory with id `{id}` from the database."),
+                &format!(
+                    "[DD-S/E01]: Failed to soft delete directory with id `{id}` from the database."
+                ),
                 Some(e),
             );
         });
@@ -91,7 +141,7 @@ pub async fn soft_delete(
             #[cfg(feature = "log.success")]
             log::<()>(
                 StatusCode::OK,
-                "Successfully retrieved registry from the state database.",
+                "[DD-S/M01]: Successfully retrieved registry from the database.",
                 None,
             );
 
@@ -99,7 +149,7 @@ pub async fn soft_delete(
         }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to retrieve registry from the state database.",
+            "[DD-S/E02]: Failed to retrieve registry from the database.",
             Some(e),
         ),
     }

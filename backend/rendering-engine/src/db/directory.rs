@@ -3,6 +3,27 @@ use crate::types::MoveMode;
 use std::path::PathBuf;
 use std::sync::MutexGuard;
 
+pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let conn = conn.lock().unwrap();
+
+    // Shrink the space that would be left behind after deleting this directory.
+    let _ = shrink_space(id, &conn);
+
+    // Delete the directory.
+    conn.execute(
+        r#"
+            DELETE FROM directories
+            WHERE id = ?1;
+        "#,
+        [id],
+    )?;
+
+    #[cfg(feature = "log.database")]
+    log(&format!("DELETE <Directory: {id}>"), None);
+
+    Ok(())
+}
+
 pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connection>>) -> Result<()> {
     let conn = conn.lock().unwrap();
 
@@ -16,8 +37,8 @@ pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connectio
         |row| row.get(0),
     )?;
 
-    // Fill the space that would be created from moving this directory.
-    let _ = fill_space(parent_id, &conn);
+    // Shrink the space that would be left behind after moving this directory.
+    let _ = shrink_space(id, &conn);
 
     // Make space in the bin for this directory.
     let target_rgt = make_space(target_id, &conn)?;
@@ -53,15 +74,15 @@ pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connectio
     Ok(())
 }
 
-fn fill_space(parent_id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
-    // Get the rgt value of the parent.
-    let parent_rgt: u32 = conn.query_row(
+fn shrink_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
+    // Get the rgt value of the directory.
+    let rgt: u32 = conn.query_row(
         r#"
                 SELECT rgt
                 FROM directories
                 WHERE id = ?1;
             "#,
-        [parent_id],
+        [id],
         |row| row.get(0),
     )?;
 
@@ -72,7 +93,7 @@ fn fill_space(parent_id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
                 SET rgt = rgt - 2
                 WHERE rgt >= ?1;
             "#,
-        [parent_rgt],
+        [rgt],
     )?;
 
     // Update the lft values of the siblings and their children.
@@ -82,10 +103,10 @@ fn fill_space(parent_id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
                 SET lft = lft - 2
                 WHERE lft > ?1;
             "#,
-        [parent_rgt],
+        [rgt],
     )?;
 
-    return Ok(parent_rgt);
+    return Ok(rgt);
 }
 
 // Need to "make space" by adding 2 to the rgt values
