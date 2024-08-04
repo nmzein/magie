@@ -61,7 +61,10 @@
 			explorer.paste();
 		} else if (event.key === 'Delete') {
 			event.preventDefault();
-			explorer.deleteSelected();
+			explorer.deleteSelected('soft');
+		} else if (event.shiftKey && event.key === 'Delete') {
+			event.preventDefault();
+			explorer.deleteSelected('hard');
 		}
 	}
 </script>

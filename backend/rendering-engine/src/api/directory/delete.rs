@@ -1,11 +1,21 @@
 use crate::api::common::*;
 use crate::types::MoveMode;
-use axum::extract::Path;
+use axum::extract::{Path, Query};
+use serde::Deserialize;
 use std::path::PathBuf;
 
 static BIN_ID: u32 = 1;
 
-pub async fn delete(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -> Response {
+#[derive(Deserialize)]
+pub struct Params {
+    mode: String,
+}
+
+pub async fn delete(
+    Extension(conn): Extension<AppState>,
+    Path(id): Path<u32>,
+    Query(Params { mode }): Query<Params>,
+) -> Response {
     // Retrieve directory path.
     let directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
         Ok(path) => path,
@@ -30,22 +40,36 @@ pub async fn delete(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -
         }
     };
 
-    let mut in_bin: bool = false;
+    let resp = match mode.as_str() {
+        "hard" => hard_delete(id, &directory_path, Arc::clone(&conn)).await,
+        "soft" => soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await,
+        _ => log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DD/E02]: Invalid mode `{mode}`."),
+            None,
+        ),
+    };
 
-    for ancestor in directory_path.ancestors() {
-        if ancestor == bin_path {
-            in_bin = true;
-        }
-
-        if in_bin {
-            break;
-        }
+    if resp.status() != StatusCode::OK {
+        return resp;
     }
 
-    if in_bin {
-        hard_delete(id, &directory_path, Arc::clone(&conn)).await
-    } else {
-        soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await
+    match crate::db::general::get_registry(Arc::clone(&conn)) {
+        Ok(registry) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::OK,
+                "[DD/M00]: Successfully retrieved registry from the database.",
+                None,
+            );
+
+            Json(registry).into_response()
+        }
+        Err(e) => log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "[DD/E03]: Failed to retrieve registry from the database.",
+            Some(e),
+        ),
     }
 }
 
@@ -58,7 +82,7 @@ pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> R
     );
 
     // Remove the directory from the filesystem.
-    let _ = crate::io::delete(&directory_path).await.map_err(|e| async {
+    let _ = crate::io::delete(&directory_path).await.map_err(|e| {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
@@ -69,7 +93,7 @@ pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> R
     });
 
     // Remove the directory from the database.
-    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| async {
+    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
@@ -79,23 +103,7 @@ pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> R
         );
     });
 
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
-        Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "[DD-H/M01]: Successfully retrieved registry from the database.",
-                None,
-            );
-
-            Json(registry).into_response()
-        }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "[DD-H/E02]: Failed to retrieve registry from the database.",
-            Some(e),
-        ),
-    }
+    Json(()).into_response()
 }
 
 pub async fn soft_delete(
@@ -111,10 +119,10 @@ pub async fn soft_delete(
         None,
     );
 
-    // Move the directory to the "Bin".
+    // Move the directory to the "Bin" in the filesystem.
     let _ = crate::io::r#move(&directory_path, &bin_path)
         .await
-        .map_err(|e| async {
+        .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!(
@@ -124,9 +132,9 @@ pub async fn soft_delete(
             );
         });
 
-    // Move the directory in the database.
+    // Move the directory to the "Bin" in the database.
     let _ = crate::db::directory::r#move(id, BIN_ID, MoveMode::SoftDelete, Arc::clone(&conn))
-        .map_err(|e| async {
+        .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!(
@@ -136,21 +144,5 @@ pub async fn soft_delete(
             );
         });
 
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
-        Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "[DD-S/M01]: Successfully retrieved registry from the database.",
-                None,
-            );
-
-            Json(registry).into_response()
-        }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "[DD-S/E02]: Failed to retrieve registry from the database.",
-            Some(e),
-        ),
-    }
+    Json(()).into_response()
 }

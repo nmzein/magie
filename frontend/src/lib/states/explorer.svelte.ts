@@ -152,9 +152,9 @@ export class Explorer {
 		this.pinned.splice(index, 1);
 	}
 
-	public deleteSelected() {
+	public deleteSelected(mode: 'soft' | 'hard') {
 		this.selected.forEach((item) => {
-			http.DeleteDirectory(item.id);
+			http.DeleteDirectory(item.id, mode);
 		});
 	}
 
