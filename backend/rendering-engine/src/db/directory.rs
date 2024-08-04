@@ -1,193 +1,77 @@
 use crate::db::common::*;
 use crate::types::MoveMode;
+use rusqlite::Transaction;
 use std::path::PathBuf;
-use std::sync::MutexGuard;
 
-pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
-
-    // Shrink the space that would be left behind after deleting this directory.
-    let _ = shrink_space(id, &conn);
-
-    // Delete the directory.
-    conn.execute(
-        r#"
-            DELETE FROM directories
-            WHERE id = ?1;
-        "#,
-        [id],
-    )?;
-
-    #[cfg(feature = "log.database")]
-    log(&format!("DELETE <Directory: {id}>"), None);
-
-    Ok(())
-}
-
-pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
-
-    let parent_id: u32 = conn.query_row(
-        r#"
-            SELECT parent_id
-            FROM directories
-            WHERE id = ?1;
-        "#,
-        [id],
-        |row| row.get(0),
-    )?;
-
-    // Shrink the space that would be left behind after moving this directory.
-    let _ = shrink_space(id, &conn);
-
-    // Make space in the bin for this directory.
-    let target_rgt = make_space(target_id, &conn)?;
-
-    // TODO: Needs fixing.
-    match mode {
-        MoveMode::Regular => {
-            conn.execute(
-                r#"
-                UPDATE directories
-                SET parent_id = ?1,
-                    lft = ?2,
-                    rgt = ?3
-                WHERE id = ?4;
-            "#,
-                [target_id, target_rgt, target_rgt + 1, id],
-            )?;
-        }
-        MoveMode::SoftDelete => {
-            conn.execute(
-                r#"
-                UPDATE directories
-                SET predeletion_parent_id = ?1,
-                    parent_id = ?2,
-                    lft = ?3,
-                    rgt = ?4
-                WHERE id = ?5;
-            "#,
-                [parent_id, target_id, target_rgt, target_rgt + 1, id],
-            )?;
-        }
-    }
-
-    Ok(())
-}
-
-fn shrink_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
+// Makes `width` number of space under a given directory.
+fn make_space(id: u32, width: u32, transaction: &Transaction) -> Result<u32> {
     // Get the rgt value of the directory.
-    let (lft, rgt) = conn.query_row(
-        r#"
-                SELECT lft, rgt
-                FROM directories
-                WHERE id = ?1;
-            "#,
-        [id],
-        |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
-    )?;
-
-    // Update the rgt values of the parent, ancestors, and siblings and their children.
-    conn.execute(
-        r#"
-                UPDATE directories
-                SET rgt = rgt - ?1
-                WHERE rgt >= ?2;
-            "#,
-        [rgt - lft + 1, rgt],
-    )?;
-
-    // Update the lft values of the siblings and their children.
-    conn.execute(
-        r#"
-                UPDATE directories
-                SET lft = lft - ?1
-                WHERE lft > ?2;
-            "#,
-        [rgt - lft + 1, rgt],
-    )?;
-
-    return Ok(rgt);
-}
-
-// Need to "make space" by adding 2 to the rgt values
-// of the parent and ancestors. Also need to "shift"
-// sibling nodes by adding 2 to their lft and rgt values.
-fn make_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
-    // Get the rgt value of the directory.
-    let (lft, rgt) = conn.query_row(
-        r#"
-                SELECT lft, rgt
-                FROM directories
-                WHERE id = ?1;
-            "#,
-        [id],
-        |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
-    )?;
-
-    // Update the rgt values of the parent, ancestors, and siblings and their children.
-    conn.execute(
-        r#"
-                UPDATE directories
-                SET rgt = rgt + ?1
-                WHERE rgt >= ?2;
-            "#,
-        [rgt - lft + 1, rgt],
-    )?;
-
-    // Update the lft values of the siblings and their children.
-    conn.execute(
-        r#"
-                UPDATE directories
-                SET lft = lft + ?1
-                WHERE lft > ?2;
-            "#,
-        [rgt - lft + 1, rgt],
-    )?;
-
-    return Ok(rgt);
-}
-
-pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
-
-    // Need to "make space" by adding 2 to the rgt values
-    // of the parent and ancestors. Also need to "shift"
-    // sibling nodes by adding 2 to their lft and rgt values.
-
-    // Get the rgt value of the parent.
-    let parent_rgt: u32 = conn.query_row(
+    let rgt = transaction.query_row(
         r#"
             SELECT rgt
             FROM directories
             WHERE id = ?1;
         "#,
-        [parent_id],
+        [id],
         |row| row.get(0),
     )?;
 
-    // Update the rgt values of the parent, ancestors, and siblings.
-    conn.execute(
+    // Update the rgt values of the directory (hence the =), its parent, ancestors, and siblings and their children.
+    transaction.execute(
         r#"
             UPDATE directories
-            SET rgt = rgt + 2
-            WHERE rgt >= ?1;
+            SET rgt = rgt + ?1
+            WHERE rgt >= ?2;
         "#,
-        [parent_rgt],
+        [width, rgt],
     )?;
 
-    // Update the lft values of the siblings.
-    conn.execute(
+    // Update the lft values of the siblings and their children.
+    transaction.execute(
         r#"
             UPDATE directories
-            SET lft = lft + 2
-            WHERE lft > ?1;
+            SET lft = lft + ?1
+            WHERE lft > ?2;
         "#,
-        [parent_rgt],
+        [width, rgt],
     )?;
+
+    return Ok(rgt + width);
+}
+
+fn shrink_space(width: u32, threshold: u32, transaction: &Transaction) -> Result<()> {
+    // Update the lft values of the siblings and their children.
+    transaction.execute(
+        r#"
+            UPDATE directories
+            SET lft = lft - ?1
+            WHERE lft > ?2 AND rgt > ?2;
+        "#,
+        [width, threshold],
+    )?;
+
+    // Update the rgt values of the parent, ancestors, and siblings and their children.
+    transaction.execute(
+        r#"
+            UPDATE directories
+            SET rgt = rgt - ?1
+            WHERE rgt > ?2;
+        "#,
+        [width, threshold],
+    )?;
+
+    return Ok(());
+}
+
+pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let mut conn = conn.lock().unwrap();
+    let transaction = conn.transaction()?;
+
+    // Get the rgt value of the parent.
+    let parent_rgt: u32 = make_space(parent_id, 2, &transaction)?;
 
     // Insert the new directory.
-    conn.execute(
+    transaction.execute(
         r#"
             INSERT INTO directories (name, parent_id, lft, rgt)
             VALUES (?1, ?2, ?3, ?4);
@@ -195,10 +79,12 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
         [
             name,
             &parent_id.to_string(),
-            &(parent_rgt).to_string(),
-            &(parent_rgt + 1).to_string(),
+            &(parent_rgt - 2).to_string(),
+            &(parent_rgt - 1).to_string(),
         ],
     )?;
+
+    let _ = transaction.commit();
 
     #[cfg(feature = "log.database")]
     log(&format!("INSERT <Directory: {parent_id}/{name}>"), None);
@@ -206,16 +92,143 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
     Ok(())
 }
 
-/// Returns true if an directory with the given name is a child of directory with given id.
-pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<Option<PathBuf>> {
-    let conn = conn.lock().unwrap();
-    let mut stmt = conn.prepare(
+pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let mut conn = conn.lock().unwrap();
+    let transaction = conn.transaction()?;
+
+    // Get the rgt value of the directory.
+    let (lft, rgt) = transaction.query_row(
         r#"
-            SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
+            SELECT lft, rgt
+            FROM directories
+            WHERE id = ?1;
         "#,
+        [id],
+        |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
     )?;
 
-    let exists = stmt.exists(&[name, &parent_id.to_string()])?;
+    // Shrink the space that would be left behind after deleting this directory.
+    let _ = shrink_space(rgt - lft + 1, rgt, &transaction);
+
+    // Delete the directory.
+    transaction.execute(
+        r#"
+            DELETE FROM directories
+            WHERE id = ?1;
+        "#,
+        [id],
+    )?;
+
+    let _ = transaction.commit();
+
+    #[cfg(feature = "log.database")]
+    log(&format!("DELETE <Directory: {id}>"), None);
+
+    Ok(())
+}
+
+pub fn r#move(
+    id: u32,
+    destination_id: u32,
+    mode: MoveMode,
+    conn: Arc<Mutex<Connection>>,
+) -> Result<()> {
+    let mut conn = conn.lock().unwrap();
+    let transaction = conn.transaction()?;
+
+    let (old_dir_lft, old_dir_rgt, parent_id): (u32, u32, u32) = transaction.query_row(
+        r#"
+            SELECT lft, rgt, parent_id
+            FROM directories
+            WHERE id = ?1;
+        "#,
+        [id],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    )?;
+
+    let width = old_dir_rgt - old_dir_lft;
+
+    // Make space under the destination directory for this directory and its children.
+    let destination_rgt = make_space(destination_id, width + 1, &transaction)?;
+    let new_dir_lft = destination_rgt - 1 - width;
+    let new_dir_rgt = destination_rgt - 1;
+    let offset: i32 = new_dir_rgt as i32 - old_dir_rgt as i32;
+
+    match mode {
+        MoveMode::Regular => {
+            // Update the directory.
+            transaction.execute(
+                r#"
+                    UPDATE directories
+                    SET parent_id = ?1,
+                        lft = ?2,
+                        rgt = ?3
+                    WHERE id = ?4;
+                "#,
+                [destination_id, new_dir_lft, new_dir_rgt, id],
+            )?;
+
+            // Update the children of the directory.
+            transaction.execute(
+                r#"
+                    UPDATE directories
+                    SET lft = lft + ?1,
+                        rgt = rgt + ?1
+                    WHERE lft > ?2 AND rgt < ?3;
+                "#,
+                [offset, old_dir_lft as i32, old_dir_rgt as i32],
+            )?;
+        }
+        MoveMode::SoftDelete => {
+            // TODO: Have DELETED field for directory and children.
+
+            // Mark the directory as deleted.
+            transaction.execute(
+                r#"
+                    UPDATE directories
+                    SET predeletion_parent_id = ?1,
+                        parent_id = ?2,
+                        lft = ?3,
+                        rgt = ?4
+                    WHERE id = ?5;
+                "#,
+                [parent_id, destination_id, new_dir_lft, new_dir_rgt, id],
+            )?;
+
+            // Update the children of the directory.
+            transaction.execute(
+                r#"
+                    UPDATE directories
+                    SET lft = lft + ?1,
+                        rgt = rgt + ?1
+                    WHERE lft > ?2 AND rgt < ?3;
+                "#,
+                [offset, old_dir_lft as i32, old_dir_rgt as i32],
+            )?;
+        }
+    }
+
+    // Shrink the space that would be left behind after moving this directory and its children.
+    let _ = shrink_space(width + 1, old_dir_rgt, &transaction);
+
+    let _ = transaction.commit();
+
+    Ok(())
+}
+
+/// Returns true if an directory with the given name is a child of directory with given id.
+pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<Option<PathBuf>> {
+    let exists: bool;
+    {
+        let conn = conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
+        "#,
+        )?;
+
+        exists = stmt.exists(&[name, &parent_id.to_string()])?;
+    }
 
     #[cfg(feature = "log.database")]
     log(
@@ -225,19 +238,15 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
 
     if !exists {
         // Return the would-be path for the new directory.
-        Ok(Some(path_internal(parent_id, &conn)?.join(name)))
+        Ok(Some(path(parent_id, Arc::clone(&conn))?.join(name)))
     } else {
         Ok(None)
     }
 }
 
-// TODO: Remove indirection.
 pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
     let conn = conn.lock().unwrap();
-    path_internal(id, &conn)
-}
 
-pub fn path_internal(id: u32, conn: &MutexGuard<Connection>) -> Result<PathBuf> {
     // Combine the two queries into one
     let mut stmt = conn.prepare(
         r#"

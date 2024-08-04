@@ -6,6 +6,9 @@ mod db;
 mod io;
 mod types;
 
+#[cfg(test)]
+mod tests;
+
 use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, HeaderValue, Method},
