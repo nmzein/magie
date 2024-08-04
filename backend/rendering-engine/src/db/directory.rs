@@ -43,6 +43,7 @@ pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connectio
     // Make space in the bin for this directory.
     let target_rgt = make_space(target_id, &conn)?;
 
+    // TODO: Needs fixing.
     match mode {
         MoveMode::Regular => {
             conn.execute(
@@ -76,34 +77,34 @@ pub fn r#move(id: u32, target_id: u32, mode: MoveMode, conn: Arc<Mutex<Connectio
 
 fn shrink_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
     // Get the rgt value of the directory.
-    let rgt: u32 = conn.query_row(
+    let (lft, rgt) = conn.query_row(
         r#"
-                SELECT rgt
+                SELECT lft, rgt
                 FROM directories
                 WHERE id = ?1;
             "#,
         [id],
-        |row| row.get(0),
+        |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
     )?;
 
     // Update the rgt values of the parent, ancestors, and siblings and their children.
     conn.execute(
         r#"
                 UPDATE directories
-                SET rgt = rgt - 2
-                WHERE rgt >= ?1;
+                SET rgt = rgt - ?1
+                WHERE rgt >= ?2;
             "#,
-        [rgt],
+        [rgt - lft + 1, rgt],
     )?;
 
     // Update the lft values of the siblings and their children.
     conn.execute(
         r#"
                 UPDATE directories
-                SET lft = lft - 2
-                WHERE lft > ?1;
+                SET lft = lft - ?1
+                WHERE lft > ?2;
             "#,
-        [rgt],
+        [rgt - lft + 1, rgt],
     )?;
 
     return Ok(rgt);
@@ -112,7 +113,48 @@ fn shrink_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
 // Need to "make space" by adding 2 to the rgt values
 // of the parent and ancestors. Also need to "shift"
 // sibling nodes by adding 2 to their lft and rgt values.
-fn make_space(parent_id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
+fn make_space(id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
+    // Get the rgt value of the directory.
+    let (lft, rgt) = conn.query_row(
+        r#"
+                SELECT lft, rgt
+                FROM directories
+                WHERE id = ?1;
+            "#,
+        [id],
+        |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
+    )?;
+
+    // Update the rgt values of the parent, ancestors, and siblings and their children.
+    conn.execute(
+        r#"
+                UPDATE directories
+                SET rgt = rgt + ?1
+                WHERE rgt >= ?2;
+            "#,
+        [rgt - lft + 1, rgt],
+    )?;
+
+    // Update the lft values of the siblings and their children.
+    conn.execute(
+        r#"
+                UPDATE directories
+                SET lft = lft + ?1
+                WHERE lft > ?2;
+            "#,
+        [rgt - lft + 1, rgt],
+    )?;
+
+    return Ok(rgt);
+}
+
+pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let conn = conn.lock().unwrap();
+
+    // Need to "make space" by adding 2 to the rgt values
+    // of the parent and ancestors. Also need to "shift"
+    // sibling nodes by adding 2 to their lft and rgt values.
+
     // Get the rgt value of the parent.
     let parent_rgt: u32 = conn.query_row(
         r#"
@@ -143,14 +185,6 @@ fn make_space(parent_id: u32, conn: &MutexGuard<Connection>) -> Result<u32> {
         "#,
         [parent_rgt],
     )?;
-
-    return Ok(parent_rgt);
-}
-
-pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
-
-    let parent_rgt = make_space(parent_id, &conn)?;
 
     // Insert the new directory.
     conn.execute(

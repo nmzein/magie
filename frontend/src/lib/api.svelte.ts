@@ -82,8 +82,11 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
-	async function DeleteDirectory(id: number) {
-		const registry = await DELETE<Directory>('Delete Directory', `${DIRECTORY_DELETE_URL}/${id}`);
+	async function DeleteDirectory(id: number, mode: 'soft' | 'hard') {
+		const registry = await DELETE<Directory>(
+			'Delete Directory',
+			`${DIRECTORY_DELETE_URL}/${id}?mode=${mode}`
+		);
 
 		if (registry === undefined) return;
 
