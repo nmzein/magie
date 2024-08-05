@@ -2,7 +2,7 @@
 /// state directly. Instead, they should return data that
 /// can be processed to update state in other parts of the app.
 
-import { image, explorer } from '$states';
+import { image, repository } from '$states';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
@@ -71,7 +71,7 @@ export const http = (() => {
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
-		let registry = await POST<{ parent_id: number; name: string }, Directory>(
+		const registry = await POST<{ parent_id: number; name: string }, Directory>(
 			'Create Directory',
 			DIRECTORY_CREATE_URL,
 			{ parent_id, name }
@@ -79,7 +79,30 @@ export const http = (() => {
 
 		if (registry === undefined) return;
 
-		explorer.registry = registry;
+		repository.registry = registry;
+	}
+
+	async function DeleteDirectory(id: number, mode: 'soft' | 'hard') {
+		const registry = await DELETE<Directory>(
+			'Delete Directory',
+			`${DIRECTORY_DELETE_URL}/${id}?mode=${mode}`
+		);
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
+	async function MoveDirectory(target_id: number, dest_id: number) {
+		const registry = await POST<{ target_id: number; dest_id: number }, Directory>(
+			'Move Directory',
+			DIRECTORY_MOVE_URL,
+			{ target_id, dest_id }
+		);
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
 	}
 
 	async function SendUploadAssets(
@@ -97,7 +120,7 @@ export const http = (() => {
 		}
 		formData.append('generator_name', settings.generator);
 
-		let registry = await POST<FormData, Directory>(
+		const registry = await POST<FormData, Directory>(
 			'Send Upload Assets',
 			IMAGE_UPLOAD_URL,
 			formData,
@@ -106,7 +129,7 @@ export const http = (() => {
 
 		if (registry === undefined) return;
 
-		explorer.registry = registry;
+		repository.registry = registry;
 	}
 
 	async function GET<Resp>(name: string, url: string) {
@@ -167,39 +190,59 @@ export const http = (() => {
 		}
 	}
 
+	async function DELETE<Resp>(name: string, url: string) {
+		try {
+			const response = await fetch(url, { method: 'DELETE' });
+
+			if (response.ok) {
+				try {
+					const data: Resp = await response.json();
+					return data;
+				} catch (error) {
+					console.error(`Parse Error <${name}>:`, error);
+				}
+			} else {
+				console.error(`Response Error <${name}>:`, response.status, response.statusText);
+			}
+		} catch (error) {
+			console.error(`Fetch Error <${name}>:`, error);
+		}
+	}
+
 	return {
 		GetGenerators,
 		GetRegistry,
 		GetMetadata,
 		GetAnnotations,
 		CreateDirectory,
+		DeleteDirectory,
+		MoveDirectory,
 		SendUploadAssets
 	};
 })();
 
-const _websocket = () => {
-	let socket: WebSocket = $state(new WebSocket(WEBSOCKET_URL));
+export class WebSocketState {
+	private socket: WebSocket;
 
-	function init() {
-		socket.addEventListener('message', (event: MessageEvent) => {
+	constructor() {
+		this.socket = new WebSocket(WEBSOCKET_URL);
+
+		this.socket.addEventListener('message', (event: MessageEvent) => {
 			image.insertTile(event).catch((error) => {
 				console.error('Tile Processing Error:', error);
 			});
 		});
 	}
 
-	function send(data: WebSocketRequest): boolean {
-		if (socket?.readyState !== WebSocket.OPEN) return false;
-		socket.send(JSON.stringify(data));
+	public send(data: WebSocketRequest): boolean {
+		if (this.socket?.readyState !== WebSocket.OPEN) return false;
+		this.socket.send(JSON.stringify(data));
 		return true;
 	}
+}
 
-	return { init, send };
-};
-
-export let websocket: ReturnType<typeof _websocket>;
+export let websocket: WebSocketState;
 
 export function ConnectWebSocket() {
-	websocket = _websocket();
-	websocket.init();
+	websocket = new WebSocketState();
 }

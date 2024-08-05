@@ -30,10 +30,10 @@ Currently, the application is in beta (so some bugs have not yet been fixed) how
 3. Run the following commands (note that you may need to run them with `sudo`):
 
 ```
-🛠️ Production [4.09GB; <6 mins on low-perf laptop]
+🛠️ Production [1.25GB; <6 mins on i5-1035G7]
 docker-compose up prod
 
-🏗️ Development [6.45GB; <3 mins on low-perf laptop]
+🏗️ Development [1.43GB; <3 mins on i5-1035G7]
 docker-compose up --build dev
 ```
 

@@ -25,7 +25,7 @@ fn declare_deps(common: &mut File) -> Result<()> {
         common,
         r#"pub use anyhow::Result;
 pub use shared::{{structs::Region, traits::Decoder}};
-pub use std::path::PathBuf;"#
+pub use std::path::Path;"#
     )?;
 
     Ok(())
@@ -136,7 +136,7 @@ fn create_extension_map(decoders: Vec<String>) -> HashMap<String, Vec<String>> {
         extensions.iter().for_each(|ext| {
             extensions_map
                 .entry(ext.to_string())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(decoder.clone());
         });
     }

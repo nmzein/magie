@@ -1,13 +1,13 @@
 <script lang="ts">
 	import TopBar from './TopBar.svelte';
-	import SidePanel from './SidePanel.svelte';
+	import SidePanel from './SidePanel';
 	import MainPanel from './MainPanel.svelte';
 	import InnerBar from './InnerBar.svelte';
-	import Uploader from './uploader/index.ts';
+	import Uploader from './Uploader';
 </script>
 
+<Uploader />
 <div id="outer" class="flex-column panel">
-	<Uploader />
 	<TopBar />
 	<div id="inner" class="flex-row">
 		<SidePanel />
@@ -29,7 +29,7 @@
 	}
 
 	#inner-inner {
-		flex: 5;
+		flex: 8;
 		position: relative;
 	}
 </style>

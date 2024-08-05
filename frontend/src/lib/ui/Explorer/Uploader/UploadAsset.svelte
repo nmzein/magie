@@ -1,52 +1,54 @@
 <script lang="ts">
+	import Icon from '$icon';
+
 	let {
-		assetUpload = $bindable(),
+		asset = $bindable(),
 		placeholder
 	}: {
-		assetUpload: File | undefined;
+		asset: File | undefined;
 		placeholder: string;
 	} = $props();
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
-
-		const files = event.dataTransfer?.files;
-		if (files && files.length > 0) {
-			assetUpload = files[0];
-		}
+		setAsset(event.dataTransfer?.files);
 	}
 
 	function handleBrowse(event: Event) {
-		const files = (event.target as HTMLInputElement).files;
+		setAsset((event.target as HTMLInputElement).files);
+	}
+
+	function setAsset(files: FileList | undefined | null) {
 		if (files && files.length > 0) {
-			assetUpload = files[0];
+			asset = files[0];
 		}
 	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div ondrop={(e) => handleDrop(e)} ondragover={(e) => e.preventDefault()}>
-	{#if assetUpload}
-		<button
-			id="asset"
-			style="background-color: rgba(255, 255, 255, 0.1);"
-			onclick={() => (assetUpload = undefined)}
-		>
-			<img src="default_file.svg" alt="" />
-			<span>{assetUpload.name}</span>
+	{#if asset}
+		<button id="asset" class="populated" onclick={() => (asset = undefined)}>
+			<Icon variant="image" width={5} height={5} />
+			<span>{asset.name}</span>
 		</button>
 	{:else}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-		<label id="asset" for={'browse-input-' + placeholder} onclick={(e) => handleBrowse(e)}>
-			<img src="default_file.svg" alt="" />
+		<label
+			id="asset"
+			class="unpopulated"
+			for={'browse-input-' + placeholder}
+			onclick={(e) => handleBrowse(e)}
+		>
+			<Icon variant="image" width={5} height={5} />
 			<span class="grey-text">{placeholder}</span>
 		</label>
 
 		<input
 			id={'browse-input-' + placeholder}
 			type="file"
-			style="display: none"
+			style="display: none;"
 			onchange={(e) => handleBrowse(e)}
 		/>
 	{/if}
@@ -56,12 +58,13 @@
 	div {
 		display: flex;
 		flex: 1;
+		justify-content: center;
 		align-items: center;
+		height: 100%;
 
 		color: white;
-		border: none;
-		font-size: 13px;
 		background: transparent;
+		border-radius: 5px;
 
 		&:focus {
 			outline: none;
@@ -72,29 +75,38 @@
 		display: flex;
 		flex: 1;
 		flex-direction: column;
+		justify-content: center;
 		align-items: center;
 
-		padding: 10px;
 		border-radius: 5px;
-		margin: 5px;
+		gap: 10px;
+		height: 100%;
 
 		cursor: pointer;
 	}
 
-	img {
-		width: 60px;
-		height: 60px;
-		margin-bottom: 10px;
-		user-select: none;
+	.populated {
+		background-color: rgba(255, 255, 255, 0.1);
 	}
 
+	.unpopulated {
+		border: 2px dashed rgba(255, 255, 255, 0.7);
+	}
+
+	// img {
+	// 	width: 60px;
+	// 	height: 60px;
+	// 	margin-bottom: 10px;
+	// 	user-select: none;
+	// }
+
 	span {
-		width: 130px;
+		// width: 130px;
 		white-space: nowrap;
 		overflow: hidden;
 		user-select: none;
 		text-overflow: ellipsis;
 		text-align: center;
-		font-size: 13px;
+		font-size: 14px;
 	}
 </style>

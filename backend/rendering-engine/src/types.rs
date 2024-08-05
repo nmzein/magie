@@ -10,7 +10,7 @@ use tempfile::NamedTempFile;
 
 pub type AppState = Arc<Mutex<Connection>>;
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct Directory {
     pub id: u32,
     pub name: String,
@@ -22,12 +22,17 @@ pub struct Directory {
     pub subdirectories: Vec<Directory>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct File {
     pub id: u32,
     pub name: String,
     #[serde(skip)]
     pub parent_id: u32,
+}
+
+pub enum MoveMode {
+    Regular,
+    SoftDelete,
 }
 
 // #[derive(Clone, Debug)]

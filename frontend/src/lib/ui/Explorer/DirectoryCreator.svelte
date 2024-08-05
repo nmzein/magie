@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { http } from '$api';
 	import { explorer } from '$states';
-	import Folder from '~icons/material-symbols-light/folder';
+	import Icon from '$icon';
 
-	let button: HTMLButtonElement | undefined;
+	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
 
 	$effect(() => {
@@ -18,11 +18,9 @@
 
 	async function create(name: string) {
 		if (explorer.currentDirectory === undefined) return;
-		await http.CreateDirectory(explorer.currentDirectory.directory.id, name);
+		await http.CreateDirectory(explorer.currentDirectory.data.id, name);
 		explorer.showDirectoryCreator = false;
 	}
-
-	$inspect(explorer.registry);
 
 	function cancel() {
 		explorer.showDirectoryCreator = false;
@@ -57,7 +55,7 @@
 </script>
 
 <button bind:this={button} class="flex-column" onkeypress={(e) => handleKeypress(e)}>
-	<Folder width="5em" height="5em" />
+	<Icon variant="directory" width={5} height={5} />
 	<!-- svelte-ignore a11y_autofocus -->
 	<input autofocus type="text" class="light-layer" bind:value={name} placeholder="New Directory" />
 </button>

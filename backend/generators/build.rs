@@ -23,7 +23,7 @@ fn declare_deps(common: &mut File) -> Result<()> {
         common,
         r#"pub use anyhow::Result;
 pub use shared::{{structs::AnnotationLayer, traits::Generator}};
-pub use std::path::PathBuf;"#
+pub use std::path::Path;"#
     )?;
 
     Ok(())

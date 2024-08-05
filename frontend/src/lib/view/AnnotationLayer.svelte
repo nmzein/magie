@@ -19,14 +19,13 @@
 		InstancedMesh,
 		WebGLRenderer
 	} from 'three';
+	import type { Camera, BufferGeometry } from 'three';
 
 	const CANVAS_HEIGHT = 8000;
 	let CANVAS_WIDTH = $derived.by(() => {
 		if (image.width === undefined || image.height === undefined) return;
 		return CANVAS_HEIGHT * (image.width / image.height);
 	});
-
-	import type { Camera, BufferGeometry } from 'three';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
