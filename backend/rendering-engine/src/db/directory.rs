@@ -136,7 +136,21 @@ pub fn r#move(
     let mut conn = conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
-    let (old_dir_lft, old_dir_rgt, parent_id): (u32, u32, u32) = transaction.query_row(
+    let width: u32 = transaction.query_row(
+        r#"
+            SELECT rgt - lft
+            FROM directories
+            WHERE id = ?1;
+        "#,
+        [id],
+        |row| row.get(0),
+    )?;
+
+    // Make space under the destination directory for this directory and its children.
+    let destination_rgt = make_space(destination_id, width + 1, &transaction)?;
+
+    // The current left and right values of the directory after space was made.
+    let (lft, rgt, parent_id): (u32, u32, u32) = transaction.query_row(
         r#"
             SELECT lft, rgt, parent_id
             FROM directories
@@ -146,26 +160,10 @@ pub fn r#move(
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )?;
 
-    let width = old_dir_rgt - old_dir_lft;
+    let target_lft = destination_rgt - 1 - width;
+    let target_rgt = destination_rgt - 1;
 
-    // Make space under the destination directory for this directory and its children.
-    let destination_rgt = make_space(destination_id, width + 1, &transaction)?;
-
-    // The current left and right values of the directory after space was made.
-    let (cur_dir_lft, cur_dir_rgt): (u32, u32) = transaction.query_row(
-        r#"
-            SELECT lft, rgt
-            FROM directories
-            WHERE id = ?1;
-        "#,
-        [id],
-        |row| Ok((row.get(0)?, row.get(1)?)),
-    )?;
-
-    let new_dir_lft = destination_rgt - 1 - width;
-    let new_dir_rgt = destination_rgt - 1;
-
-    let offset: i32 = new_dir_rgt as i32 - cur_dir_rgt as i32;
+    let offset: i32 = target_rgt as i32 - rgt as i32;
 
     match mode {
         MoveMode::Regular => {
@@ -178,7 +176,7 @@ pub fn r#move(
                         rgt = ?3
                     WHERE id = ?4;
                 "#,
-                [destination_id, new_dir_lft, new_dir_rgt, id],
+                [destination_id, target_lft, target_rgt, id],
             )?;
 
             // Update the children of the directory.
@@ -189,7 +187,7 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, cur_dir_lft as i32, cur_dir_rgt as i32],
+                [offset, lft as i32, rgt as i32],
             )?;
         }
         MoveMode::SoftDelete => {
@@ -205,7 +203,7 @@ pub fn r#move(
                         rgt = ?4
                     WHERE id = ?5;
                 "#,
-                [parent_id, destination_id, new_dir_lft, new_dir_rgt, id],
+                [parent_id, destination_id, target_lft, target_rgt, id],
             )?;
 
             // Update the children of the directory.
@@ -216,13 +214,13 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, cur_dir_lft as i32, cur_dir_rgt as i32],
+                [offset, lft as i32, rgt as i32],
             )?;
         }
     }
 
     // Shrink the space that would be left behind after moving this directory and its children.
-    let _ = shrink_space(width + 1, old_dir_rgt, &transaction);
+    let _ = shrink_space(width + 1, rgt, &transaction);
 
     let _ = transaction.commit();
 
