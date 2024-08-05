@@ -149,6 +149,9 @@ pub fn r#move(
     // Make space under the destination directory for this directory and its children.
     let destination_rgt = make_space(destination_id, width + 1, &transaction)?;
 
+    let target_lft = destination_rgt - 1 - width;
+    let target_rgt = destination_rgt - 1;
+
     // The current left and right values of the directory after space was made.
     let (lft, rgt, parent_id): (u32, u32, u32) = transaction.query_row(
         r#"
@@ -159,9 +162,6 @@ pub fn r#move(
         [id],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )?;
-
-    let target_lft = destination_rgt - 1 - width;
-    let target_rgt = destination_rgt - 1;
 
     let offset: i32 = target_rgt as i32 - rgt as i32;
 
@@ -234,8 +234,8 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
         let conn = conn.lock().unwrap();
         let mut stmt = conn.prepare(
             r#"
-            SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
-        "#,
+                SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
+            "#,
         )?;
 
         exists = stmt.exists(&[name, &parent_id.to_string()])?;
