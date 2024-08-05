@@ -59,9 +59,14 @@
 		} else if (event.ctrlKey && event.key === 'v') {
 			event.preventDefault();
 			explorer.paste();
-		} else if (event.key === 'Delete') {
+		} else if (!event.shiftKey && event.key === 'Delete') {
 			event.preventDefault();
-			explorer.deleteSelected('soft');
+			// If delete in bin then hard delete.
+			if (explorer.currentDirectory?.data.id === 1) {
+				explorer.deleteSelected('hard');
+			} else {
+				explorer.deleteSelected('soft');
+			}
 		} else if (event.shiftKey && event.key === 'Delete') {
 			event.preventDefault();
 			explorer.deleteSelected('hard');
