@@ -150,9 +150,22 @@ pub fn r#move(
 
     // Make space under the destination directory for this directory and its children.
     let destination_rgt = make_space(destination_id, width + 1, &transaction)?;
+
+    // The current left and right values of the directory after space was made.
+    let (cur_dir_lft, cur_dir_rgt): (u32, u32) = transaction.query_row(
+        r#"
+            SELECT lft, rgt
+            FROM directories
+            WHERE id = ?1;
+        "#,
+        [id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    )?;
+
     let new_dir_lft = destination_rgt - 1 - width;
     let new_dir_rgt = destination_rgt - 1;
-    let offset: i32 = new_dir_rgt as i32 - old_dir_rgt as i32;
+
+    let offset: i32 = new_dir_rgt as i32 - cur_dir_rgt as i32;
 
     match mode {
         MoveMode::Regular => {
@@ -176,7 +189,7 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, old_dir_lft as i32, old_dir_rgt as i32],
+                [offset, cur_dir_lft as i32, cur_dir_rgt as i32],
             )?;
         }
         MoveMode::SoftDelete => {
@@ -203,7 +216,7 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, old_dir_lft as i32, old_dir_rgt as i32],
+                [offset, cur_dir_lft as i32, cur_dir_rgt as i32],
             )?;
         }
     }
