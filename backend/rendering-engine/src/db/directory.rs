@@ -76,12 +76,7 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
             INSERT INTO directories (name, parent_id, lft, rgt)
             VALUES (?1, ?2, ?3, ?4);
         "#,
-        [
-            name,
-            &parent_id.to_string(),
-            &(parent_rgt - 2).to_string(),
-            &(parent_rgt - 1).to_string(),
-        ],
+        (name, &parent_id, &(parent_rgt - 2), &(parent_rgt - 1)),
     )?;
 
     let _ = transaction.commit();
@@ -176,7 +171,7 @@ pub fn r#move(
                         rgt = ?3
                     WHERE id = ?4;
                 "#,
-                [destination_id, target_lft, target_rgt, id],
+                (destination_id, target_lft, target_rgt, id),
             )?;
 
             // Update the children of the directory.
@@ -187,7 +182,7 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, lft as i32, rgt as i32],
+                (offset, lft, rgt),
             )?;
         }
         MoveMode::SoftDelete => {
@@ -203,7 +198,7 @@ pub fn r#move(
                         rgt = ?4
                     WHERE id = ?5;
                 "#,
-                [parent_id, destination_id, target_lft, target_rgt, id],
+                (parent_id, destination_id, target_lft, target_rgt, id),
             )?;
 
             // Update the children of the directory.
@@ -214,7 +209,7 @@ pub fn r#move(
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
                 "#,
-                [offset, lft as i32, rgt as i32],
+                (offset, lft, rgt),
             )?;
         }
     }

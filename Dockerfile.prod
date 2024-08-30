@@ -56,16 +56,26 @@ RUN cargo build --release
 
 FROM debian AS final
 
-COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
-COPY --from=frontend /usr/local/include/node /usr/local/include/node
-COPY --from=frontend /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+WORKDIR /usr/local
+
+COPY --from=frontend /usr/local/bin/node ./bin/node
+COPY --from=frontend /usr/local/include/node ./include/node
+COPY --from=frontend /usr/local/lib/node_modules ./lib/node_modules
+COPY --from=frontend /usr/local/bin/vite ./bin/vite
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js ./bin/npm
+
 COPY --from=backend /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
 
 WORKDIR /app/frontend
 
 COPY --from=frontend /app/.env /app
-COPY --from=frontend /app/frontend /app/frontend
+
+COPY --from=frontend /app/frontend/.env .
+COPY --from=frontend /app/frontend/package.json .
+COPY --from=frontend /app/frontend/package-lock.json .
+COPY --from=frontend /app/frontend/vite.config.ts .
+COPY --from=frontend /app/frontend/.svelte-kit ./.svelte-kit
+COPY --from=frontend /app/frontend/node_modules ./node_modules
 
 WORKDIR /app/backend
 
