@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { explorer, uploader } from '$states';
 	import { scale } from 'svelte/transition';
-
 	import TopBar from './TopBar.svelte';
 	import UploadAsset from './UploadAsset.svelte';
-
-	let page: number = $state(1);
+	import { defined } from '$helpers';
+	import * as Pages from '$components/pages/index.ts';
 </script>
 
 {#if explorer.showUploader}
@@ -13,10 +12,16 @@
 		<div id="inner" class="panel flex-column" role="dialog" aria-modal="true">
 			<TopBar />
 
-			<div id="bottom" class="flex-row">
-				{#if page === 1}
-					<UploadAsset asset={uploader.image} placeholder="Image" />
-				{:else if page === 2}{/if}
+			<div id="main" class="flex-column">
+				<Pages.Root>
+					<Pages.Page nextDisabled={!defined(uploader.image)}>
+						<UploadAsset bind:asset={uploader.image} placeholder="Image" />
+					</Pages.Page>
+
+					<Pages.Page nextDisabled={!defined(uploader.annotations)}>
+						<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
+					</Pages.Page>
+				</Pages.Root>
 			</div>
 		</div>
 	</div>
@@ -42,10 +47,11 @@
 		border: 2px solid #3e3e3e;
 	}
 
-	#bottom {
+	#main {
 		flex: 1;
 		justify-content: center;
 		align-items: center;
 		margin: 20px;
+		gap: 20px;
 	}
 </style>

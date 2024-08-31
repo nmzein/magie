@@ -2,46 +2,36 @@ import type { UploaderSettings } from '$types';
 import { http } from '$api';
 import { repository } from '$states';
 
-export const Uploader = () => {
-	let parentDirectoryId: number | undefined = $state();
-	let image: File | undefined = $state();
-	let annotations: File | undefined = $state();
+export class Uploader {
+	public parentDirectoryId: number | undefined = $state();
+	public image: File | undefined = $state();
+	public annotations: File | undefined = $state();
 	// TODO: Rename to options
-	let settings: UploaderSettings = $derived({
+	public settings: UploaderSettings = $derived({
 		generator: repository.generators[0],
 		annotations: 'none'
 	});
 
-	async function upload() {
-		if (parentDirectoryId === undefined || image === undefined) return;
+	public async upload() {
+		if (this.parentDirectoryId === undefined || this.image === undefined) return;
 
-		if (settings.annotations === 'provide') {
-			await http.SendUploadAssets(parentDirectoryId, image, annotations, settings);
+		if (this.settings.annotations === 'provide') {
+			await http.SendUploadAssets(
+				this.parentDirectoryId,
+				this.image,
+				this.annotations,
+				this.settings
+			);
 		} else {
-			await http.SendUploadAssets(parentDirectoryId, image, undefined, settings);
+			await http.SendUploadAssets(this.parentDirectoryId, this.image, undefined, this.settings);
 		}
 
-		reset();
+		this.reset();
 	}
 
-	function reset() {
-		parentDirectoryId = undefined;
-		image = undefined;
-		annotations = undefined;
+	public reset() {
+		this.parentDirectoryId = undefined;
+		this.image = undefined;
+		this.annotations = undefined;
 	}
-
-	return {
-		set parentDirectoryId(value: number | undefined) {
-			parentDirectoryId = value;
-		},
-		set image(value: File | undefined) {
-			image = value;
-		},
-		set annotations(value: File | undefined) {
-			annotations = value;
-		},
-		settings,
-		upload,
-		reset
-	};
-};
+}
