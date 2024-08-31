@@ -11,6 +11,10 @@ export class Uploader {
 		generator: repository.generators[0],
 		annotations: 'none'
 	});
+	public annotationsSatisfied: boolean = $derived(
+		this.settings.annotations === 'none' ||
+			(this.settings.annotations === 'provide' && this.annotations !== undefined)
+	);
 
 	public async upload() {
 		if (this.parentDirectoryId === undefined || this.image === undefined) return;

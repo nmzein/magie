@@ -39,7 +39,7 @@
 		background-color: rgb(12, 98, 197);
 
 		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
+			background-color: rgb(14, 112, 224);
 		}
 	}
 </style>

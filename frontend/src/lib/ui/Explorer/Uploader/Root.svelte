@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { explorer, uploader } from '$states';
 	import { scale } from 'svelte/transition';
+	import { explorer, uploader } from '$states';
+	import { defined } from '$helpers';
 	import TopBar from './TopBar.svelte';
 	import UploadAsset from './UploadAsset.svelte';
-	import { defined } from '$helpers';
 	import * as Pages from '$components/pages/index.ts';
+	import * as Tabs from '$components/tabs/index.ts';
 </script>
 
 {#if explorer.showUploader}
@@ -18,8 +19,32 @@
 						<UploadAsset bind:asset={uploader.image} placeholder="Image" />
 					</Pages.Page>
 
-					<Pages.Page nextDisabled={!defined(uploader.annotations)}>
-						<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
+					<Pages.Page nextDisabled={!uploader.annotationsSatisfied}>
+						<Tabs.Root>
+							<Tabs.List>
+								<Tabs.Trigger
+									value="none"
+									sideEffect={() => (uploader.settings.annotations = 'none')}
+								>
+									None
+								</Tabs.Trigger>
+								<Tabs.Trigger
+									value="provide"
+									sideEffect={() => (uploader.settings.annotations = 'provide')}
+								>
+									Provide
+								</Tabs.Trigger>
+								<Tabs.Trigger
+									value="generate"
+									sideEffect={() => (uploader.settings.annotations = 'generate')}
+								>
+									Generate
+								</Tabs.Trigger>
+							</Tabs.List>
+							<Tabs.Content value="provide">
+								<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
+							</Tabs.Content>
+						</Tabs.Root>
 					</Pages.Page>
 				</Pages.Root>
 			</div>
