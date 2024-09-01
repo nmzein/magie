@@ -38,3 +38,28 @@ export function truncateNumber(num: number, digits: number = 2) {
 		}
 	}
 }
+
+export function applyDefaults<T extends {}>(overrides: Partial<T> = {}, defaults: T): T {
+	return {
+		...defaults,
+		...Object.keys(defaults).reduce((acc, key) => {
+			const defaultValue = defaults[key as keyof T];
+			const overrideValue = overrides[key as keyof T];
+
+			// Check if the default value is an object (excluding arrays)
+			if (
+				typeof defaultValue === 'object' &&
+				defaultValue !== null &&
+				!Array.isArray(defaultValue)
+			) {
+				// Recursively apply defaults to nested objects
+				(acc as any)[key] = applyDefaults(defaultValue, overrideValue as any);
+			} else {
+				// Use the override if provided; otherwise, use the default value
+				(acc as any)[key] = overrideValue !== undefined ? overrideValue : defaultValue;
+			}
+
+			return acc;
+		}, {} as T)
+	};
+}

@@ -1,43 +1,41 @@
 <script lang="ts">
-	// Credit: https://www.w3schools.com/howto/howto_js_rangeslider.asp
+	import { twMerge } from 'tailwind-merge';
+
 	let {
 		id,
 		min,
 		max,
 		step,
 		value = $bindable(),
-		inputStyle,
-		labelStyle
+		inputClass,
+		labelClass
 	}: {
 		id: string;
 		min: number;
 		max: number;
 		step: number;
 		value: number;
-		inputStyle: string;
-		labelStyle: string;
+		inputClass: string;
+		labelClass: string;
 	} = $props();
 </script>
 
-<div style="display: flex; {inputStyle}">
-	<input type="range" {id} name={id} {min} {max} {step} bind:value style="flex: 1;" />
+<div
+	class={twMerge(`my-[15px] flex h-[5px] cursor-pointer items-center rounded-[10px] ${inputClass}`)}
+>
+	<input type="range" {id} name={id} {min} {max} {step} bind:value class="flex-1" />
 </div>
-<label for={id} style={labelStyle}>{value}</label>
+<label for={id} class={labelClass}>{value}</label>
 
-<style lang="scss">
+<style>
 	div {
-		height: 5px;
-		border-radius: 10px;
 		background: #c5c5c557;
 		opacity: 0.7;
 		transition: opacity 0.2s;
-		margin: 15px 0;
-		align-items: center;
+	}
 
-		&:hover {
-			opacity: 1;
-			cursor: pointer;
-		}
+	div:hover {
+		opacity: 1;
 	}
 
 	input {
@@ -47,24 +45,24 @@
 		height: 35px;
 		margin: 0;
 		cursor: pointer;
+	}
 
-		&::-webkit-slider-thumb {
-			appearance: none;
-			width: 20px;
-			height: 20px;
-			border: none;
-			border-radius: 50%;
-			background: white;
-			cursor: pointer;
-		}
+	input::-webkit-slider-thumb {
+		appearance: none;
+		width: 20px;
+		height: 20px;
+		border: none;
+		border-radius: 50%;
+		background: white;
+		cursor: pointer;
+	}
 
-		&::-moz-range-thumb {
-			width: 20px;
-			height: 20px;
-			border: none;
-			border-radius: 50%;
-			background: white;
-			cursor: pointer;
-		}
+	input::-moz-range-thumb {
+		width: 20px;
+		height: 20px;
+		border: none;
+		border-radius: 50%;
+		background: white;
+		cursor: pointer;
 	}
 </style>

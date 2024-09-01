@@ -6,7 +6,7 @@
 	<input type="color" {id} name={id} bind:value />
 </label>
 
-<style lang="scss">
+<style>
 	label {
 		background-color: var(--colour);
 		border-radius: 50%;

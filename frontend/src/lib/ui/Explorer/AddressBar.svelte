@@ -1,40 +1,22 @@
 <script lang="ts">
+	import Button from '$components/Button.svelte';
 	import { explorer } from '$states';
 </script>
 
-<div class="flex-row light-layer">
+<div
+	class="bg-primary/15 flex h-[35px] flex-[6] flex-row items-center gap-[5px] overflow-x-auto rounded-lg p-[5px] text-sm"
+>
 	{#if explorer.currentDirectory !== undefined}
 		{#each explorer.currentDirectory.path as path, index}
-			<button onclick={() => explorer.up(index)} class="path-item">{path}</button>
+			<Button
+				onclick={() => explorer.up(index)}
+				class="whitespace-nowrap rounded-md px-[5px] py-[3px] hover:bg-black/25"
+			>
+				{path}
+			</Button>
 			{#if index < explorer.currentDirectory.path.length - 1}
-				<span class="grey-text">/</span>
+				<span class="text-secondary">/</span>
 			{/if}
 		{/each}
 	{/if}
 </div>
-
-<style lang="scss">
-	div {
-		flex: 6;
-		padding: 5px;
-		height: 25px;
-		overflow-x: auto;
-		border-radius: var(--border-radius);
-
-		align-items: center;
-		gap: 5px;
-	}
-
-	.path-item {
-		backdrop-filter: blur(45px);
-
-		padding: 3px 5px;
-		border-radius: 5px;
-
-		white-space: nowrap;
-
-		&:hover {
-			background-color: rgba(0, 0, 0, 0.3);
-		}
-	}
-</style>

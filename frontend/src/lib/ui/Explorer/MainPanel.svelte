@@ -75,7 +75,11 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div id="main-panel" bind:this={mainPanel} onmousedown={handleMouseDown}>
+<div
+	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px]"
+	bind:this={mainPanel}
+	onmousedown={handleMouseDown}
+>
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
 		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
 			<Item variant="directory" value={subdirectory} {selectionBox} />
@@ -89,33 +93,8 @@
 	{/if}
 
 	<div
-		id="selection-box"
 		bind:this={selectionBoxElement}
-		class:invisible={!selectionBox?.dragging && true}
+		class="border-accent bg-accent/20 absolute rounded-[10px] border"
+		class:invisible={!selectionBox?.dragging}
 	></div>
 </div>
-
-<style lang="scss">
-	#main-panel {
-		display: grid;
-		grid-template-columns: repeat(4, calc(25% - 7.5px));
-		grid-template-rows: repeat(4, 1fr);
-		padding: 10px 20px;
-		gap: 10px;
-		z-index: 1;
-		position: relative;
-
-		height: 400px;
-	}
-
-	#selection-box {
-		position: absolute;
-		border: 1px solid rgb(51, 156, 255);
-		border-radius: 10px;
-		background-color: rgba(51, 156, 255, 0.2);
-	}
-
-	.invisible {
-		visibility: hidden;
-	}
-</style>

@@ -127,15 +127,15 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-	id="view"
 	role="img"
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
+	class="h-screen"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
-		id="container"
+		class="h-auto origin-top-left"
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
@@ -155,39 +155,19 @@
 		</div>
 	</div>
 	{#if image.initialised}
-		<div id="coordinates-panel" class="panel">
-			<span>x:</span>
+		<div id="coordinates-panel" class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px]">
+			<span class="font-bold">x:</span>
 			{x},
-			<span>y:</span>
+			<span class="font-bold">y:</span>
 			{y}
 		</div>
 	{/if}
 </div>
 
-<style lang="scss">
-	#view {
-		height: 100vh;
-	}
-
-	#container {
-		height: auto;
-		transform-origin: 0 0;
-	}
-
-	#coordinates-panel {
-		position: absolute;
-		bottom: 10px;
-		left: 10px;
-		padding: 3px 7px;
-
-		span {
-			font-weight: bold;
-		}
-	}
-
+<style>
 	@media (hover: none) {
 		#coordinates-panel {
-			// Hide the element on touch-capable devices.
+			/* Hide the element on touch-capable devices. */
 			display: none;
 		}
 	}

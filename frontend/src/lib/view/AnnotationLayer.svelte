@@ -82,14 +82,8 @@
 	width={CANVAS_WIDTH}
 	height={CANVAS_HEIGHT}
 	id={'annotation-layer-' + layerIndex}
-	style="z-index: {100 + layerIndex}; display: {annotationLayer.visible
-		? 'block'
-		: 'none'}; opacity: {annotationLayer.opacity};"
+	class="absolute w-full"
+	style:z-index={100 + layerIndex}
+	style:display={annotationLayer.visible ? 'block' : 'none'}
+	style:opacity={annotationLayer.opacity}
 ></canvas>
-
-<style lang="scss">
-	canvas {
-		position: absolute;
-		width: 100%;
-	}
-</style>

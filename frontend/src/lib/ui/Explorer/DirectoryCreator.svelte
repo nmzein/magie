@@ -2,17 +2,19 @@
 	import { http } from '$api';
 	import { explorer } from '$states';
 	import Icon from '$icon';
+	import Button from '$components/Button.svelte';
 
 	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
 
 	$effect(() => {
-		setTimeout(() => {
+		let timeout = setTimeout(() => {
 			document.addEventListener('click', handleClick);
 		}, 10);
 
 		return () => {
 			document.removeEventListener('click', handleClick);
+			clearTimeout(timeout);
 		};
 	});
 
@@ -31,10 +33,10 @@
 
 		let clickedInside = button.contains(event.target as Node);
 
-		if (clickedInside) {
-			// Clicked inside and no name was set, do nothing.
-			return;
-		} else if (!clickedInside && name == '') {
+		// Clicked inside, do nothing.
+		if (clickedInside) return;
+
+		if (!clickedInside && name == '') {
 			// Clicked outside and no name was set, cancel creation.
 			cancel();
 		} else {
@@ -44,56 +46,24 @@
 	}
 
 	function handleKeypress(event: KeyboardEvent) {
-		if (event.key === 'Enter') {
-			if (name == '') {
-				return;
-			} else {
-				create(name);
-			}
+		if (event.key === 'Enter' && name !== '') {
+			create(name);
 		}
 	}
 </script>
 
-<button bind:this={button} class="flex-column" onkeypress={(e) => handleKeypress(e)}>
-	<Icon variant="directory" width={5} height={5} />
+<Button
+	bind:component={button}
+	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center rounded-lg px-[10px] pb-[10px] text-xs hover:backdrop-blur-[15px]"
+	onkeypress={(e) => handleKeypress(e)}
+>
+	<Icon name="directory" class="h-20 w-20" />
 	<!-- svelte-ignore a11y_autofocus -->
-	<input autofocus type="text" class="light-layer" bind:value={name} placeholder="New Directory" />
-</button>
-
-<style lang="scss">
-	input {
-		flex-grow: 1;
-		padding: 5px 10px;
-		// height: 25px;
-		width: 85%;
-		border-radius: var(--border-radius);
-	}
-
-	button {
-		align-items: center;
-		border-radius: 10px;
-		padding: 0 10px 10px 10px;
-		z-index: 0;
-
-		&:hover {
-			backdrop-filter: blur(15px);
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-
-		&:active {
-			background-color: rgba(255, 255, 255, 0.2);
-		}
-	}
-
-	// .selected {
-	// 	background-color: rgba(51, 156, 255, 0.2) !important;
-
-	// 	&:hover {
-	// 		background-color: rgba(51, 156, 255, 0.3) !important;
-	// 	}
-
-	// 	&:active {
-	// 		background-color: rgba(51, 156, 255, 0.4) !important;
-	// 	}
-	// }
-</style>
+	<input
+		autofocus
+		type="text"
+		class="bg-primary/15 h-7 w-full grow rounded-[inherit] px-[10px] py-[5px] focus:outline-none"
+		bind:value={name}
+		placeholder="New Directory"
+	/>
+</Button>

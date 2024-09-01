@@ -7,29 +7,14 @@
 </script>
 
 <Uploader />
-<div id="outer" class="flex-column panel">
+
+<div class="panel flex w-[800px] flex-col !border-none">
 	<TopBar />
-	<div id="inner" class="flex-row">
+	<div class="flex flex-1 flex-row rounded-[10px]">
 		<SidePanel />
-		<div class="flex-column" id="inner-inner">
+		<div class="relative flex flex-[8] flex-col">
 			<InnerBar />
 			<MainPanel />
 		</div>
 	</div>
 </div>
-
-<style lang="scss">
-	#outer {
-		width: 800px;
-		border: none;
-	}
-
-	#inner {
-		flex: 1;
-	}
-
-	#inner-inner {
-		flex: 8;
-		position: relative;
-	}
-</style>

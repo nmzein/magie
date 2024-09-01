@@ -1,113 +1,59 @@
 <script lang="ts">
 	import { explorer } from '$states';
 	import Icon from '$icon';
-
 	import * as Dropdown from '$components/dropdown/index.ts';
 
-	const ICON_SIZE = 1.15;
 	const classes = {
-		trigger: 'flex-row dropdown-trigger-button',
-		list: 'flex-column dropdown-content',
-		item: 'flex-row dropdown-content-button'
+		trigger:
+			'flex flex-row m-[4px] p-[7.5px] pr-[5px] rounded-[5px] gap-[7px] items-center hover:bg-primary/10 text-sm',
+		list: 'flex flex-col absolute mt-[4px] ml-[4px] bg-tertiary/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm',
+		item: 'flex flex-row gap-[10px] items-center m-[2px] px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10'
 	};
 </script>
 
 {#snippet DownArrow()}
-	<div class="down-arrow">
-		<Icon variant="down-arrow" width={ICON_SIZE} height={ICON_SIZE} />
-	</div>
+	<Icon name="down-arrow" class="flex h-[1.15rem] w-[1.15rem] opacity-40" />
 {/snippet}
 
-<div id="inner-bar" class="flex-row light-layer">
+<div class="bg-primary/15 relative flex flex-row px-[1px]">
 	<Dropdown.Root {classes}>
 		<Dropdown.Trigger>
-			<Icon variant="new" width={ICON_SIZE} height={ICON_SIZE} /> New
+			<Icon name="new" class="h-[1.15rem] w-[1.15rem]" /> New
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
 			<Dropdown.Item onclick={() => (explorer.showUploader = true)}>
-				<Icon variant="new-image" width={ICON_SIZE} height={ICON_SIZE} /> Image
+				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
 			</Dropdown.Item>
 			<Dropdown.Item onclick={() => (explorer.showDirectoryCreator = true)}>
-				<Icon variant="directory" width={ICON_SIZE} height={ICON_SIZE} /> Directory
+				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Directory
 			</Dropdown.Item>
 		</Dropdown.List>
 	</Dropdown.Root>
 
 	<Dropdown.Root {classes}>
 		<Dropdown.Trigger>
-			<Icon variant="view" width={ICON_SIZE} height={ICON_SIZE} /> View
+			<Icon name="view" class="h-[1.15rem] w-[1.15rem]" /> View
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
-			<Dropdown.Item onclick={() => {}}>
-				<Icon variant="list-view" width={ICON_SIZE} height={ICON_SIZE} /> List
+			<Dropdown.Item>
+				<Icon name="list-view" class="h-[1.15rem] w-[1.15rem]" /> List
 			</Dropdown.Item>
-			<Dropdown.Item onclick={() => {}}>
-				<Icon variant="grid-view" width={ICON_SIZE} height={ICON_SIZE} /> Grid
+			<Dropdown.Item>
+				<Icon name="grid-view" class="h-[1.15rem] w-[1.15rem]" /> Grid
 			</Dropdown.Item>
 		</Dropdown.List>
 	</Dropdown.Root>
 
 	<Dropdown.Root {classes}>
 		<Dropdown.Trigger>
-			<Icon variant="sort" width={ICON_SIZE} height={ICON_SIZE} /> Sort
+			<Icon name="sort" class="h-[1.15rem] w-[1.15rem]" /> Sort
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
-			<Dropdown.Item onclick={() => {}}>Name</Dropdown.Item>
-			<Dropdown.Item onclick={() => {}}>Date Created</Dropdown.Item>
+			<Dropdown.Item>Name</Dropdown.Item>
+			<Dropdown.Item>Date Created</Dropdown.Item>
 		</Dropdown.List>
 	</Dropdown.Root>
 </div>
-
-<style lang="scss">
-	#inner-bar {
-		z-index: 2;
-		position: relative;
-		padding: 0 1px;
-	}
-
-	.down-arrow {
-		opacity: 40%;
-		display: flex;
-	}
-
-	:global(.dropdown-trigger-button) {
-		margin: 4px;
-		padding: 7.5px 5px 7.5px 7.5px;
-		border-radius: 5px;
-		gap: 7px;
-		align-items: center;
-		z-index: 3;
-
-		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
-	:global(.dropdown-content) {
-		position: absolute;
-		margin-top: 4px;
-		margin-left: 4px;
-		z-index: 3;
-
-		border-radius: 5px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		background-color: rgba(56, 56, 56, 0.9);
-		backdrop-filter: blur(45px);
-	}
-
-	:global(.dropdown-content-button) {
-		gap: 10px;
-		align-items: center;
-		margin: 2px;
-		padding: 7.5px 10px;
-		border-radius: 5px;
-		z-index: 4;
-
-		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-</style>

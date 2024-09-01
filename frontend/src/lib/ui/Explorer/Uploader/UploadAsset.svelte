@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Button from '$components/Button.svelte';
 	import Icon from '$icon';
 
 	let {
@@ -26,88 +27,42 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div ondrop={(e) => handleDrop(e)} ondragover={(e) => e.preventDefault()}>
+<div
+	ondrop={(e) => handleDrop(e)}
+	ondragover={(e) => e.preventDefault()}
+	class="flex h-full w-full flex-1 flex-row items-center justify-center rounded-lg focus:outline-none"
+>
 	{#if asset}
-		<button id="asset" class="populated" onclick={() => (asset = undefined)}>
-			<Icon variant="image" width={5} height={5} />
-			<span>{asset.name}</span>
-		</button>
+		<Button
+			class="bg-primary/10 flex h-full flex-1 flex-col items-center justify-center gap-2 rounded-[inherit]"
+			onclick={() => (asset = undefined)}
+		>
+			<Icon name="image" class="h-20 w-20" />
+			<span class="select-none overflow-hidden text-ellipsis whitespace-nowrap text-center text-sm">
+				{asset.name}
+			</span>
+		</Button>
 	{:else}
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<label
-			id="asset"
-			class="unpopulated"
+			class="border-primary/70 flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-[inherit] border-2 border-dashed"
 			for={'browse-input-' + placeholder}
 			onclick={(e) => handleBrowse(e)}
+			onkeydown={(e) => e.key === 'Enter' && handleBrowse(e)}
 		>
-			<Icon variant="image" width={5} height={5} />
-			<span class="grey-text">{placeholder}</span>
+			<Icon name="image" class="h-20 w-20" />
+			<span
+				class="text-secondary select-none overflow-hidden text-ellipsis whitespace-nowrap text-center text-sm"
+			>
+				{placeholder}
+			</span>
 		</label>
 
 		<input
 			id={'browse-input-' + placeholder}
 			type="file"
-			style="display: none;"
+			class="hidden"
 			onchange={(e) => handleBrowse(e)}
 		/>
 	{/if}
 </div>
-
-<style lang="scss">
-	div {
-		display: flex;
-		flex: 1;
-		justify-content: center;
-		align-items: center;
-		height: 100%;
-		width: 100%;
-
-		color: white;
-		background: transparent;
-		border-radius: 5px;
-
-		&:focus {
-			outline: none;
-		}
-	}
-
-	#asset {
-		display: flex;
-		flex: 1;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-
-		border-radius: 5px;
-		gap: 10px;
-		height: 100%;
-
-		cursor: pointer;
-	}
-
-	.populated {
-		background-color: rgba(255, 255, 255, 0.1);
-	}
-
-	.unpopulated {
-		border: 2px dashed rgba(255, 255, 255, 0.7);
-	}
-
-	// img {
-	// 	width: 60px;
-	// 	height: 60px;
-	// 	margin-bottom: 10px;
-	// 	user-select: none;
-	// }
-
-	span {
-		// width: 130px;
-		white-space: nowrap;
-		overflow: hidden;
-		user-select: none;
-		text-overflow: ellipsis;
-		text-align: center;
-		font-size: 14px;
-	}
-</style>

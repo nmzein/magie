@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { defined } from '$helpers';
+	import { image } from '$states';
+	import type { ImageLayer } from '$types';
+
 	let {
 		layerIndex,
 		layer,
@@ -8,9 +12,6 @@
 		layer: ImageLayer;
 		display: boolean;
 	} = $props();
-
-	import { image } from '$states';
-	import type { ImageLayer } from '$types';
 
 	const options = {
 		rootMargin: '150px'
@@ -56,12 +57,13 @@
 	});
 </script>
 
-{#if image.metadata !== undefined}
+{#if defined(image.metadata)}
 	<div
 		id="image-layer-{layerIndex}"
-		class="image-layer"
-		style="--no-of-columns: {image.metadata[layerIndex].cols}; z-index: {image.metadata.length -
-			layerIndex};"
+		class="absolute grid w-screen"
+		style:grid-template-columns={`repeat(${image.metadata[layerIndex].cols}, 1fr)`}
+		style:grid-template-rows={`repeat(${image.metadata[layerIndex].rows}, 1fr)`}
+		style:z-index={image.metadata.length - layerIndex}
 	>
 		{#each layer as row, rowIndex (rowIndex)}
 			{#each row as tile, colIndex (colIndex)}
@@ -72,15 +74,17 @@
 					1) This layer is the current layer (i.e. display == true).
 					2) The tile has been loaded (i.e. tile.src != '').
 				-->
-				<img
-					src={tile.src || 'placeholder.png'}
-					style="display: {display || tile.src !== '' ? 'block' : 'none'};"
-					data-level={layerIndex}
-					data-x={colIndex}
-					data-y={rowIndex}
-					alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
-					onerror={() => console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
-				/>
+				{#if tile.src !== '' || display}
+					<img
+						src={tile.src || 'placeholder.png'}
+						data-level={layerIndex}
+						data-x={colIndex}
+						data-y={rowIndex}
+						alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
+						onerror={() =>
+							console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
+					/>
+				{/if}
 
 				<!-- 
 					In the case where the tile has not been loaded and this layer
@@ -96,18 +100,11 @@
 	</div>
 {/if}
 
-<style lang="scss">
-	.image-layer {
-		width: 100vw;
-		display: grid;
-		grid-template-columns: repeat(var(--no-of-columns), 1fr);
-		position: absolute;
-	}
-
+<style>
 	img {
 		width: 100%;
 		height: auto;
-		// Prevent image selection when dragging.
+		/* Prevent image selection when dragging. */
 		user-select: none;
 		object-fit: cover;
 		margin: 0;

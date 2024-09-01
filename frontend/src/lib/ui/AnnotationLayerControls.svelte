@@ -1,31 +1,30 @@
 <script lang="ts">
-	let { layer }: { layer: AnnotationLayer } = $props();
-
 	import type { AnnotationLayer } from '$types';
-
 	import Switch from '$components/Switch.svelte';
 	import Slider from '$components/Slider.svelte';
 	import ColourPicker from '$components/ColourPicker.svelte';
+
+	let { layer }: { layer: AnnotationLayer } = $props();
 </script>
 
-<div style="display: flex; flex-direction: column; gap: 5px; padding: 10px;">
-	<div style="display: flex; gap: 10px; align-items: center;">
+<div class="flex flex-col gap-[5px] p-[10px]">
+	<div class="flex flex-row items-center gap-[10px]">
 		<ColourPicker id={'fill-' + layer.tag} bind:value={layer.fill} />
-		<span style="flex: 1;">
+		<span class="flex-1">
 			{layer.tag}
 		</span>
 		<Switch bind:checked={layer.visible} />
 	</div>
-	<div style="display: flex; gap: 10px; align-items: center;">
-		<span style="font-size: 15px;"> α </span>
+	<div class="flex flex-row items-center gap-[10px]">
+		<span class="text-[15px]"> α </span>
 		<Slider
 			id={'opacity-' + layer.tag}
 			min={0}
 			max={1}
 			step={0.1}
 			bind:value={layer.opacity}
-			inputStyle="flex: 9;"
-			labelStyle="flex: 1; text-align: right;"
+			inputClass="flex-[9]"
+			labelClass="flex-1 text-right"
 		/>
 	</div>
 </div>

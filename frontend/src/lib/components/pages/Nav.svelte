@@ -4,14 +4,6 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
-<div>
+<div class="flex w-full justify-between">
 	{@render children()}
 </div>
-
-<style lang="scss">
-	div {
-		display: flex;
-		justify-content: space-between;
-		width: 100%;
-	}
-</style>

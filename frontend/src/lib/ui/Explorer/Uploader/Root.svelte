@@ -9,18 +9,25 @@
 </script>
 
 {#if explorer.showUploader}
-	<div id="outer" transition:scale={{ duration: 200 }}>
-		<div id="inner" class="panel flex-column" role="dialog" aria-modal="true">
+	<div
+		class="absolute z-10 m-10 h-[calc(100%-80px)] w-[calc(100%-80px)] rounded-xl"
+		transition:scale={{ duration: 200 }}
+	>
+		<div
+			class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2 shadow-[0_0_10px_rgba(0,0,0,0.2)]"
+			role="dialog"
+			aria-modal="true"
+		>
 			<TopBar />
 
-			<div id="main" class="flex-column">
+			<div class="m-5 flex flex-1 flex-col items-center justify-center gap-5">
 				<Pages.Root>
 					<Pages.Page nextDisabled={!defined(uploader.image)}>
 						<UploadAsset bind:asset={uploader.image} placeholder="Image" />
 					</Pages.Page>
 
 					<Pages.Page nextDisabled={!uploader.annotationsSatisfied}>
-						<Tabs.Root>
+						<Tabs.Root classes={{ content: 'h-full' }}>
 							<Tabs.List>
 								<Tabs.Trigger
 									value="none"
@@ -51,32 +58,3 @@
 		</div>
 	</div>
 {/if}
-
-<style lang="scss">
-	#outer {
-		position: absolute;
-		z-index: 5;
-		width: calc(100% - 80px);
-		height: calc(100% - 80px);
-		margin: 40px;
-
-		border-radius: var(--border-radius);
-	}
-
-	#inner {
-		z-index: 6;
-		box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
-		width: 100%;
-		height: 100%;
-		border-radius: inherit;
-		border: 2px solid #3e3e3e;
-	}
-
-	#main {
-		flex: 1;
-		justify-content: center;
-		align-items: center;
-		margin: 20px;
-		gap: 20px;
-	}
-</style>

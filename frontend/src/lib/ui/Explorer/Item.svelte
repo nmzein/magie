@@ -3,6 +3,7 @@
 	import { image, explorer, type SelectionBox } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
+	import Button from '$components/Button.svelte';
 
 	let {
 		variant,
@@ -17,6 +18,7 @@
 	let item: HTMLButtonElement | undefined = $state();
 	let itemBounds = $derived(item?.getBoundingClientRect());
 	let intersected = $derived(defined(itemBounds) && selectionBox.intersecting(itemBounds, value));
+	let selected = $derived(explorer.isSelected(value));
 
 	function handleMouseDown(event: MouseEvent) {
 		// Stop the mousedown event from
@@ -57,46 +59,15 @@
 	}
 </script>
 
-<button
-	bind:this={item}
-	class="flex-column"
-	class:intersected
-	class:selected={explorer.isSelected(value)}
+<Button
+	bind:component={item}
+	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center rounded-lg px-[10px] pb-[10px] text-sm hover:backdrop-blur-[15px]
+		   {intersected ? 'bg-primary/10 backdrop-blur-[15px]' : ''}
+		   {selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''}"
 	onmousedown={(e) => handleMouseDown(e)}
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
 >
-	<Icon {variant} width={5} height={5} />
+	<Icon name={variant} class="h-20 w-20" />
 	{value.name}
-</button>
-
-<style lang="scss">
-	button {
-		align-items: center;
-		border-radius: 10px;
-		padding: 0 10px 10px 10px;
-		z-index: 0;
-
-		&:hover,
-		&.intersected {
-			background-color: rgba(255, 255, 255, 0.1);
-			backdrop-filter: blur(15px);
-		}
-
-		&:active {
-			background-color: rgba(255, 255, 255, 0.2);
-		}
-
-		&.selected {
-			background-color: rgba(51, 156, 255, 0.2) !important;
-
-			&:hover {
-				background-color: rgba(51, 156, 255, 0.3) !important;
-			}
-
-			&:active {
-				background-color: rgba(51, 156, 255, 0.4) !important;
-			}
-		}
-	}
-</style>
+</Button>

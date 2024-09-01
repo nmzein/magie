@@ -1,45 +1,42 @@
 <script lang="ts">
+	import { defined } from '$helpers';
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
+	import { twMerge } from 'tailwind-merge';
 
 	let {
-		variant = 'default',
-		hidden,
+		class: className,
+		component = $bindable(),
+		variant,
+		invisible = false,
+		disabled = false,
 		children,
 		...restProps
 	}: {
+		class?: string;
+		component?: HTMLButtonElement;
 		variant?: 'default' | 'primary';
-		hidden: boolean;
-		children: Snippet;
+		invisible?: boolean;
+		disabled?: boolean;
+		children?: Snippet;
 	} & HTMLButtonAttributes = $props();
+
+	let variants = {
+		default: 'items-center px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10',
+		primary:
+			'items-center px-4 py-[10px] rounded-full text-[15px] bg-[rgb(12,98,197)] hover:bg-[rgb(14,112,224)]'
+	};
 </script>
 
-<button class={variant} class:hidden {...restProps}>{@render children()}</button>
-
-<style lang="scss">
-	.hidden {
-		visibility: hidden;
-	}
-
-	.default {
-		align-items: center;
-		padding: 7.5px 10px;
-		border-radius: 5px;
-
-		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
-	.primary {
-		align-items: center;
-		padding: 10px 20px;
-		font-size: 15px;
-		border-radius: 9999px;
-		background-color: rgb(12, 98, 197);
-
-		&:hover {
-			background-color: rgb(14, 112, 224);
-		}
-	}
-</style>
+<button
+	bind:this={component}
+	class={twMerge(
+		`cursor-pointer text-sm ${variant ? variants[variant] : ''} ${className} ${invisible ? 'invisible' : ''} ${disabled ? 'cursor-default' : ''}`
+	)}
+	{disabled}
+	{...restProps}
+>
+	{#if defined(children)}
+		{@render children()}
+	{/if}
+</button>

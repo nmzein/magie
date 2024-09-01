@@ -4,18 +4,10 @@
 	import Search from './Search.svelte';
 </script>
 
-<div class="flex-row light-layer">
+<div
+	class="border-b-secondary/20 bg-primary/15 flex flex-row items-center gap-[10px] rounded-t-[inherit] border-b p-[10px]"
+>
 	<NavigationButtons />
 	<AddressBar />
 	<Search />
 </div>
-
-<style lang="scss">
-	div {
-		gap: 10px;
-		padding: 10px;
-		align-items: center;
-		border-radius: 10px 10px 0px 0px;
-		border-bottom: 1px solid rgba(168, 168, 168, 0.2);
-	}
-</style>

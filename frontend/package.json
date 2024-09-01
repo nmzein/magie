@@ -25,7 +25,7 @@
 		"globals": "15.9.0",
 		"prettier": "3.3.3",
 		"prettier-plugin-svelte": "3.2.6",
-		"sass": "1.77.8",
+		"prettier-plugin-tailwindcss": "0.6.6",
 		"svelte": "^5.0.0-next.242",
 		"svelte-check": "3.8.6",
 		"tslib": "2.7.0",
@@ -35,8 +35,11 @@
 		"workbox-precaching": "7.1.0"
 	},
 	"dependencies": {
-		"@iconify/json": "2.2.242",
+		"@iconify/json": "2.2.243",
+		"@tailwindcss/vite": "^4.0.0-alpha.20",
 		"canvas": "2.11.2",
+		"tailwind-merge": "2.5.2",
+		"tailwindcss": "^4.0.0-alpha.20",
 		"three": "0.168.0",
 		"unplugin-icons": "0.19.2",
 		"ws": "8.18.0"

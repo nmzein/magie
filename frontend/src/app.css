@@ -1,31 +1,32 @@
+@import 'tailwindcss';
+
 @font-face {
 	font-family: 'JetBrains Mono';
 	src: url('/JetBrainsMono[wght].ttf');
 	font-weight: 100 200 300 400 500 600 700 800 900;
 }
 
+@theme {
+	--color-primary: rgb(255, 255, 255);
+	--color-secondary: rgb(168, 168, 168);
+	--color-tertiary: rgb(62, 62, 62);
+	--color-accent: rgb(51, 156, 255);
+}
+
 * {
 	font-family: 'JetBrains Mono', monospace;
-	color: white;
 	--border-radius: 10px;
 }
 
 body {
 	margin: 0;
 	background-color: #292929;
-	overflow: hidden;
+	overflow: invisible;
+	color: white;
 }
 
 input {
 	border: none;
-}
-
-button {
-	padding: 0;
-	background: transparent;
-	border: none;
-	cursor: pointer;
-	font-size: 14px;
 }
 
 select {
@@ -39,41 +40,13 @@ h1 {
 	margin: 0;
 }
 
-.grey-text {
-	color: rgb(168, 168, 168);
-}
-
-.flex {
-	display: flex;
-	flex-direction: row;
-}
-
-.flex-row {
-	display: flex;
-	flex-direction: row;
-}
-
-.flex-column {
-	display: flex;
-	flex-direction: column;
-}
-
-.hidden {
-	visibility: hidden;
-}
-
 .panel {
 	border: 1px solid rgba(255, 255, 255, 0.125);
-	border-radius: 10px;
+	border-radius: var(--border-radius);
 	backdrop-filter: blur(45px);
 	background: rgba(0, 0, 0, 0.85);
 	box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
 	pointer-events: all;
-}
-
-.light-layer {
-	// backdrop-filter: blur(15px);
-	background: rgba(255, 255, 255, 0.15);
 }
 
 .dark-layer {

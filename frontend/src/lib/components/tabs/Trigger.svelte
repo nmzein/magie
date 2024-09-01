@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { getTabState } from './context.svelte.ts';
+	import Button from '$components/Button.svelte';
 
 	let {
 		value = '',
@@ -17,12 +18,13 @@
 	let tState = getTabState();
 </script>
 
-<button
+<Button
 	class="
 		{tState.classes.trigger.regular}
 		{!disabled && tState.currentTab === value ? tState.classes.trigger.active : ''}
 		{disabled ? tState.classes.trigger.disabled : ''}
 	"
+	{disabled}
 	onclick={() => {
 		if (disabled) return;
 		if (sideEffect !== undefined) sideEffect();
@@ -37,4 +39,4 @@
 	}}
 >
 	{@render children()}
-</button>
+</Button>

@@ -5,36 +5,36 @@
 	import Icon from '$icon';
 	import AnnotationControls from '$ui/AnnotationControls.svelte';
 	import { truncateNumber } from '$helpers';
+	import Button from '$components/Button.svelte';
 
-	const ICON_SIZE = 2.3;
 	const classes = {
-		list: 'panel control-panel-tab-list',
+		list: 'panel flex flex-col gap-[2px] p-[3px]',
 		trigger: {
-			regular: 'control-panel-tab-trigger',
-			active: 'control-panel-tab-trigger-active',
-			disabled: 'control-panel-tab-trigger-disabled'
+			regular: 'rounded-[7px] h-12 w-12 p-[5px] hover:backdrop-blur-[15px] hover:bg-primary/10',
+			active: 'bg-primary/10',
+			disabled: 'opacity-30'
 		},
-		content: 'control-panel-tab-content'
+		content: 'p-0 absolute right-0 mr-[65px] w-auto'
 	};
 </script>
 
-<nav>
-	<div class="groups">
+<nav class="pointer-events-none absolute bottom-0 right-0 top-0 m-[10px] block">
+	<div class="flex h-full flex-col gap-[10px]">
 		<Tabs.Root mode="0" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger
 					sideEffect={() => transformer.zoom(-100)}
 					disabled={!image.initialised || transformer.atMaxScale()}
 				>
-					<Icon variant="zoom-in" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="zoom-in" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<span
 					onclick={() => transformer.resetScale()}
-					style="text-align: center; margin: 5px 0; user-select: none;
-						   {image.initialised ? 'cursor: pointer' : ''};"
-					class:control-panel-tab-trigger-disabled={!image.initialised}
+					class="my-[5px] select-none text-center"
+					class:cursor-pointer={image.initialised}
+					class:opacity-30={!image.initialised}
 				>
 					{truncateNumber(transformer.scale)}x
 				</span>
@@ -42,7 +42,7 @@
 					sideEffect={() => transformer.zoom(100)}
 					disabled={!image.initialised || transformer.atMinScale()}
 				>
-					<Icon variant="zoom-out" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="zoom-out" class="h-9 w-9" />
 				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
@@ -50,13 +50,13 @@
 		<Tabs.Root mode="<=1" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="explorer">
-					<Icon variant="explorer" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="explorer" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="control" disabled={!image.initialised}>
-					<Icon variant="control" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="control" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="info" disabled={!image.initialised}>
-					<Icon variant="info" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="info" class="h-9 w-9" />
 				</Tabs.Trigger>
 			</Tabs.List>
 			<Tabs.Content value="explorer">
@@ -70,97 +70,24 @@
 		<Tabs.Root mode="1" initialTab="move" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="move" sideEffect={undefined} disabled={false}>
-					<Icon variant="cursor" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="cursor" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="freehand-draw" sideEffect={undefined} disabled={true}>
-					<Icon variant="freehand" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="freehand" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="square" sideEffect={undefined} disabled={true}>
-					<Icon variant="square" width={ICON_SIZE} height={ICON_SIZE} />
+					<Icon name="square" class="h-9 w-9" />
 				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
 
-		<div class="group panel anchor-bottom">
-			<button>
-				<Icon variant="settings" width={ICON_SIZE} height={ICON_SIZE} />
-			</button>
+		<div class="panel mt-auto flex flex-col gap-[2px] p-[3px]">
+			<Button
+				class="hover:bg-primary/10 h-12 w-12 rounded-[7px] p-[5px] opacity-30 hover:backdrop-blur-[15px]"
+				disabled
+			>
+				<Icon name="settings" class="h-9 w-9" />
+			</Button>
 		</div>
 	</div>
 </nav>
-
-<style lang="scss">
-	nav {
-		display: block;
-		position: absolute;
-
-		top: 0;
-		bottom: 0;
-		right: 0;
-
-		margin: 10px;
-
-		pointer-events: none;
-	}
-
-	.groups {
-		display: flex;
-		flex-direction: column;
-
-		height: 100%;
-		gap: 10px;
-	}
-
-	.group {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 3px;
-	}
-
-	.anchor-bottom {
-		margin-top: auto;
-	}
-
-	button,
-	:global(.control-panel-tab-trigger) {
-		border-radius: 7px;
-		height: 3rem;
-		height: 3rem;
-
-		padding: 5px;
-
-		&:hover {
-			backdrop-filter: blur(15px);
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
-	:global(.control-panel-tab-trigger-active) {
-		background-color: rgba(255, 255, 255, 0.1);
-		&:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-	}
-
-	:global(.control-panel-tab-trigger-disabled) {
-		opacity: 0.3;
-		cursor: default;
-	}
-
-	:global(.control-panel-tab-list) {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 3px;
-	}
-
-	:global(.control-panel-tab-content) {
-		padding: 0;
-		position: absolute;
-
-		right: 0;
-		margin-right: 65px;
-		width: auto;
-	}
-</style>
