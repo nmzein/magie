@@ -39,7 +39,10 @@ export function truncateNumber(num: number, digits: number = 2) {
 	}
 }
 
-export function applyDefaults<T extends {}>(overrides: Partial<T> = {}, defaults: T): T {
+export function applyDefaults<T extends Record<string, any>>(
+	overrides: Partial<T> = {},
+	defaults: T
+): DeepRequired<T> {
 	return {
 		...defaults,
 		...Object.keys(defaults).reduce((acc, key) => {
@@ -53,7 +56,7 @@ export function applyDefaults<T extends {}>(overrides: Partial<T> = {}, defaults
 				!Array.isArray(defaultValue)
 			) {
 				// Recursively apply defaults to nested objects
-				(acc as any)[key] = applyDefaults(defaultValue, overrideValue as any);
+				(acc as any)[key] = applyDefaults(overrideValue, defaultValue);
 			} else {
 				// Use the override if provided; otherwise, use the default value
 				(acc as any)[key] = overrideValue !== undefined ? overrideValue : defaultValue;
@@ -61,5 +64,11 @@ export function applyDefaults<T extends {}>(overrides: Partial<T> = {}, defaults
 
 			return acc;
 		}, {} as T)
-	};
+	} as DeepRequired<T>;
 }
+
+export type DeepRequired<T> = T extends object
+	? T extends Array<infer U>
+		? Array<DeepRequired<U>>
+		: { [K in keyof T]-?: DeepRequired<T[K]> }
+	: T;

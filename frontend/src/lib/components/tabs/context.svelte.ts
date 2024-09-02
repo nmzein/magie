@@ -1,9 +1,9 @@
-import { applyDefaults } from '$helpers';
+import { applyDefaults, type DeepRequired } from '$helpers';
 import { setContext, getContext } from 'svelte';
 
 const TAB_KEY = Symbol('TAB');
 
-export type Modes = '0' | '1' | '<=1' | '>1';
+export type Modes = 'buttons' | 'tab' | 'collapsible-tab' | 'toggle';
 export type TabClasses = {
 	list?: string;
 	trigger?: { regular?: string; active?: string; disabled?: string };
@@ -21,19 +21,19 @@ export function getTabState() {
 class TabState {
 	private _mode: Modes;
 	public currentTab: string | undefined = $state();
-	public classes: TabClasses;
+	public classes: DeepRequired<TabClasses>;
 
-	constructor(mode?: Modes, initialTab?: string, classes?: TabClasses) {
-		this._mode = mode ?? '1';
+	constructor(mode?: Modes, initialTab?: string, classes?: Partial<TabClasses>) {
+		this._mode = mode ?? 'tab';
 		this.currentTab = initialTab ?? '';
 		this.classes = applyDefaults(classes, {
 			list: '',
+			trigger: {
+				regular: '',
+				active: '',
+				disabled: ''
+			},
 			content: ''
-		});
-		this.classes.trigger = applyDefaults(classes?.trigger, {
-			regular: '',
-			active: '',
-			disabled: ''
 		});
 	}
 

@@ -3,7 +3,7 @@
 	import { setTabState, type Modes, type TabClasses } from './context.svelte.ts';
 
 	let {
-		mode = '1',
+		mode,
 		classes,
 		initialTab,
 		children

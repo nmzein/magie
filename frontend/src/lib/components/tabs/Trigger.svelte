@@ -29,11 +29,11 @@
 		if (disabled) return;
 		if (sideEffect !== undefined) sideEffect();
 
-		if (tState.mode !== '0' && tState.currentTab !== value) {
-			// Only allow toggle if mode is '=1' or '<=1'.
+		if (tState.mode !== 'buttons' && tState.currentTab !== value) {
+			// Only allow enable if mode is 'tab', 'collapsible-tab', or 'toggle'.
 			tState.currentTab = value;
-		} else if (tState.mode === '<=1') {
-			// Only allow untoggle if mode is '<=1'.
+		} else if (tState.mode === 'collapsible-tab') {
+			// Only allow disable if mode is 'collapsible-tab' ('buttons' auto-disables).
 			tState.currentTab = undefined;
 		}
 	}}

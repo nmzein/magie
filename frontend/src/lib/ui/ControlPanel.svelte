@@ -20,7 +20,7 @@
 
 <nav class="pointer-events-none absolute bottom-0 right-0 top-0 m-[10px] block">
 	<div class="flex h-full flex-col gap-[10px]">
-		<Tabs.Root mode="0" {classes}>
+		<Tabs.Root mode="buttons" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger
 					sideEffect={() => transformer.zoom(-100)}
@@ -28,16 +28,14 @@
 				>
 					<Icon name="zoom-in" class="h-9 w-9" />
 				</Tabs.Trigger>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<span
+				<button
 					onclick={() => transformer.resetScale()}
 					class="my-[5px] select-none text-center"
 					class:cursor-pointer={image.initialised}
 					class:opacity-30={!image.initialised}
 				>
 					{truncateNumber(transformer.scale)}x
-				</span>
+				</button>
 				<Tabs.Trigger
 					sideEffect={() => transformer.zoom(100)}
 					disabled={!image.initialised || transformer.atMinScale()}
@@ -47,7 +45,7 @@
 			</Tabs.List>
 		</Tabs.Root>
 
-		<Tabs.Root mode="<=1" {classes}>
+		<Tabs.Root mode="collapsible-tab" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="explorer">
 					<Icon name="explorer" class="h-9 w-9" />
@@ -67,7 +65,7 @@
 			</Tabs.Content>
 		</Tabs.Root>
 
-		<Tabs.Root mode="1" initialTab="move" {classes}>
+		<Tabs.Root mode="tab" initialTab="move" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="move" sideEffect={undefined} disabled={false}>
 					<Icon name="cursor" class="h-9 w-9" />
