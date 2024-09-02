@@ -2,6 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { getTabState } from './context.svelte.ts';
 	import Button from '$components/Button.svelte';
+	import { twMerge } from 'tailwind-merge';
 
 	let {
 		value = '',
@@ -20,9 +21,10 @@
 
 <Button
 	class="
-		{tState.classes.trigger.regular}
+		{tState.classes.trigger.base}
+		{tState.currentTab !== value ? tState.classes.trigger.inactive : ''}
 		{!disabled && tState.currentTab === value ? tState.classes.trigger.active : ''}
-		{disabled ? tState.classes.trigger.disabled : ''}
+		{disabled ? twMerge(tState.classes.trigger.disabled, 'opacity-30 grayscale') : ''}
 	"
 	{disabled}
 	onclick={() => {

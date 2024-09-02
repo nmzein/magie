@@ -8,7 +8,6 @@ import { Transformer } from './transformer.svelte';
 export { SelectionBox };
 
 export const repository = new Repository();
-// TODO: Make this a list of open file explorers and image viewers.
 export const explorer = new Explorer();
 export const uploader = new Uploader();
 export const image = ImageViewer();

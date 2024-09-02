@@ -14,7 +14,6 @@
 	--blur-*: initial;
 	--breakpoint-*: initial;
 	--color-*: initial;
-	/* --font-size-*: initial; */
 	--inset-shadow-*: initial;
 	--letter-spacing-*: initial;
 	--line-height-*: initial;
@@ -28,10 +27,12 @@
 	--font-family-mono: 'JetBrains Mono', monospace;
 
 	--color-black: rgb(0, 0, 0);
+	--color-white: rgb(255, 255, 255);
 	--color-primary: rgb(255, 255, 255);
 	--color-secondary: rgb(168, 168, 168);
 	--color-tertiary: rgb(62, 62, 62);
-	--color-accent: rgb(51, 156, 255);
+	--color-accent: rgb(12, 98, 197);
+	--color-accent-light: rgb(14, 112, 224);
 }
 
 * {

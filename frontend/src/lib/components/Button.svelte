@@ -23,8 +23,7 @@
 
 	let variants = {
 		default: 'items-center px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10',
-		primary:
-			'items-center px-4 py-[10px] rounded-full text-[15px] bg-[rgb(12,98,197)] hover:bg-[rgb(14,112,224)]'
+		primary: 'items-center px-4 py-[10px] rounded-full text-[15px] bg-accent hover:bg-accent-light'
 	};
 </script>
 

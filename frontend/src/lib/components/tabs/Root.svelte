@@ -1,15 +1,31 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { setTabState, type Modes, type TabClasses } from './context.svelte.ts';
+	import { untrack, type Snippet } from 'svelte';
+	import { getTabState, setTabState, type Modes, type TabClasses } from './context.svelte.ts';
 
 	let {
+		currentTab = $bindable(),
 		mode,
 		classes,
-		initialTab,
 		children
-	}: { mode?: Modes; classes?: TabClasses; initialTab?: string; children: Snippet } = $props();
+	}: { currentTab?: string; mode?: Modes; classes?: TabClasses; children: Snippet } = $props();
 
-	setTabState(mode, initialTab, classes);
+	setTabState(mode, currentTab, classes);
+
+	let tState = getTabState();
+
+	$effect(() => {
+		tState.currentTab; // Triggers the effect when tState.currentTab changes.
+		untrack(() => {
+			currentTab = tState.currentTab;
+		});
+	});
+
+	$effect(() => {
+		classes;
+		untrack(() => {
+			tState.classes = classes;
+		});
+	});
 </script>
 
 {@render children()}

@@ -10,7 +10,7 @@
 	const classes = {
 		list: 'panel flex flex-col gap-[2px] p-[3px]',
 		trigger: {
-			regular: 'rounded-[7px] h-12 w-12 p-[5px] hover:backdrop-blur-[15px] hover:bg-primary/10',
+			base: 'rounded-[7px] h-12 w-12 p-[5px] hover:backdrop-blur-[15px] hover:bg-primary/10',
 			active: 'bg-primary/10',
 			disabled: 'opacity-30'
 		},
@@ -65,7 +65,7 @@
 			</Tabs.Content>
 		</Tabs.Root>
 
-		<Tabs.Root mode="tab" initialTab="move" {classes}>
+		<Tabs.Root mode="tab" currentTab="move" {classes}>
 			<Tabs.List>
 				<Tabs.Trigger value="move" sideEffect={undefined} disabled={false}>
 					<Icon name="cursor" class="h-9 w-9" />

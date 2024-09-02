@@ -6,9 +6,11 @@ export class Uploader {
 	public parentDirectoryId: number | undefined = $state();
 	public image: File | undefined = $state();
 	public annotations: File | undefined = $state();
+	public currentPage: number = $state(0);
+	public generator: string = $derived(repository.generators[0]);
 	// TODO: Rename to options
-	public settings: UploaderSettings = $derived({
-		generator: repository.generators[0],
+	public settings: UploaderSettings = $state({
+		generator: this.generator,
 		annotations: 'none'
 	});
 	public annotationsSatisfied: boolean = $derived(
