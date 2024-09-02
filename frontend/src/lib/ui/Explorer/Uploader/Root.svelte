@@ -14,7 +14,7 @@
 		transition:scale={{ duration: 200 }}
 	>
 		<div
-			class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2 shadow-[0_0_10px_rgba(0,0,0,0.2)]"
+			class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2"
 			role="dialog"
 			aria-modal="true"
 		>

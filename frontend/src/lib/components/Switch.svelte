@@ -1,63 +1,52 @@
 <script lang="ts">
-	// Credit: https://www.w3schools.com/howto/howto_css_switch.asp
-	let { checked = $bindable() }: { checked: boolean } = $props();
+	let {
+		checked = $bindable(),
+		sliderLength = 35,
+		thumbSize = 14,
+		thumbGap = 2
+	}: {
+		checked: boolean;
+		sliderLength?: number;
+		thumbSize?: number;
+		thumbGap?: number;
+	} = $props();
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<label id="switch" for="switch" onclick={() => (checked = !checked)}>
-	<input id="switch" type="checkbox" {checked} />
-	<span id="slider"></span>
+<label
+	id="switch"
+	for="switch"
+	style:height={`${thumbSize + 2 * thumbGap}px`}
+	style:width={`${sliderLength}px`}
+	class="relative"
+>
+	<input
+		id="switch"
+		type="checkbox"
+		bind:checked
+		class="absolute z-[1] h-full w-full cursor-pointer opacity-0"
+	/>
+	<span
+		id="slider"
+		class="bg-primary/40 absolute inset-0 rounded-full transition-colors duration-300"
+	>
+		<span
+			id="thumb"
+			style:height={`${thumbSize}px`}
+			style:width={`${thumbSize}px`}
+			style:bottom={`${thumbGap}px`}
+			style:left={`${thumbGap}px`}
+			style:--translate={`${sliderLength - thumbSize - 2 * thumbGap}px`}
+			class="bg-primary absolute rounded-full transition-transform duration-300"
+		></span>
+	</span>
 </label>
 
 <style>
-	#switch {
-		position: relative;
-		display: inline-block;
-		width: 30px;
-		height: 17px;
-	}
-
-	/* Hide default HTML checkbox */
-	#switch input {
-		opacity: 0;
-		width: 0;
-		height: 0;
-	}
-
-	#slider {
-		position: absolute;
-		cursor: pointer;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: rgba(255, 255, 255, 0.4);
-		transition: transform 0.3s;
-		border-radius: 34px;
-	}
-
-	#slider:before {
-		position: absolute;
-		content: '';
-		height: 13px;
-		width: 13px;
-		left: 2px;
-		bottom: 2px;
-		background-color: white;
-		transition: transform 0.3s;
-		border-radius: 50%;
-	}
-
 	input:checked + #slider {
-		background-color: #2196f3;
+		background-color: var(--color-accent);
 	}
 
-	input:focus + #slider {
-		box-shadow: 0 0 1px #2196f3;
-	}
-
-	input:checked + #slider:before {
-		transform: translateX(13px);
+	input:checked + #slider #thumb {
+		transform: translateX(var(--translate));
 	}
 </style>

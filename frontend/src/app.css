@@ -2,11 +2,32 @@
 
 @font-face {
 	font-family: 'JetBrains Mono';
-	src: url('/JetBrainsMono[wght].ttf');
-	font-weight: 100 200 300 400 500 600 700 800 900;
+	src: local('JetBrains Mono'), url('/JetBrainsMono[wght].ttf');
+	font-weight: 500 600 700;
+	font-style: normal;
+	/* Latin glyphs */
+	unicode-range: U+000-5FF;
 }
 
 @theme {
+	--animate-*: initial;
+	--blur-*: initial;
+	--breakpoint-*: initial;
+	--color-*: initial;
+	/* --font-size-*: initial; */
+	--inset-shadow-*: initial;
+	--letter-spacing-*: initial;
+	--line-height-*: initial;
+	--perspective-*: initial;
+	--shadow-*: initial;
+	--transition-timing-function-*: initial;
+	--width-*: initial;
+
+	--font-family-sans: 'JetBrains Mono', monospace;
+	--font-family-serif: 'JetBrains Mono', monospace;
+	--font-family-mono: 'JetBrains Mono', monospace;
+
+	--color-black: rgb(0, 0, 0);
 	--color-primary: rgb(255, 255, 255);
 	--color-secondary: rgb(168, 168, 168);
 	--color-tertiary: rgb(62, 62, 62);
