@@ -2,21 +2,29 @@ use crate::api::common::*;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct DirectoryCreateRequest {
+pub struct Body {
     pub parent_id: u32,
     pub name: String,
 }
 
 pub async fn create(
     Extension(conn): Extension<AppState>,
-    Json(DirectoryCreateRequest { parent_id, name }): Json<DirectoryCreateRequest>,
+    Json(Body { parent_id, name }): Json<Body>,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!("Received request to create directory with name `{name}` under parent with id `{parent_id}`."),
+        &format!("[DC/M00]: Received request to create directory with name `{name}` under parent with id `{parent_id}`."),
         None,
     );
+
+    if PRIVILEDGED.contains(&parent_id) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DC/E00]: Cannot create directory under priviledged directories."),
+            None,
+        );
+    }
 
     // Check if a directory with the same name already exists under the parent directory.
     let path = match crate::db::directory::exists(parent_id, &name, Arc::clone(&conn)) {
@@ -25,7 +33,7 @@ pub async fn create(
             return log::<()>(
                 StatusCode::CONFLICT,
                 &format!(
-                    "Directory with name `{name}` already exists under parent with id `{parent_id}`."
+                    "[DC/E01]: Directory with name `{name}` already exists under parent with id `{parent_id}`."
                 ),
                 None,
             );
@@ -33,7 +41,7 @@ pub async fn create(
         Err(e) => {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to check if directory with name `{name}` exists under parent with id `{parent_id}`."),
+                &format!("[DC/E02]: Failed to check if directory with name `{name}` exists under parent with id `{parent_id}`."),
                 Some(e),
             );
         }
@@ -44,7 +52,7 @@ pub async fn create(
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "Failed to create directory with name `{name}` under parent with id `{parent_id}`."
+                "[DC/E03]: Failed to create directory with name `{name}` under parent with id `{parent_id}`."
             ),
             Some(e),
         );
@@ -55,7 +63,7 @@ pub async fn create(
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "Failed to insert directory with name `{name}` under parent with id `{parent_id}` into the database."
+                "[DC/E04]: Failed to insert directory with name `{name}` under parent with id `{parent_id}` into the database."
             ),
             Some(e),
         );
@@ -66,7 +74,7 @@ pub async fn create(
             #[cfg(feature = "log.success")]
             log::<()>(
                 StatusCode::OK,
-                "Successfully retrieved registry from the state database.",
+                "[DC/M01]: Successfully retrieved registry from the state database.",
                 None,
             );
 
@@ -74,7 +82,7 @@ pub async fn create(
         }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to retrieve registry from the state database.",
+            "[DC/E05]: Failed to retrieve registry from the state database.",
             Some(e),
         ),
     }

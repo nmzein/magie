@@ -6,6 +6,11 @@ export function appendPx<T extends Record<string, number>>(values: T): T {
 	return result;
 }
 
+export function stripBaseUrl(url: string): string {
+	const parsedUrl = new URL(url);
+	return parsedUrl.pathname;
+}
+
 export function defined<T>(value: T | undefined): value is T {
 	return value !== undefined;
 }

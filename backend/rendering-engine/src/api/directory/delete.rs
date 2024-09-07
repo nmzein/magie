@@ -2,13 +2,19 @@ use crate::api::common::*;
 use crate::types::MoveMode;
 use axum::extract::{Path, Query};
 use serde::Deserialize;
-use std::path::PathBuf;
-
-static BIN_ID: u32 = 1;
+use std::{fmt::Debug, path::PathBuf};
 
 #[derive(Deserialize)]
 pub struct Params {
-    mode: String,
+    mode: Mode,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub enum Mode {
+    #[serde(alias = "hard")]
+    Hard,
+    #[serde(alias = "soft")]
+    Soft,
 }
 
 pub async fn delete(
@@ -16,13 +22,38 @@ pub async fn delete(
     Path(id): Path<u32>,
     Query(Params { mode }): Query<Params>,
 ) -> Response {
+    #[cfg(feature = "log.request")]
+    log::<()>(
+        StatusCode::ACCEPTED,
+        &format!(
+            "[DD/M00]: Received request to delete directory with id `{id}` using mode `{mode:?}`."
+        ),
+        None,
+    );
+
+    if PRIVILEDGED.contains(&id) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DD/E00]: Cannot delete priviledged directories."),
+            None,
+        );
+    }
+
+    if STORES.contains(&id) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DD/E01]: Invalid way to delete stores."),
+            None,
+        );
+    }
+
     // Retrieve directory path.
     let directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
         Ok(path) => path,
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[DD/E00]: Directory with id `{id}` does not exist in the database."),
+                &format!("[DD/E02]: Directory with id `{id}` does not exist in the database."),
                 Some(e),
             );
         }
@@ -34,24 +65,27 @@ pub async fn delete(
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[DD/E01]: Bin directory was not found in the database."),
+                &format!("[DD/E03]: Bin directory was not found in the database."),
                 Some(e),
             );
         }
     };
 
-    let resp = match mode.as_str() {
-        "hard" => hard_delete(id, &directory_path, Arc::clone(&conn)).await,
-        "soft" => soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await,
-        _ => log::<()>(
+    if directory_path.starts_with(&bin_path) && mode == Mode::Soft {
+        return log::<()>(
             StatusCode::BAD_REQUEST,
-            &format!("[DD/E02]: Invalid mode `{mode}`."),
+            &format!("[DD/E04]: Cannot soft delete a directory that is already in the Bin."),
             None,
-        ),
+        );
+    }
+
+    let result = match mode {
+        Mode::Hard => hard_delete(id, &directory_path, Arc::clone(&conn)).await,
+        Mode::Soft => soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await,
     };
 
-    if resp.status() != StatusCode::OK {
-        return resp;
+    if let Err(error) = result {
+        return error;
     }
 
     match crate::db::general::get_registry(Arc::clone(&conn)) {
@@ -59,7 +93,7 @@ pub async fn delete(
             #[cfg(feature = "log.success")]
             log::<()>(
                 StatusCode::OK,
-                "[DD/M00]: Successfully retrieved registry from the database.",
+                "[DD/M01]: Successfully retrieved registry from the database.",
                 None,
             );
 
@@ -67,20 +101,17 @@ pub async fn delete(
         }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "[DD/E03]: Failed to retrieve registry from the database.",
+            "[DD/E05]: Failed to retrieve registry from the database.",
             Some(e),
         ),
     }
 }
 
-pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[DD-H/M00]: Received request to hard delete directory with id `{id}`."),
-        None,
-    );
-
+pub async fn hard_delete(
+    id: u32,
+    directory_path: &PathBuf,
+    conn: AppState,
+) -> Result<(), Response> {
     // Remove the directory from the filesystem.
     let _ = crate::io::delete(&directory_path).await.map_err(|e| {
         return log(
@@ -103,7 +134,7 @@ pub async fn hard_delete(id: u32, directory_path: &PathBuf, conn: AppState) -> R
         );
     });
 
-    Json(()).into_response()
+    Ok(())
 }
 
 pub async fn soft_delete(
@@ -111,14 +142,7 @@ pub async fn soft_delete(
     directory_path: &PathBuf,
     bin_path: &PathBuf,
     conn: AppState,
-) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[DD-S/M00]: Received request to soft delete directory with id `{id}`."),
-        None,
-    );
-
+) -> Result<(), Response> {
     // Move the directory to the "Bin" in the filesystem.
     let _ = crate::io::r#move(&directory_path, &bin_path)
         .await
@@ -144,5 +168,5 @@ pub async fn soft_delete(
             );
         });
 
-    Json(()).into_response()
+    Ok(())
 }

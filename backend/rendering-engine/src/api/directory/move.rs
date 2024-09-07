@@ -2,14 +2,14 @@ use crate::{api::common::*, types::MoveMode};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct DirectoryMoveRequest {
+pub struct Body {
     pub target_id: u32,
     pub dest_id: u32,
 }
 
 pub async fn r#move(
     Extension(conn): Extension<AppState>,
-    Json(DirectoryMoveRequest { target_id, dest_id }): Json<DirectoryMoveRequest>,
+    Json(Body { target_id, dest_id }): Json<Body>,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
@@ -18,6 +18,30 @@ pub async fn r#move(
         None,
     );
 
+    if PRIVILEDGED.contains(&target_id) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DM/E00]: Cannot move priviledged directories."),
+            None,
+        );
+    }
+
+    if STORES.contains(&target_id) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DM/E01]: Cannot move stores."),
+            None,
+        );
+    }
+
+    if dest_id == ROOT_ID {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DM/E02]: Cannot move directories into the root directory."),
+            None,
+        );
+    }
+
     // Retrieve target directory path.
     let target_directory_path = match crate::db::directory::path(target_id, Arc::clone(&conn)) {
         Ok(path) => path,
@@ -25,7 +49,7 @@ pub async fn r#move(
             return log(
                 StatusCode::NOT_FOUND,
                 &format!(
-                    "[DM/E00]: Target directory with id `{target_id}` does not exist in the database."
+                    "[DM/E03]: Target directory with id `{target_id}` does not exist in the database."
                 ),
                 Some(e),
             );
@@ -38,7 +62,7 @@ pub async fn r#move(
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[DM/E01]: Destination directory with id `{dest_id}` does not exist in the database."),
+                &format!("[DM/E04]: Destination directory with id `{dest_id}` does not exist in the database."),
                 Some(e),
             );
         }
@@ -50,7 +74,7 @@ pub async fn r#move(
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("[DM/E02]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the filesystem."),
+                    &format!("[DM/E05]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the filesystem."),
                 Some(e),
             );
         });
@@ -60,7 +84,7 @@ pub async fn r#move(
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[DM/E03]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the database."),
+                &format!("[DM/E06]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the database."),
 
                 Some(e),
             );
@@ -79,7 +103,7 @@ pub async fn r#move(
         }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "[DM/E04]: Failed to retrieve registry from the database.",
+            "[DM/E07]: Failed to retrieve registry from the database.",
             Some(e),
         ),
     }

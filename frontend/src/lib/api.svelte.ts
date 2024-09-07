@@ -25,6 +25,7 @@ import {
 } from '$env/static/public';
 
 import type { AnnotationLayer, MetadataLayer, Directory, WebSocketRequest } from './types';
+import { stripBaseUrl } from '$helpers';
 
 const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
@@ -135,13 +136,17 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error <${name}>:`, error);
+					console.error(`Parse Error [${stripBaseUrl(url)}]:`, error);
 				}
 			} else {
-				console.error(`Response Error <${name}>:`, response.status, response.statusText);
+				console.error(
+					`Response Error [${stripBaseUrl(url)}]:`,
+					response.status,
+					response.statusText
+				);
 			}
 		} catch (error) {
-			console.error(`Fetch Error <${name}>:`, error);
+			console.error(`Fetch Error [${stripBaseUrl(url)}]:`, error);
 		}
 	}
 
@@ -174,13 +179,17 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error <${name}: ${data}>:`, error);
+					console.error(`Parse Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`, error);
 				}
 			} else {
-				console.error(`Response Error <${name}: ${data}>:`, response.status, response.statusText);
+				console.error(
+					`Response Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`,
+					response.status,
+					response.statusText
+				);
 			}
 		} catch (error) {
-			console.error(`Fetch Error <${name}: ${data}>:`, error);
+			console.error(`Fetch Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`, error);
 		}
 	}
 
@@ -193,13 +202,17 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error <${name}>:`, error);
+					console.error(`Parse Error [${stripBaseUrl(url)}]:`, error);
 				}
 			} else {
-				console.error(`Response Error <${name}>:`, response.status, response.statusText);
+				console.error(
+					`Response Error [${stripBaseUrl(url)}]:`,
+					response.status,
+					response.statusText
+				);
 			}
 		} catch (error) {
-			console.error(`Fetch Error <${name}>:`, error);
+			console.error(`Fetch Error [${stripBaseUrl(url)}]:`, error);
 		}
 	}
 
