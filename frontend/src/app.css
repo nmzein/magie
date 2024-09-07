@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	src: local('JetBrains Mono'), url('/JetBrainsMono[wght].ttf');
+	font-weight: 500 600 700;
+	font-style: normal;
+	/* Latin glyphs */
+	unicode-range: U+000-5FF;
+}
+
+@theme {
+	--animate-*: initial;
+	--blur-*: initial;
+	--breakpoint-*: initial;
+	--color-*: initial;
+	--inset-shadow-*: initial;
+	--letter-spacing-*: initial;
+	--line-height-*: initial;
+	--perspective-*: initial;
+	--shadow-*: initial;
+	--transition-timing-function-*: initial;
+	--width-*: initial;
+
+	--font-family-sans: 'JetBrains Mono', monospace;
+	--font-family-serif: 'JetBrains Mono', monospace;
+	--font-family-mono: 'JetBrains Mono', monospace;
+
+	--color-black: rgb(0, 0, 0);
+	--color-white: rgb(255, 255, 255);
+	--color-primary: rgb(255, 255, 255);
+	--color-secondary: rgb(168, 168, 168);
+	--color-tertiary: rgb(62, 62, 62);
+	--color-accent: rgb(12, 98, 197);
+	--color-accent-light: rgb(14, 112, 224);
+}
+
+* {
+	font-family: 'JetBrains Mono', monospace;
+	--border-radius: 10px;
+}
+
+body {
+	margin: 0;
+	background-color: #292929;
+	overflow: invisible;
+	color: white;
+}
+
+input {
+	border: none;
+}
+
+select {
+	border: none;
+	cursor: pointer;
+
+	font-weight: 500;
+}
+
+h1 {
+	margin: 0;
+}
+
+.panel {
+	border: 1px solid rgba(255, 255, 255, 0.125);
+	border-radius: var(--border-radius);
+	backdrop-filter: blur(45px);
+	background: rgba(0, 0, 0, 0.85);
+	box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+	pointer-events: all;
+}
+
+.dark-layer {
+	backdrop-filter: blur(15px);
+	background: rgba(0, 0, 0, 0.15);
+}
+
+.outer-container {
+	backdrop-filter: blur(15px);
+	background: rgba(255, 255, 255, 0.15);
+	box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+
+	font-size: 14px;
+	border-radius: 10px;
+}
+
+.inner-container {
+	background-color: rgba(0, 0, 0, 0.2);
+	padding: 10px;
+	border-radius: 10px;
+
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}

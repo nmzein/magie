@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS directories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   parent_id INTEGER,
+  predeletion_parent_id INTEGER,
   name TEXT NOT NULL,
   lft INTEGER NOT NULL,
   rgt INTEGER NOT NULL,
@@ -8,12 +9,14 @@ CREATE TABLE IF NOT EXISTS directories (
   UNIQUE(parent_id, name) -- Enforce that for each parent directory, there is only one directory with a given name.
 );
 
-INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (0, NULL, '', 1, 4); -- '/'
-INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (1, 0, 'store', 2, 3); -- '/store'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (0, NULL, '../stores', 1, 6); -- '../stores'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (1, 0, 'Bin', 2, 3); -- '../stores/Bin'
+INSERT OR IGNORE INTO directories (id, parent_id, name, lft, rgt) VALUES (2, 0, 'Local Storage', 4, 5); -- '../stores/Local Storage'
 
 CREATE TABLE IF NOT EXISTS images (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   parent_id INTEGER NOT NULL,
+  predeletion_parent_id INTEGER,
   name TEXT NOT NULL,
   upl_img_ext TEXT NOT NULL,
   enc_img_ext TEXT NOT NULL,

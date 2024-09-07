@@ -50,21 +50,29 @@
 	});
 
 	function handleMouseDown(event: MouseEvent) {
+		if (!image.initialised) return;
+
 		event.preventDefault();
 		handlePanStart(event);
 	}
 
 	function handleTouchStart(event: TouchEvent) {
+		if (!image.initialised) return;
+
 		handlePanStart(event.touches[0]);
 	}
 
 	function handlePanStart(event: MouseEvent | Touch) {
+		if (!image.initialised) return;
+
 		isDragging = true;
 		panStartX = event.clientX;
 		panStartY = event.clientY;
 	}
 
 	function handleMouseMove(event: MouseEvent) {
+		if (!image.initialised) return;
+
 		event.preventDefault();
 
 		// Logic for calculating the coordinates of the mouse pointer.
@@ -88,11 +96,15 @@
 	}
 
 	function handleTouchMove(event: TouchEvent) {
+		if (!image.initialised) return;
+
 		if (!isDragging) return;
 		handlePan(event.touches[0]);
 	}
 
 	function handlePan(event: MouseEvent | Touch) {
+		if (!image.initialised) return;
+
 		transformer.offsetX += event.clientX - panStartX;
 		transformer.offsetY += event.clientY - panStartY;
 
@@ -101,25 +113,29 @@
 	}
 
 	function handlePanEnd() {
+		if (!image.initialised) return;
+
 		isDragging = false;
 	}
 
 	function handleWheel(event: WheelEvent) {
+		if (!image.initialised) return;
+
 		transformer.zoom(event.deltaY, event.clientX, event.clientY);
 	}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
-	id="view"
 	role="img"
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
+	class="h-screen"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
-		id="container"
+		class="h-auto origin-top-left"
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
@@ -139,39 +155,19 @@
 		</div>
 	</div>
 	{#if image.initialised}
-		<div id="coordinates-panel" class="panel">
-			<span>x:</span>
+		<div id="coordinates-panel" class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px]">
+			<span class="font-bold">x:</span>
 			{x},
-			<span>y:</span>
+			<span class="font-bold">y:</span>
 			{y}
 		</div>
 	{/if}
 </div>
 
-<style lang="scss">
-	#view {
-		height: 100vh;
-	}
-
-	#container {
-		height: auto;
-		transform-origin: 0 0;
-	}
-
-	#coordinates-panel {
-		position: absolute;
-		bottom: 10px;
-		left: 10px;
-		padding: 3px 7px;
-
-		span {
-			font-weight: bold;
-		}
-	}
-
+<style>
 	@media (hover: none) {
 		#coordinates-panel {
-			// Hide the element on touch-capable devices.
+			/* Hide the element on touch-capable devices. */
 			display: none;
 		}
 	}

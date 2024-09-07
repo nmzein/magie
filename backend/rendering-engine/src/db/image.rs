@@ -103,20 +103,23 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
 
 /// Returns the name and path of an image given its id.
 pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
-    let conn = conn.lock().unwrap();
-    let mut stmt = conn.prepare(
-        r#"
+    let returned: (String, u32);
+
+    {
+        let conn = conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            r#"
             SELECT name, parent_id
             FROM images
             WHERE id = ?1;
         "#,
-    )?;
+        )?;
 
-    let (name, parent_id) = stmt.query_row([id], |row| {
-        Ok((row.get::<_, String>(0)?, row.get::<_, u32>(1)?))
-    })?;
+        returned = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    }
 
-    let path = crate::db::directory::path_internal(parent_id, &conn)?.join(&name);
+    let (name, parent_id) = returned;
+    let path = crate::db::directory::path(parent_id, Arc::clone(&conn))?.join(&name);
 
     #[cfg(feature = "log.database")]
     log(&format!("GET <Image: {path:?}>"), Some(&path));

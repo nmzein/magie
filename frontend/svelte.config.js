@@ -14,10 +14,13 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$ui: './src/lib/ui',
+			$components: './src/lib/components',
+			$icon: './src/lib/components/Icon.svelte',
 			$view: './src/lib/view',
 			$api: './src/lib/api.svelte.ts',
-			$states: './src/lib/states.svelte.ts',
-			$types: './src/lib/types.ts'
+			$states: './src/lib/states',
+			$types: './src/lib/types.ts',
+			$helpers: './src/lib/helpers.ts'
 		}
 	}
 };

@@ -18,23 +18,21 @@ pub fn find_modules() -> Vec<String> {
         .collect();
 
     let entries = fs::read_dir("src").expect("Failed to read src directory");
-    for entry in entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            // Filter for files with the .rs extension.
-            let extension = path.extension();
-            if extension.is_none() || extension.unwrap() != "rs" {
+    for entry in entries.flatten() {
+        let path = entry.path();
+        // Filter for files with the .rs extension.
+        let extension = path.extension();
+        if extension.is_none() || extension.unwrap() != "rs" {
+            continue;
+        }
+        if let Some(filename) = path.file_stem() {
+            // Filter out unwanted files.
+            if filename == "common" || filename == "export" || filename == "lib" {
                 continue;
             }
-            if let Some(filename) = path.file_stem() {
-                // Filter out unwanted files.
-                if filename == "common" || filename == "export" || filename == "lib" {
-                    continue;
-                }
-                let module_name = filename.to_string_lossy().to_string();
-                if enabled.contains(&module_name.to_uppercase().replace("-", "_")) {
-                    modules.push(module_name);
-                }
+            let module_name = filename.to_string_lossy().to_string();
+            if enabled.contains(&module_name.to_uppercase().replace("-", "_")) {
+                modules.push(module_name);
             }
         }
     }

@@ -2,14 +2,14 @@ use crate::api::common::*;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct DirectoryRenameRequest {
+pub struct Body {
     pub id: u32,
     pub name: String,
 }
 
 pub async fn rename(
     Extension(_conn): Extension<AppState>,
-    Json(DirectoryRenameRequest { id, name }): Json<DirectoryRenameRequest>,
+    Json(Body { id, name }): Json<Body>,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(

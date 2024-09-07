@@ -19,14 +19,13 @@
 		InstancedMesh,
 		WebGLRenderer
 	} from 'three';
+	import type { Camera, BufferGeometry } from 'three';
 
 	const CANVAS_HEIGHT = 8000;
 	let CANVAS_WIDTH = $derived.by(() => {
 		if (image.width === undefined || image.height === undefined) return;
 		return CANVAS_HEIGHT * (image.width / image.height);
 	});
-
-	import type { Camera, BufferGeometry } from 'three';
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
@@ -83,14 +82,8 @@
 	width={CANVAS_WIDTH}
 	height={CANVAS_HEIGHT}
 	id={'annotation-layer-' + layerIndex}
-	style="z-index: {100 + layerIndex}; display: {annotationLayer.visible
-		? 'block'
-		: 'none'}; opacity: {annotationLayer.opacity};"
+	class="absolute w-full"
+	style:z-index={100 + layerIndex}
+	style:display={annotationLayer.visible ? 'block' : 'none'}
+	style:opacity={annotationLayer.opacity}
 ></canvas>
-
-<style lang="scss">
-	canvas {
-		position: absolute;
-		width: 100%;
-	}
-</style>
