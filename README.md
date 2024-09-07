@@ -1,17 +1,15 @@
-# MAGIE [beta]
+# MAGIE [alpha]
 
-MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and backend server for rendering and displaying multi-gigapixel images & millions of annotations. Because the entire stack is extremely lean and built from scratch, the performance acheived is unparalleled compared to other similar tools. MAGIE is built with modularity in mind, allowing developers to add support for their own image decoders, analysis tools, and more.
-
-Currently, the application is in beta (so some bugs have not yet been fixed) however, it is already stable enough for you to test if you would like.
+MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and backend server for rendering and displaying multi-gigapixel images & millions of annotations.
 
 - ⚡️ Extremely performant Rust backend and Svelte frontend, utilising WebGL to render hundreds of thousands of annotations in seconds.
 - 🖥️ Sleek and modern user interface.
-- 🗂️ Navigate your stored files using a highly-functional file explorer.
-- 🛠️ Easily integrate your own decoders and analysis tools using a powerful, flexible module interface.
+- 🗂️ Navigate your stored files using a fully-features file explorer.
+- 🛠️ Easily integrate your own image decoders, encoders, and analysis tools using a powerful, flexible module interface.
 - 🌐 Remotely access your library using your browser.
 - 🎨 Change the colour, opacity, and visibility of your annotations with instant millisecond rerenders.
 
-<div style="display: flex;">
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
     <img width="49%" src="https://github.com/nmzein/magie/assets/67694622/694a43dd-fd48-416d-b036-fed7210d031f" alt="Demo Image 1" />
     <img width="49%" src="https://github.com/nmzein/magie/assets/67694622/102ab83d-ee10-4a21-b511-a598ac55cc50" alt="Demo Image 2" />
 </div>
@@ -30,11 +28,11 @@ Currently, the application is in beta (so some bugs have not yet been fixed) how
 3. Run the following commands (note that you may need to run them with `sudo`):
 
 ```
-🛠️ Production [1.25GB; <6 mins on i5-1035G7]
-docker-compose up prod
+🛠️ Production [1.25GB]
+docker compose up prod
 
-🏗️ Development [1.43GB; <3 mins on i5-1035G7]
-docker-compose up --build dev
+🏗️ Development [1.43GB]
+docker compose up --build dev
 ```
 
 The application can now be accessed at `http://0.0.0.0:4000`.
