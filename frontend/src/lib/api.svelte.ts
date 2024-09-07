@@ -24,13 +24,7 @@ import {
 	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
 
-import type {
-	AnnotationLayer,
-	MetadataLayer,
-	Directory,
-	UploaderSettings,
-	WebSocketRequest
-} from './types';
+import type { AnnotationLayer, MetadataLayer, Directory, WebSocketRequest } from './types';
 
 const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
@@ -109,7 +103,7 @@ export const http = (() => {
 		parent_directory_id: number,
 		image_file: File,
 		annotations_file: File | undefined,
-		settings: UploaderSettings
+		generator: string
 	) {
 		const formData = new FormData();
 
@@ -118,7 +112,7 @@ export const http = (() => {
 		if (annotations_file !== undefined) {
 			formData.append('annotations_file', annotations_file);
 		}
-		formData.append('generator_name', settings.generator);
+		formData.append('generator_name', generator);
 
 		const registry = await POST<FormData, Directory>(
 			'Send Upload Assets',

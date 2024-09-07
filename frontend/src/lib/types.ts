@@ -1,5 +1,4 @@
-export type UploaderSettings = {
-	generator: string;
+export type UploaderOptions = {
 	annotations: 'none' | 'provide' | 'generate';
 };
 

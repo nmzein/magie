@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { explorer } from '$states';
+	import { explorer, uploader } from '$states';
 	import Icon from '$icon';
 	import * as Dropdown from '$components/dropdown/index.ts';
+	import { defined } from '$helpers';
 
 	const classes = {
 		trigger:
@@ -22,7 +23,13 @@
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
-			<Dropdown.Item onclick={() => (explorer.showUploader = true)}>
+			<Dropdown.Item
+				onclick={() => {
+					if (!defined(explorer.currentDirectory)) return;
+					explorer.showUploader = true;
+					uploader.parentDirectoryId = explorer.currentDirectory.data.id;
+				}}
+			>
 				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
 			</Dropdown.Item>
 			<Dropdown.Item onclick={() => (explorer.showDirectoryCreator = true)}>

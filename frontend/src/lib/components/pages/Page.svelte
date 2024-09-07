@@ -4,8 +4,14 @@
 	import Nav from './Nav.svelte';
 	import Back from './Back.svelte';
 	import Next from './Next.svelte';
+	import Done from './Done.svelte';
+	import { defined } from '$helpers';
 
-	let { nextDisabled, children }: { nextDisabled: boolean; children: Snippet } = $props();
+	let {
+		nextDisabled,
+		done,
+		children
+	}: { nextDisabled: boolean; done?: () => void; children: Snippet } = $props();
 
 	let pState = getPagesState();
 
@@ -18,5 +24,8 @@
 	<Nav>
 		<Back>Back</Back>
 		<Next disabled={nextDisabled}>Next</Next>
+		{#if defined(done)}
+			<Done enabled={!nextDisabled && pState.lastPage} {done}>Done</Done>
+		{/if}
 	</Nav>
 {/if}

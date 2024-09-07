@@ -26,7 +26,13 @@
 						<UploadAsset bind:asset={uploader.image} placeholder="Image" />
 					</Pages.Page>
 
-					<Pages.Page nextDisabled={!uploader.annotationsSatisfied}>
+					<Pages.Page
+						nextDisabled={!uploader.annotationsSatisfied}
+						done={async () => {
+							explorer.showUploader = false;
+							await uploader.upload();
+						}}
+					>
 						<div class="flex h-full flex-col justify-between gap-5">
 							<Tabs.Root
 								classes={{
@@ -37,7 +43,7 @@
 									},
 									content: 'h-full'
 								}}
-								bind:currentTab={uploader.settings.annotations}
+								bind:currentTab={uploader.options.annotations}
 							>
 								<Tabs.List>
 									<Tabs.Trigger value="none">None</Tabs.Trigger>
