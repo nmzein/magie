@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { defined } from '$helpers';
 	import { image, transformer } from '$states';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
@@ -7,7 +8,6 @@
 	let panStartX = $state(0);
 	let panStartY = $state(0);
 	let isDragging = $state(false);
-	// FIX: Broken!
 	let x = $state(0);
 	let y = $state(0);
 
@@ -76,9 +76,13 @@
 		event.preventDefault();
 
 		// Logic for calculating the coordinates of the mouse pointer.
-		if (!isDragging) {
-			if (image.width === undefined || image.height === undefined) return;
-
+		if (
+			!isDragging &&
+			defined(image.width) &&
+			defined(image.height) &&
+			!isNaN(event.clientX) &&
+			!isNaN(event.clientY)
+		) {
 			// TODO: Don't do this on every mouse move.
 			const currentLayer = document
 				.getElementById('image-layer-' + transformer.currentLevel)
@@ -141,8 +145,8 @@
 	>
 		<div id="annotation-layers">
 			{#if camera !== undefined}
-				{#each image.annotations as annotationLayer, layerIndex}
-					<AnnotationLayer {annotationLayer} {layerIndex} {camera} />
+				{#each image.annotations as layer, layerIndex}
+					<AnnotationLayer {layer} {layerIndex} {camera} />
 				{/each}
 			{/if}
 		</div>

@@ -1,25 +1,21 @@
 <script lang="ts">
-	let {
-		annotationLayer,
-		layerIndex,
-		camera
-	}: {
-		annotationLayer: AnnotationLayer;
-		layerIndex: number;
-		camera: Camera;
-	} = $props();
-
 	import { image } from '$states';
 	import type { AnnotationLayer } from '$types';
-	import { untrack } from 'svelte';
 	import {
 		BufferGeometryLoader,
 		Scene,
 		MeshBasicMaterial,
 		InstancedMesh,
-		WebGLRenderer
+		WebGLRenderer,
+		type Camera,
+		type BufferGeometry
 	} from 'three';
-	import type { Camera, BufferGeometry } from 'three';
+
+	let {
+		layer,
+		layerIndex,
+		camera
+	}: { layer: AnnotationLayer; layerIndex: number; camera: Camera } = $props();
 
 	const CANVAS_HEIGHT = 8000;
 	let CANVAS_WIDTH = $derived.by(() => {
@@ -31,7 +27,7 @@
 
 	const scene = new Scene();
 	const loader = new BufferGeometryLoader();
-	let geometry: BufferGeometry | undefined;
+	let geometry: BufferGeometry = $derived(loader.parse(JSON.parse(layer.geometry)));
 
 	// Create a renderer with a transparent canvas.
 	const renderer = $derived(
@@ -46,22 +42,14 @@
 	// Materials for this annotation layer.
 	let fillMaterial = $derived(
 		new MeshBasicMaterial({
-			color: annotationLayer.fill
+			color: layer.fill
 		})
 	);
-
-	$effect(() => {
-		untrack(() => (geometry = loader.parse(JSON.parse(annotationLayer.geometry))));
-		untrack(() => (annotationLayer.geometry = ''));
-	});
 
 	$effect(() => render());
 
 	function render() {
-		if (!geometry) return;
-
 		let start = performance.now();
-		// renderer.clear();
 		// Create a mesh with the geometries and materials.
 		let mesh = new InstancedMesh(geometry, fillMaterial, 1);
 		// Add the shapes to the scene.
@@ -83,7 +71,7 @@
 	height={CANVAS_HEIGHT}
 	id={'annotation-layer-' + layerIndex}
 	class="absolute w-full"
+	class:hidden={!layer.visible}
 	style:z-index={100 + layerIndex}
-	style:display={annotationLayer.visible ? 'block' : 'none'}
-	style:opacity={annotationLayer.opacity}
+	style:opacity={layer.opacity}
 ></canvas>
