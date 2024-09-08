@@ -4,21 +4,25 @@ use rusqlite_migration::{Migrations, M};
 use std::{collections::HashMap, fs, path::Path};
 
 pub fn connect(database_path: &str, database_url: &str) -> Result<Connection> {
+    // Delete the database if in debug.
+    if cfg!(debug_assertions) && Path::new(database_path).exists() {
+        fs::remove_file(database_path)?;
+    }
+
     // Create the database file if it does not exist.
     if !Path::new(database_path).exists() {
         fs::File::create(database_path)?;
     }
 
     let mut conn = Connection::open(database_url)?;
-    let mut hooks = vec![M::up(include_str!("../../../state/schema.sql"))];
 
-    if cfg!(debug_assertions) {
-        hooks.push(M::up(include_str!("../../../state/hyperplastic1.sql")));
-    }
-
-    let migrations = Migrations::new(hooks);
+    let migrations = Migrations::new(vec![M::up(include_str!("../../../state/schema.sql"))]);
     // Update the database schema atomically.
     migrations.to_latest(&mut conn)?;
+
+    if cfg!(debug_assertions) {
+        conn.execute_batch(include_str!("../../../state/dev.sql"))?;
+    }
 
     Ok(conn)
 }

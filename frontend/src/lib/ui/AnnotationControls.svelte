@@ -13,3 +13,24 @@
 		{/each}
 	</div>
 </div>
+
+<style>
+	.outer-container {
+		backdrop-filter: blur(15px);
+		background: rgba(255, 255, 255, 0.15);
+		box-shadow: 0 15px 15px rgba(0, 0, 0, 0.1);
+
+		font-size: 14px;
+		border-radius: 10px;
+	}
+
+	.inner-container {
+		background-color: rgba(0, 0, 0, 0.2);
+		padding: 10px;
+		border-radius: 10px;
+
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+</style>

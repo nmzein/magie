@@ -10,3 +10,4 @@ node_modules/
 /backend/target
 /backend/state
 !/backend/state/schema.sql
+!/backend/state/dev.sql

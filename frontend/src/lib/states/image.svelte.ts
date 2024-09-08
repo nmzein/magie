@@ -46,17 +46,15 @@ export class ImageViewer {
 		// Ready to receive new image tiles.
 		this.initialised = true;
 
-		console.log('Initialised', this.initialised, this.tiles);
-
 		// TODO: Move annotation metadata into GetMetadata request
 		// TODO: and have the actual geometry info be requested by each
 		// TODO: layer individually inside of a web worker.
-		// const annotations = await http.GetAnnotations(this.info.id);
-		// if (annotations === undefined) {
-		// 	this.reset();
-		// 	return;
-		// }
-		// this.annotations = annotations;
+		const annotations = await http.GetAnnotations(this.info.id);
+		if (annotations === undefined) {
+			this.reset();
+			return;
+		}
+		this.annotations = annotations;
 	}
 
 	public async getTile(data: TileRequest): Promise<boolean> {
