@@ -10,5 +10,5 @@ export { SelectionBox };
 export const repository = new Repository();
 export const explorer = new Explorer();
 export const uploader = new Uploader();
-export const image = ImageViewer();
+export const image = new ImageViewer();
 export const transformer = Transformer();

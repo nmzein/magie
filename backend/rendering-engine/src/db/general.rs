@@ -10,9 +10,13 @@ pub fn connect(database_path: &str, database_url: &str) -> Result<Connection> {
     }
 
     let mut conn = Connection::open(database_url)?;
+    let mut hooks = vec![M::up(include_str!("../../../state/schema.sql"))];
 
-    let migrations = Migrations::new(vec![M::up(include_str!("../../../state/schema.sql"))]);
+    if cfg!(debug_assertions) {
+        hooks.push(M::up(include_str!("../../../state/hyperplastic1.sql")));
+    }
 
+    let migrations = Migrations::new(hooks);
     // Update the database schema atomically.
     migrations.to_latest(&mut conn)?;
 

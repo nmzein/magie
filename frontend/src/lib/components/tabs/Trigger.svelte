@@ -21,10 +21,12 @@
 
 <Button
 	class="
-		{tState.classes.trigger.base}
-		{tState.currentTab !== value ? tState.classes.trigger.inactive : ''}
-		{!disabled && tState.currentTab === value ? tState.classes.trigger.active : ''}
-		{disabled ? twMerge(tState.classes.trigger.disabled, 'opacity-30 grayscale') : ''}
+		{tState.classes?.trigger?.base}
+		{tState.currentTab !== value ? tState.classes?.trigger?.inactive : ''}
+		{!disabled && tState.currentTab === value && tState.mode !== 'buttons'
+		? tState.classes?.trigger?.active
+		: ''}
+		{disabled ? twMerge(tState.classes?.trigger?.disabled, 'opacity-30 grayscale') : ''}
 	"
 	{disabled}
 	onclick={() => {

@@ -4,7 +4,7 @@
 	import { Explorer } from './Explorer';
 	import Icon from '$icon';
 	import AnnotationControls from '$ui/AnnotationControls.svelte';
-	import { truncateNumber } from '$helpers';
+	import { defined, truncateNumber } from '$helpers';
 	import Button from '$components/Button.svelte';
 
 	const classes = {
@@ -50,7 +50,7 @@
 				<Tabs.Trigger value="explorer">
 					<Icon name="explorer" class="h-9 w-9" />
 				</Tabs.Trigger>
-				<Tabs.Trigger value="control" disabled={!image.initialised}>
+				<Tabs.Trigger value="control" disabled={image.annotations.length === 0}>
 					<Icon name="control" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="info" disabled={!image.initialised}>

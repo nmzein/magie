@@ -19,24 +19,28 @@ export class Explorer {
 	// Pointer to current directory in stack (for back and forward).
 	private stackPointer = $state(0);
 	// Route to current directory in stack pointed to by stackPointer.
-	private currentRoute = $derived.by(() => {
+	private _currentRoute = $derived.by(() => {
 		return this.stack[this.stackPointer];
 	});
+	get currentRoute() {
+		return this._currentRoute;
+	}
+
 	// Actual current directory information obtained from registry.
 	public currentDirectory: DirectoryExt | undefined = $derived.by(() => {
-		if (!defined(repository.registry) || !defined(this.currentRoute)) return;
+		if (!defined(repository.registry) || !defined(this._currentRoute)) return;
 
 		let path = [];
 		let currentDirectory = repository.registry; // Initial root node.
 
-		for (const id of this.currentRoute) {
+		for (const id of this._currentRoute) {
 			const potentialDir = currentDirectory.subdirectories.find((value) => value.id === id);
 			if (potentialDir === undefined) return;
 			currentDirectory = potentialDir;
 			path.push(currentDirectory.name);
 		}
 
-		return { path, route: this.currentRoute, data: currentDirectory };
+		return { path, route: this._currentRoute, data: currentDirectory };
 	});
 
 	public showUploader: boolean = $state(false);
@@ -56,12 +60,12 @@ export class Explorer {
 	}
 
 	// Defaults to going up to parent directory.
-	public up(index: number = this.currentRoute.length - 2) {
-		if (this.currentRoute.length <= 1) return;
+	public up(index: number = this._currentRoute.length - 2) {
+		if (this._currentRoute.length <= 1) return;
 
 		this.deselectAll();
 
-		const route = this.currentRoute.slice(0, index + 1);
+		const route = this._currentRoute.slice(0, index + 1);
 
 		const current = this.currentDirectory?.data;
 		this.insertIntoStack(route);
@@ -104,7 +108,7 @@ export class Explorer {
 		this.deselectAll();
 
 		// Important: concat() creates a copy of current.
-		const route = this.currentRoute.concat(id);
+		const route = this._currentRoute.concat(id);
 
 		this.insertIntoStack(route);
 	}
@@ -133,7 +137,7 @@ export class Explorer {
 
 			this.pin({
 				path: this.currentDirectory.path.concat(item.name),
-				route: this.currentRoute.concat(item.id),
+				route: this._currentRoute.concat(item.id),
 				data: item
 			});
 		});

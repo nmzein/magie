@@ -53,7 +53,7 @@
 	function handleOpen() {
 		if (variant === 'directory') {
 			explorer.navigateTo(value.id);
-		} else if (variant === 'file') {
+		} else if (variant === 'image') {
 			image.load(value);
 		}
 	}
