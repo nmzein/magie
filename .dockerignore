@@ -18,5 +18,5 @@ README.md
 /backend/target
 /backend/store/*
 /backend/state/*
-!/backend/state/db.sqlite
 !/backend/state/schema.sql
+!/backend/state/dev.sql
