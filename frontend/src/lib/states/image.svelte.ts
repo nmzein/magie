@@ -1,60 +1,46 @@
-import type { MetadataLayer, AnnotationLayer, ImageLayer, Image, TileRequest } from '$types';
+import type { ImageLayer, Image, TileRequest, Properties } from '$types';
 import { http, websocket } from '$api';
 import { transformer } from '$states';
 import { defined } from '$helpers';
 
 export class ImageViewer {
 	public info: Image | undefined = $state();
-	public metadata: MetadataLayer[] = $state([]);
+	public properties: Properties | undefined = $state();
 	// TODO: Figure out why this scaling is needed.
 	public width = $derived.by(() => {
-		if (this.metadata.length === 0) return undefined;
-		return this.metadata[0].width * 1.003;
+		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
+		return this.properties.metadata[0].width * 1.003;
 	});
 
 	public height = $derived.by(() => {
-		if (this.metadata.length === 0) return undefined;
-		return this.metadata[0].height * 1.003;
+		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
+		return this.properties.metadata[0].height * 1.003;
 	});
-	public levels: number = $derived(this.metadata.length);
+	public levels: number = $derived(this.properties?.metadata.length ?? 0);
 	public tiles: ImageLayer[] = $state([]);
-	public annotations: AnnotationLayer[] = $state([]);
 	public initialised: boolean = $state(false);
 
-	// Run as soon as metadata is parsed and loaded in GetMetadata.
+	// TODO: Move into constructor and create new image by invoking new ImageViewer()
+	// Run as soon as metadata is parsed and loaded in GetProperties.
 	public async load(info: Image) {
 		this.reset();
 
+		const properties = await http.GetProperties(info.id);
+
+		if (!defined(properties) || properties.metadata.length === 0) return;
+
 		this.info = info;
-
-		const metadata = await http.GetMetadata(info.id);
-
-		if (!defined(metadata) || metadata.length === 0) {
-			this.reset();
-			return;
-		}
-		this.metadata = metadata;
-
+		this.properties = properties;
 		this.tiles = new Array(this.levels).fill([]);
 
 		for (let level = 0; level < this.levels; level++) {
-			this.tiles[level] = new Array(metadata[level].rows)
+			this.tiles[level] = new Array(properties.metadata[level].rows)
 				.fill(0)
-				.map(() => new Array(metadata[level].cols).fill(new Image()));
+				.map(() => new Array(properties.metadata[level].cols).fill(new Image()));
 		}
 
 		// Ready to receive new image tiles.
 		this.initialised = true;
-
-		// TODO: Move annotation metadata into GetMetadata request
-		// TODO: and have the actual geometry info be requested by each
-		// TODO: layer individually inside of a web worker.
-		const annotations = await http.GetAnnotations(this.info.id);
-		if (annotations === undefined) {
-			this.reset();
-			return;
-		}
-		this.annotations = annotations;
 	}
 
 	public async getTile(data: TileRequest): Promise<boolean> {
@@ -85,9 +71,8 @@ export class ImageViewer {
 	reset() {
 		this.initialised = false;
 		this.info = undefined;
-		this.metadata = [];
+		this.properties = undefined;
 		this.tiles = [];
-		this.annotations = [];
 		transformer.resetScale();
 	}
 }

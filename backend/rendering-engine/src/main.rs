@@ -43,7 +43,7 @@ async fn main() {
     // Image routes.
     let image_upload_url = &fetch_env_var("PUBLIC_IMAGE_UPLOAD_SUBDIR");
     let image_delete_url = &fetch_env_var("PUBLIC_IMAGE_DELETE_SUBDIR");
-    let image_metadata_url = &fetch_env_var("PUBLIC_IMAGE_METADATA_SUBDIR");
+    let image_properties_url = &fetch_env_var("PUBLIC_IMAGE_PROPERTIES_SUBDIR");
     let image_annotation_url = &fetch_env_var("PUBLIC_IMAGE_ANNOTATIONS_SUBDIR");
     let image_tiles_url = &fetch_env_var("PUBLIC_IMAGE_TILES_SUBDIR");
 
@@ -74,7 +74,7 @@ async fn main() {
         .route(directory_create_url, post(api::directory::create::create))
         // TODO: Reflect this in env file.
         .route(
-            &format!("{}/{}", directory_delete_url, ":id"),
+            &format!("{directory_delete_url}/:id"),
             delete(api::directory::delete::delete),
         )
         .route(directory_rename_url, post(api::directory::rename::rename))
@@ -82,10 +82,13 @@ async fn main() {
         // Image routes.
         .route(image_upload_url, post(api::image::upload::upload))
         .route(image_delete_url, post(api::image::delete::delete))
-        .route(image_metadata_url, post(api::image::metadata::metadata))
+        .route(
+            &format!("{image_properties_url}/:id"),
+            get(api::image::properties::properties),
+        )
         .route(
             image_annotation_url,
-            post(api::image::annotations::annotations),
+            get(api::image::annotations::annotations),
         )
         .route(image_tiles_url, get(api::image::tiles::websocket))
         // General routes.

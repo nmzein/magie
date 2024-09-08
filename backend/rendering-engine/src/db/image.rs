@@ -1,6 +1,7 @@
 use crate::db::common::*;
-use crate::types::MetadataLayer;
-use shared::structs::AnnotationLayer;
+use crate::types::{AnnotationLayer as OutAnnotationLayer, ImageProperties, MetadataLayer};
+use rusqlite::named_params;
+use shared::structs::AnnotationLayer as InAnnotationLayer;
 use std::path::PathBuf;
 
 pub fn insert(
@@ -9,7 +10,7 @@ pub fn insert(
     upl_img_ext: &str,
     annotations_ext: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
-    annotation_layers: Vec<AnnotationLayer>,
+    annotation_layers: Vec<InAnnotationLayer>,
     conn: Arc<Mutex<Connection>>,
 ) -> Result<()> {
     let mut conn = conn.lock().unwrap();
@@ -127,7 +128,7 @@ pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
     Ok((name, path))
 }
 
-pub fn get_metadata_layers(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<MetadataLayer>> {
+pub fn properties(id: u32, conn: Arc<Mutex<Connection>>) -> Result<ImageProperties> {
     let conn = conn.lock().unwrap();
     let mut stmt = conn.prepare(
         r#"
@@ -138,7 +139,7 @@ pub fn get_metadata_layers(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<
         "#,
     )?;
 
-    let metadata_layer = stmt
+    let metadata_layers = stmt
         .query_map([id], |row| {
             Ok(MetadataLayer {
                 level: row.get(0)?,
@@ -150,39 +151,59 @@ pub fn get_metadata_layers(id: u32, conn: Arc<Mutex<Connection>>) -> Result<Vec<
         })?
         .collect::<Result<Vec<_>, _>>()?;
 
+    let mut stmt = conn.prepare(
+        r#"
+                SELECT id, tag
+                FROM annotation_layer
+                WHERE image_id = ?1;
+            "#,
+    )?;
+
+    let annotation_layers = stmt
+        .query_map([id], |row| {
+            Ok(OutAnnotationLayer::new(row.get(0)?, row.get(1)?))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
     #[cfg(feature = "log.database")]
     log(&format!("GET <Metadata: {id}>"), Some(&metadata_layer));
 
-    Ok(metadata_layer)
+    Ok(ImageProperties {
+        metadata: metadata_layers,
+        annotations: annotation_layers,
+    })
 }
 
-pub fn get_annotation_layer_paths(
-    id: u32,
+pub fn get_annotation_layer_path(
+    image_id: u32,
+    annotation_layer_id: u32,
     conn: Arc<Mutex<Connection>>,
-) -> Result<Vec<(String, PathBuf)>> {
-    let parent_directory_path = get(id, Arc::clone(&conn))?.1;
+) -> Result<PathBuf> {
+    let parent_directory_path = get(image_id, Arc::clone(&conn))?.1;
     let conn = conn.lock().unwrap();
 
     let mut stmt = conn.prepare(
         r#"
             SELECT tag
             FROM annotation_layer
-            WHERE image_id = ?1;
+            WHERE image_id = :image_id
+            AND id = :annotation_layer_id;
         "#,
     )?;
 
-    let annotation_layers = stmt
-        .query_map([id], |row| {
+    let layer = stmt.query_row(
+        named_params! { ":image_id": image_id, ":annotation_layer_id": annotation_layer_id },
+        |row| {
             let tag = row.get::<_, String>(0)?;
-            Ok((tag.clone(), parent_directory_path.join(tag + ".json")))
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+            Ok(parent_directory_path.join(tag + ".json"))
+        },
+    )?;
 
     #[cfg(feature = "log.database")]
     log(
-        &format!("GET <Annotation Paths: {id}>"),
-        Some(&annotation_layers),
+        &format!("GET <Annotation Layer Path: {image_id}:{}>", layer.0),
+        Some(&layer),
     );
 
-    Ok(annotation_layers)
+    Ok(layer)
 }

@@ -35,22 +35,34 @@ pub enum MoveMode {
     SoftDelete,
 }
 
-// #[derive(Clone, Debug)]
-// pub struct ImageState {
-//     pub directory_path: PathBuf,
-//     pub image_name: String,
-//     pub store_name: String,
-//     pub annotations_name: Option<String>,
-//     pub metadata_layers: Vec<MetadataLayer>,
-// }
+#[derive(Clone, Debug, Serialize)]
+pub struct ImageProperties {
+    pub metadata: Vec<MetadataLayer>,
+    pub annotations: Vec<AnnotationLayer>,
+}
 
-// #[derive(Debug)]
-// pub struct Paths {
-//     pub directory_path: PathBuf,
-//     pub image_name: String,
-//     pub store_name: String,
-//     pub annotations_name: Option<String>,
-// }
+#[derive(Clone, Debug, Serialize)]
+pub struct AnnotationLayer {
+    pub id: u32,
+    pub tag: String,
+    pub visible: bool,
+    pub opacity: f32,
+    pub fill: String,
+    pub stroke: String,
+}
+
+impl AnnotationLayer {
+    pub fn new(id: u32, tag: String) -> Self {
+        Self {
+            id,
+            tag,
+            visible: true,
+            opacity: 0.5,
+            fill: "#FF0000".to_string(),
+            stroke: "#000000".to_string(),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct MetadataLayer {
@@ -78,3 +90,20 @@ pub struct UploadAssetRequest {
     pub annotations_file: Option<FieldData<NamedTempFile>>,
     pub generator_name: String,
 }
+
+// #[derive(Clone, Debug)]
+// pub struct ImageState {
+//     pub directory_path: PathBuf,
+//     pub image_name: String,
+//     pub store_name: String,
+//     pub annotations_name: Option<String>,
+//     pub metadata_layers: Vec<MetadataLayer>,
+// }
+
+// #[derive(Debug)]
+// pub struct Paths {
+//     pub directory_path: PathBuf,
+//     pub image_name: String,
+//     pub store_name: String,
+//     pub annotations_name: Option<String>,
+// }

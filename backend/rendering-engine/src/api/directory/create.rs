@@ -1,5 +1,4 @@
 use crate::api::common::*;
-use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Body {

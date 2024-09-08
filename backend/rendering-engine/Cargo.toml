@@ -30,7 +30,7 @@ zarrs = "0.16.4"
 
 [features]
 default = [
-    # "time",
+    "time",
     "log.success",
     "log.request",
     # "log.database",

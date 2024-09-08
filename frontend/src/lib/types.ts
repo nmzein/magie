@@ -11,6 +11,11 @@ export type TileRequest = {
 	y: number;
 };
 
+export type Properties = {
+	metadata: MetadataLayer[];
+	annotations: AnnotationLayer[];
+};
+
 export type MetadataLayer = {
 	cols: number;
 	rows: number;
@@ -19,13 +24,15 @@ export type MetadataLayer = {
 };
 
 export type AnnotationLayer = {
+	id: number;
 	tag: string;
 	visible: boolean;
 	opacity: number;
 	fill: string;
 	stroke: string;
-	geometry: string;
 };
+
+export type Geometries = string;
 
 export type ImageLayer = HTMLImageElement[][];
 

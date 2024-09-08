@@ -12,14 +12,18 @@ export const Transformer = () => {
 	let offsetY = $state(0);
 	let scale = $state(1);
 	const scaleBreakpoints: number[] | undefined = $derived.by(() => {
-		if (!image.initialised || image.metadata === undefined || maxLevel === undefined) return;
+		if (!image.initialised || image.properties === undefined || maxLevel === undefined) return;
 
-		const lowestResolution = image.metadata[maxLevel].width * image.metadata[maxLevel].height;
+		const lowestResolution =
+			image.properties.metadata[maxLevel].width * image.properties.metadata[maxLevel].height;
 		let scaleBreakpoints = [];
 		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
 		for (let i = MIN_LEVEL; i < maxLevel; i++) {
 			scaleBreakpoints.push(
-				Math.sqrt((image.metadata[i].width * image.metadata[i].height) / lowestResolution)
+				Math.sqrt(
+					(image.properties.metadata[i].width * image.properties.metadata[i].height) /
+						lowestResolution
+				)
 			);
 		}
 

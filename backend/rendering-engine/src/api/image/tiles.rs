@@ -5,7 +5,6 @@ use axum::extract::{
     WebSocketUpgrade,
 };
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub async fn websocket(

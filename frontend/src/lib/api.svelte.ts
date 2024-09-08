@@ -1,8 +1,3 @@
-/// None of the functions in the api module should alter
-/// state directly. Instead, they should return data that
-/// can be processed to update state in other parts of the app.
-
-import { image, repository } from '$states';
 import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
@@ -16,72 +11,67 @@ import {
 	// Image routes.
 	PUBLIC_IMAGE_UPLOAD_SUBDIR,
 	PUBLIC_IMAGE_DELETE_SUBDIR,
-	PUBLIC_IMAGE_METADATA_SUBDIR,
+	PUBLIC_IMAGE_PROPERTIES_SUBDIR,
 	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
 	PUBLIC_IMAGE_TILES_SUBDIR,
 	// General routes.
 	PUBLIC_REGISTRY_SUBDIR,
 	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
+import { image, repository } from '$states';
+import type { Geometries, Properties, Directory, WebSocketRequest } from '$types';
+import { defined } from '$helpers';
 
-import type { AnnotationLayer, MetadataLayer, Directory, WebSocketRequest } from './types';
-import { stripBaseUrl } from '$helpers';
-
-const URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
-const HTTP_URL = PUBLIC_HTTP_SCHEME + URL;
-const WS_URL = PUBLIC_WS_SCHEME + URL;
+const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
+const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL;
+const WS_URL = PUBLIC_WS_SCHEME + BASE_URL;
 
 // Directory routes.
-const DIRECTORY_CREATE_URL = HTTP_URL + PUBLIC_DIRECTORY_CREATE_SUBDIR;
-const DIRECTORY_DELETE_URL = HTTP_URL + PUBLIC_DIRECTORY_DELETE_SUBDIR;
-const DIRECTORY_RENAME_URL = HTTP_URL + PUBLIC_DIRECTORY_RENAME_SUBDIR;
-const DIRECTORY_MOVE_URL = HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR;
+const DIRECTORY_CREATE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_CREATE_SUBDIR);
+const DIRECTORY_DELETE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_DELETE_SUBDIR);
+const DIRECTORY_RENAME_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_RENAME_SUBDIR);
+const DIRECTORY_MOVE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR);
 
 // Image routes.
-const IMAGE_UPLOAD_URL = HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR;
-const IMAGE_DELETE_URL = HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR;
-const IMAGE_METADATA_URL = HTTP_URL + PUBLIC_IMAGE_METADATA_SUBDIR;
-const IMAGE_ANNOTATIONS_URL = HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR;
-const WEBSOCKET_URL = WS_URL + PUBLIC_IMAGE_TILES_SUBDIR;
+const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
+const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
+const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
+const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
+const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
 
 // General routes.
-const REGISTRY_URL = HTTP_URL + PUBLIC_REGISTRY_SUBDIR;
-const GENERATORS_URL = HTTP_URL + PUBLIC_GENERATORS_SUBDIR;
+const REGISTRY_URL = new URL(HTTP_URL + PUBLIC_REGISTRY_SUBDIR);
+const GENERATORS_URL = new URL(HTTP_URL + PUBLIC_GENERATORS_SUBDIR);
 
 export const http = (() => {
 	async function GetGenerators() {
-		return await GET<string[]>('Generators', GENERATORS_URL);
+		return await GET<string[]>(GENERATORS_URL);
 	}
 
 	async function GetRegistry() {
-		return await GET<Directory>('Registry', REGISTRY_URL);
+		return await GET<Directory>(REGISTRY_URL);
 	}
 
-	async function GetMetadata(id: number) {
-		return await POST<number, MetadataLayer[]>('Metadata', IMAGE_METADATA_URL, id);
+	async function GetProperties(image_id: number) {
+		const url = appendPathSegment(IMAGE_PROPERTIES_URL, image_id);
+		return await GET<Properties>(url);
 	}
 
-	async function GetAnnotations(id: number) {
-		return await POST<number, AnnotationLayer[]>('Annotations', IMAGE_ANNOTATIONS_URL, id);
+	async function GetAnnotations(image_id: number, annotation_layer_id: number) {
+		return await GET<Geometries>(IMAGE_ANNOTATIONS_URL, { image_id, annotation_layer_id });
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
-		const registry = await POST<{ parent_id: number; name: string }, Directory>(
-			'Create Directory',
-			DIRECTORY_CREATE_URL,
-			{ parent_id, name }
-		);
+		const registry = await POST<Directory>(DIRECTORY_CREATE_URL, { parent_id, name });
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function DeleteDirectory(id: number, mode: 'soft' | 'hard') {
-		const registry = await DELETE<Directory>(
-			'Delete Directory',
-			`${DIRECTORY_DELETE_URL}/${id}?mode=${mode}`
-		);
+	async function DeleteDirectory(directory_id: number, mode: 'soft' | 'hard') {
+		const url = appendPathSegment(DIRECTORY_DELETE_URL, directory_id);
+		const registry = await DELETE<Directory>(url, { mode });
 
 		if (registry === undefined) return;
 
@@ -89,11 +79,7 @@ export const http = (() => {
 	}
 
 	async function MoveDirectory(target_id: number, dest_id: number) {
-		const registry = await POST<{ target_id: number; dest_id: number }, Directory>(
-			'Move Directory',
-			DIRECTORY_MOVE_URL,
-			{ target_id, dest_id }
-		);
+		const registry = await POST<Directory>(DIRECTORY_MOVE_URL, { target_id, dest_id });
 
 		if (registry === undefined) return;
 
@@ -115,19 +101,16 @@ export const http = (() => {
 		}
 		formData.append('generator_name', generator);
 
-		const registry = await POST<FormData, Directory>(
-			'Send Upload Assets',
-			IMAGE_UPLOAD_URL,
-			formData,
-			'multipart'
-		);
+		const registry = await POST<Directory>(IMAGE_UPLOAD_URL, formData, 'multipart');
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function GET<Resp>(name: string, url: string) {
+	async function GET<Resp>(_url: URL, params?: Record<string, any>) {
+		const url = constructUrl(_url, params);
+
 		try {
 			const response = await fetch(url, { method: 'GET' });
 
@@ -136,26 +119,17 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error [${stripBaseUrl(url)}]:`, error);
+					console.error(`Parse Error [${url.pathname}]:`, error);
 				}
 			} else {
-				console.error(
-					`Response Error [${stripBaseUrl(url)}]:`,
-					response.status,
-					response.statusText
-				);
+				console.error(`Response Error [${url.pathname}]:`, response.status, response.statusText);
 			}
 		} catch (error) {
-			console.error(`Fetch Error [${stripBaseUrl(url)}]:`, error);
+			console.error(`Fetch Error [${url.pathname}]:`, error);
 		}
 	}
 
-	async function POST<Req, Resp>(
-		name: string,
-		url: string,
-		data: Req,
-		contentType: 'json' | 'multipart' = 'json'
-	) {
+	async function POST<Resp>(url: URL, body: any, contentType: 'json' | 'multipart' = 'json') {
 		try {
 			let response: Response;
 
@@ -164,13 +138,13 @@ export const http = (() => {
 					response = await fetch(url, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(data)
+						body: JSON.stringify(body)
 					});
 					break;
 				case 'multipart':
 					response = await fetch(url, {
 						method: 'POST',
-						body: data as FormData
+						body: body as FormData
 					});
 			}
 
@@ -179,21 +153,23 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`, error);
+					console.error(`Parse Error [${url.pathname}: ${JSON.stringify(body)}]:`, error);
 				}
 			} else {
 				console.error(
-					`Response Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`,
+					`Response Error [${url.pathname}: ${JSON.stringify(body)}]:`,
 					response.status,
 					response.statusText
 				);
 			}
 		} catch (error) {
-			console.error(`Fetch Error [${stripBaseUrl(url)}: ${JSON.stringify(data)}]:`, error);
+			console.error(`Fetch Error [${url.pathname}: ${JSON.stringify(body)}]:`, error);
 		}
 	}
 
-	async function DELETE<Resp>(name: string, url: string) {
+	async function DELETE<Resp>(_url: URL, params?: Record<string, any>) {
+		const url = constructUrl(_url, params);
+
 		try {
 			const response = await fetch(url, { method: 'DELETE' });
 
@@ -202,24 +178,20 @@ export const http = (() => {
 					const data: Resp = await response.json();
 					return data;
 				} catch (error) {
-					console.error(`Parse Error [${stripBaseUrl(url)}]:`, error);
+					console.error(`Parse Error [${url.pathname}]:`, error);
 				}
 			} else {
-				console.error(
-					`Response Error [${stripBaseUrl(url)}]:`,
-					response.status,
-					response.statusText
-				);
+				console.error(`Response Error [${url.pathname}]:`, response.status, response.statusText);
 			}
 		} catch (error) {
-			console.error(`Fetch Error [${stripBaseUrl(url)}]:`, error);
+			console.error(`Fetch Error [${url.pathname}]:`, error);
 		}
 	}
 
 	return {
 		GetGenerators,
 		GetRegistry,
-		GetMetadata,
+		GetProperties,
 		GetAnnotations,
 		CreateDirectory,
 		DeleteDirectory,
@@ -252,4 +224,20 @@ export let websocket: WebSocketState;
 
 export function ConnectWebSocket() {
 	websocket = new WebSocketState();
+}
+
+function appendPathSegment(url: URL, segment: any) {
+	return new URL(url + '/' + segment);
+}
+
+function constructUrl(_url: URL, params?: Record<string, any>) {
+	const url = new URL(_url);
+
+	if (defined(params)) {
+		for (const [key, value] of Object.entries(params)) {
+			url.searchParams.append(key, value.toString());
+		}
+	}
+
+	return url;
 }
