@@ -1,4 +1,5 @@
 use crate::api::common::*;
+use axum::{body::Bytes, http::header};
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -35,16 +36,25 @@ pub async fn annotations(
         }
     };
 
-    let annotations = match std::fs::read_to_string(&path) {
-        Ok(annotations) => annotations,
+    // Read the binary content of the GLB file
+    match std::fs::read(&path) {
+        Ok(file_data) => (
+            axum::response::AppendHeaders([
+                (header::CONTENT_TYPE, "model/gltf-binary"),
+                (
+                    header::CONTENT_DISPOSITION,
+                    "attachment; filename=\"file.glb\"",
+                ),
+            ]),
+            Bytes::from(file_data),
+        )
+            .into_response(),
         Err(e) => {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IA/E01]: Failed to read JSON file for annotation layer with id `{annotation_layer_id}` at path: `{path:?}`."),
+                &format!("[IA/E01]: Failed to read GLB file for annotation layer with id `{annotation_layer_id}` at path: `{path:?}`."),
                 Some(e),
             );
         }
-    };
-
-    Json(annotations).into_response()
+    }
 }

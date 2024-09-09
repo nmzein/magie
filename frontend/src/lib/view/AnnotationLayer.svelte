@@ -1,18 +1,19 @@
 <script lang="ts">
-	import { http } from '$api';
+	import { IMAGE_ANNOTATIONS_URL } from '$api';
 	import { defined } from '$helpers';
 	import { image } from '$states';
 	import type { AnnotationLayer } from '$types';
 	import { onMount } from 'svelte';
 	import {
-		BufferGeometryLoader,
 		Scene,
-		MeshBasicMaterial,
-		InstancedMesh,
 		WebGLRenderer,
+		MeshBasicMaterial,
 		type Camera,
-		type BufferGeometry
+		type BufferGeometry,
+		type Object3D,
+		type Mesh
 	} from 'three';
+	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 	let { imageId, layer, camera }: { imageId: number; layer: AnnotationLayer; camera: Camera } =
 		$props();
@@ -26,18 +27,10 @@
 	let canvas: HTMLCanvasElement | undefined = $state();
 
 	const scene = new Scene();
-	const loader = new BufferGeometryLoader();
+	let mesh: Mesh | undefined;
+	const loader = new GLTFLoader();
 	let geometry: BufferGeometry | undefined;
 	let firstRender = true;
-
-	onMount(async () => {
-		await http.GetAnnotations(imageId, layer.id).then((geom) => {
-			if (!defined(geom)) return;
-			geometry = loader.parse(JSON.parse(geom));
-			render();
-			firstRender = false;
-		});
-	});
 
 	// Create a renderer with a transparent canvas.
 	const renderer = $derived(
@@ -56,6 +49,29 @@
 		})
 	);
 
+	function isMesh(object: Object3D): object is Mesh {
+		return (object as Mesh).material !== undefined;
+	}
+
+	onMount(async () => {
+		// Load a glTF resource
+		const data = await loader.loadAsync(
+			// resource URL
+			`${IMAGE_ANNOTATIONS_URL}?image_id=${imageId}&annotation_layer_id=${layer.id}`,
+			// called while loading is progressing
+			function (progress) {
+				console.log((progress.loaded / progress.total) * 100 + '% loaded');
+			}
+		);
+
+		const node = data.scene.children[0];
+		mesh = isMesh(node) ? node : undefined;
+		if (!defined(mesh)) return;
+		render();
+
+		firstRender = false;
+	});
+
 	$effect(() => {
 		if (fillMaterial && !firstRender) {
 			render();
@@ -63,10 +79,20 @@
 	});
 
 	function render() {
+		if (!defined(mesh)) return;
+
 		let start = performance.now();
-		// Create a mesh with the geometries and materials.
-		let mesh = new InstancedMesh(geometry, fillMaterial, 1);
-		// Add the shapes to the scene.
+
+		// Clear scene;
+		scene.clear();
+
+		mesh.traverse(function (node) {
+			if (isMesh(node)) {
+				node.material = fillMaterial;
+			}
+		});
+
+		// Add the mesh to the scene.
 		scene.add(mesh);
 		// Render the scene.
 		renderer.render(scene, camera);
