@@ -76,13 +76,7 @@
 		event.preventDefault();
 
 		// Logic for calculating the coordinates of the mouse pointer.
-		if (
-			!isDragging &&
-			defined(image.width) &&
-			defined(image.height) &&
-			!isNaN(event.clientX) &&
-			!isNaN(event.clientY)
-		) {
+		if (!isDragging && defined(image.width) && defined(image.height)) {
 			// TODO: Don't do this on every mouse move.
 			const currentLayer = document
 				.getElementById('image-layer-' + transformer.currentLevel)
@@ -90,8 +84,15 @@
 
 			if (!currentLayer) return;
 
-			x = Math.floor((event.clientX - transformer.offsetX) * (image.width / currentLayer.width));
-			y = Math.floor((event.clientY - transformer.offsetY) * (image.height / currentLayer.height));
+			const xTemp = Math.floor(
+				(event.clientX - transformer.offsetX) * (image.width / currentLayer.width)
+			);
+			const yTemp = Math.floor(
+				(event.clientY - transformer.offsetY) * (image.height / currentLayer.height)
+			);
+
+			if (Number.isFinite(xTemp) && !isNaN(xTemp)) x = xTemp;
+			if (Number.isFinite(yTemp) && !isNaN(yTemp)) y = yTemp;
 
 			return;
 		}

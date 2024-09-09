@@ -74,17 +74,15 @@
 					1) This layer is the current layer (i.e. display == true).
 					2) The tile has been loaded (i.e. tile.src != '').
 				-->
-				{#if tile.src !== '' || display}
-					<img
-						src={tile.src || 'placeholder.png'}
-						data-level={layerIndex}
-						data-x={colIndex}
-						data-y={rowIndex}
-						alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
-						onerror={() =>
-							console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
-					/>
-				{/if}
+				<img
+					src={tile.src || 'placeholder.png'}
+					style="display: {display || tile.src !== '' ? 'block' : 'none'};"
+					data-level={layerIndex}
+					data-x={colIndex}
+					data-y={rowIndex}
+					alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
+					onerror={() => console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
+				/>
 
 				<!-- 
 					In the case where the tile has not been loaded and this layer
