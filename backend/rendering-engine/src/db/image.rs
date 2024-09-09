@@ -191,19 +191,19 @@ pub fn get_annotation_layer_path(
         "#,
     )?;
 
-    let layer = stmt.query_row(
+    let path = stmt.query_row(
         named_params! { ":image_id": image_id, ":annotation_layer_id": annotation_layer_id },
         |row| {
             let tag = row.get::<_, String>(0)?;
-            Ok(parent_directory_path.join(tag + ".json"))
+            Ok(parent_directory_path.join(tag + ".glb"))
         },
     )?;
 
     #[cfg(feature = "log.database")]
     log(
-        &format!("GET <Annotation Layer Path: {image_id}:{}>", layer.0),
+        &format!("GET <Annotation Layer Path: {image_id}:{path}>"),
         Some(&layer),
     );
 
-    Ok(layer)
+    Ok(path)
 }

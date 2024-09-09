@@ -32,8 +32,6 @@ export type AnnotationLayer = {
 	stroke: string;
 };
 
-export type Geometries = string;
-
 export type ImageLayer = HTMLImageElement[][];
 
 export type Directory = {

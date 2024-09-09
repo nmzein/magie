@@ -36,7 +36,7 @@ const DIRECTORY_MOVE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR);
 const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
 const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
 const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
-const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
+export const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
 const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
 
 // General routes.
@@ -55,10 +55,6 @@ export const http = (() => {
 	async function GetProperties(image_id: number) {
 		const url = appendPathSegment(IMAGE_PROPERTIES_URL, image_id);
 		return await GET<Properties>(url);
-	}
-
-	async function GetAnnotations(image_id: number, annotation_layer_id: number) {
-		return await GET<Geometries>(IMAGE_ANNOTATIONS_URL, { image_id, annotation_layer_id });
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
@@ -192,7 +188,6 @@ export const http = (() => {
 		GetGenerators,
 		GetRegistry,
 		GetProperties,
-		GetAnnotations,
 		CreateDirectory,
 		DeleteDirectory,
 		MoveDirectory,
