@@ -43,11 +43,11 @@ The application can now be accessed at `http://0.0.0.0:4000`.
 
 Install dependencies:
 
-| OS     | Command               | Verified Supported Version(s) | Issues                                    |
-| ------ | --------------------- | ----------------------------- | ----------------------------------------- |
-| Debian | `./install.sh debian` | 12/Bookworm                   | -                                         |
-| Fedora | `./install.sh fedora` | -                             | https://github.com/nmzein/magie/issues/13 |
-| Ubuntu | `./install.sh ubuntu` | -                             | https://github.com/nmzein/magie/issues/13 |
+| OS     | Command               | Verified Supported Version(s) |
+| ------ | --------------------- | ----------------------------- |
+| Debian | `./install.sh debian` | 12                            |
+| Fedora | `./install.sh fedora` | 40                            |
+| Ubuntu | `./install.sh ubuntu` | -                             |
 
 Build and run:
 

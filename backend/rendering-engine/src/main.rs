@@ -24,6 +24,10 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
+    // Override the temporary directory to get around issue
+    // of crossing mount points on some Linux distros.
+    env::set_var("TMPDIR", "./temp");
+
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
