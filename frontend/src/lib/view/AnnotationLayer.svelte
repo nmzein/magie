@@ -3,6 +3,7 @@
 	import { defined } from '$helpers';
 	import { image } from '$states';
 	import type { AnnotationLayer } from '$types';
+	import { onMount } from 'svelte';
 	import {
 		BufferGeometryLoader,
 		Scene,
@@ -27,15 +28,16 @@
 	const scene = new Scene();
 	const loader = new BufferGeometryLoader();
 	let geometry: BufferGeometry | undefined;
+	let firstRender = true;
 
-	// $effect(() => {
-	// setTimeout(() => {
-	// 	http.GetAnnotations(imageId, layer.id).then((geom) => {
-	// 		if (!defined(geom)) return;
-	// 		geometry = loader.parse(JSON.parse(geom));
-	// 	});
-	// }, 2000);
-	// });
+	onMount(async () => {
+		await http.GetAnnotations(imageId, layer.id).then((geom) => {
+			if (!defined(geom)) return;
+			geometry = loader.parse(JSON.parse(geom));
+			render();
+			firstRender = false;
+		});
+	});
 
 	// Create a renderer with a transparent canvas.
 	const renderer = $derived(
@@ -54,7 +56,11 @@
 		})
 	);
 
-	$effect(() => render());
+	$effect(() => {
+		if (fillMaterial && !firstRender) {
+			render();
+		}
+	});
 
 	function render() {
 		let start = performance.now();

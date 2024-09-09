@@ -140,18 +140,18 @@
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
-		class="h-auto origin-top-left"
+		class="relative h-full w-screen origin-top-left"
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
-		<div id="annotation-layers">
+		<div id="annotation-layers" class="absolute z-20 h-full w-full">
 			{#if defined(image.info) && defined(image.properties) && defined(camera)}
 				{#each image.properties.annotations as layer}
 					<AnnotationLayer imageId={image.info.id} {layer} {camera} />
 				{/each}
 			{/if}
 		</div>
-		<div id="image-layers">
+		<div id="image-layers" class="absolute z-10 h-full w-full">
 			{#if defined(transformer.currentLevel)}
 				{#each image.tiles as layer, layerIndex}
 					<ImageLayer {layer} {layerIndex} display={layerIndex === transformer.currentLevel} />
