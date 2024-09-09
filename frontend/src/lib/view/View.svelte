@@ -21,10 +21,10 @@
 
 	// TODO: FIX
 	$effect(() => {
-		if (!image.initialised || image.levels === undefined || image.metadata === undefined) return;
+		if (!image.initialised || image.properties === undefined) return;
 
 		for (let i = 0; i < image.levels; i++) {
-			if (image.metadata[i].cols <= 4 || image.metadata[i].rows <= 4) {
+			if (image.properties.metadata[i].cols <= 4 || image.properties.metadata[i].rows <= 4) {
 				transformer.maxLevel = i - 1;
 				transformer.currentLevel = i - 1;
 				break;
@@ -140,19 +140,19 @@
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
-		class="h-auto origin-top-left"
+		class="relative h-full w-screen origin-top-left"
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
-		<div id="annotation-layers">
-			{#if camera !== undefined}
-				{#each image.annotations as layer, layerIndex}
-					<AnnotationLayer {layer} {layerIndex} {camera} />
+		<div id="annotation-layers" class="absolute z-20 h-full w-full">
+			{#if defined(image.info) && defined(image.properties) && defined(camera)}
+				{#each image.properties.annotations as layer}
+					<AnnotationLayer imageId={image.info.id} {layer} {camera} />
 				{/each}
 			{/if}
 		</div>
-		<div id="image-layers">
-			{#if transformer.currentLevel !== undefined}
+		<div id="image-layers" class="absolute z-10 h-full w-full">
+			{#if defined(transformer.currentLevel)}
 				{#each image.tiles as layer, layerIndex}
 					<ImageLayer {layer} {layerIndex} display={layerIndex === transformer.currentLevel} />
 				{/each}

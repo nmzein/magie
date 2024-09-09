@@ -50,7 +50,10 @@
 				<Tabs.Trigger value="explorer">
 					<Icon name="explorer" class="h-9 w-9" />
 				</Tabs.Trigger>
-				<Tabs.Trigger value="control" disabled={image.annotations.length === 0}>
+				<Tabs.Trigger
+					value="control"
+					disabled={!defined(image.properties) || image.properties.annotations.length === 0}
+				>
 					<Icon name="control" class="h-9 w-9" />
 				</Tabs.Trigger>
 				<Tabs.Trigger value="info" disabled={!image.initialised}>

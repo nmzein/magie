@@ -5,7 +5,6 @@ use shared::structs::AnnotationLayer;
 use std::{
     path::{Path, PathBuf},
     process::Command,
-    sync::Arc,
 };
 use tempfile::NamedTempFile;
 

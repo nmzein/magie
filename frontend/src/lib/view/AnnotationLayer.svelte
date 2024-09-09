@@ -1,6 +1,9 @@
 <script lang="ts">
+	import { http } from '$api';
+	import { defined } from '$helpers';
 	import { image } from '$states';
 	import type { AnnotationLayer } from '$types';
+	import { onMount } from 'svelte';
 	import {
 		BufferGeometryLoader,
 		Scene,
@@ -11,11 +14,8 @@
 		type BufferGeometry
 	} from 'three';
 
-	let {
-		layer,
-		layerIndex,
-		camera
-	}: { layer: AnnotationLayer; layerIndex: number; camera: Camera } = $props();
+	let { imageId, layer, camera }: { imageId: number; layer: AnnotationLayer; camera: Camera } =
+		$props();
 
 	const CANVAS_HEIGHT = 8000;
 	let CANVAS_WIDTH = $derived.by(() => {
@@ -27,7 +27,17 @@
 
 	const scene = new Scene();
 	const loader = new BufferGeometryLoader();
-	let geometry: BufferGeometry = $derived(loader.parse(JSON.parse(layer.geometry)));
+	let geometry: BufferGeometry | undefined;
+	let firstRender = true;
+
+	onMount(async () => {
+		await http.GetAnnotations(imageId, layer.id).then((geom) => {
+			if (!defined(geom)) return;
+			geometry = loader.parse(JSON.parse(geom));
+			render();
+			firstRender = false;
+		});
+	});
 
 	// Create a renderer with a transparent canvas.
 	const renderer = $derived(
@@ -46,7 +56,11 @@
 		})
 	);
 
-	$effect(() => render());
+	$effect(() => {
+		if (fillMaterial && !firstRender) {
+			render();
+		}
+	});
 
 	function render() {
 		let start = performance.now();
@@ -57,7 +71,7 @@
 		// Render the scene.
 		renderer.render(scene, camera);
 
-		console.log('Rendering Layer', layerIndex, 'took', performance.now() - start, 'ms');
+		console.log('Rendering Layer', layer.tag, 'took', performance.now() - start, 'ms');
 		console.log('Scene Polycount: ', renderer.info.render.triangles);
 		console.log('Active Drawcalls: ', renderer.info.render.calls);
 		console.log('Textures in Memory:', renderer.info.memory.textures);
@@ -69,9 +83,9 @@
 	bind:this={canvas}
 	width={CANVAS_WIDTH}
 	height={CANVAS_HEIGHT}
-	id={'annotation-layer-' + layerIndex}
+	id={'annotation-layer-' + layer.id}
 	class="absolute w-full"
 	class:hidden={!layer.visible}
-	style:z-index={100 + layerIndex}
+	style:z-index={100 + layer.id}
 	style:opacity={layer.opacity}
 ></canvas>
