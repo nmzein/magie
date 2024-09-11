@@ -4,11 +4,6 @@ use rusqlite_migration::{Migrations, M};
 use std::{collections::HashMap, fs, path::Path};
 
 pub fn connect(database_path: &str, database_url: &str) -> Result<Connection> {
-    // Delete the database if in debug.
-    if cfg!(debug_assertions) && Path::new(database_path).exists() {
-        fs::remove_file(database_path)?;
-    }
-
     // Create the database file if it does not exist.
     if !Path::new(database_path).exists() {
         fs::File::create(database_path)?;
