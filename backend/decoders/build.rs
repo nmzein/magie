@@ -23,7 +23,8 @@ fn main() -> Result<()> {
 fn declare_deps(common: &mut File) -> Result<()> {
     writeln!(
         common,
-        r#"pub use anyhow::Result;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+pub use anyhow::Result;
 pub use shared::{{structs::Region, traits::Decoder}};
 pub use std::path::Path;"#
     )?;
@@ -34,7 +35,8 @@ pub use std::path::Path;"#
 fn handle_no_decoders(export: &mut File) -> Result<()> {
     writeln!(
         export,
-        r#"use shared::traits::Decoder;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+use crate::common::*;
 
 pub fn get(_extension: &str) -> Vec<Box<dyn Decoder>> {{
     vec![]
@@ -47,7 +49,8 @@ pub fn get(_extension: &str) -> Vec<Box<dyn Decoder>> {{
 fn handle_decoders(export: &mut File, decoders: Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"use shared::traits::Decoder;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+use crate::common::*;
         
 pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {{
     match extension {{"#

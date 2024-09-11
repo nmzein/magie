@@ -1,4 +1,5 @@
-use shared::traits::Decoder;
+/// Auto-generated file. Any changes will be overwritten.
+use crate::common::*;
         
 pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {
     match extension {

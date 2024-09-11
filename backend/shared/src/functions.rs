@@ -59,7 +59,8 @@ pub fn find_exported_struct(contents: File) -> Option<String> {
 pub fn declare_modules(mut file: &mut dyn Write, modules: Vec<String>) {
     writeln!(
         &mut file,
-        r#"mod common;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+mod common;
 pub mod export;
 "#
     )

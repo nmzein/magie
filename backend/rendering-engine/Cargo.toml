@@ -10,23 +10,23 @@ path = "src/main.rs"
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
 decoders = { version = "0.1.0", path = "../decoders" }
+encoders = { version = "0.1.0", path = "../encoders" }
 generators = { version = "0.1.0", path = "../generators" }
 
 anyhow = { workspace = true }
-axum = { version = "0.7.5", features = ["ws", "json"] }
-axum_typed_multipart = "0.12.1"
-dotenvy = "0.15.7"
-futures-util = "0.3.30"
-image = "0.25.2"
-rusqlite = { version = "0.31.0", features = ["bundled"] }
-rusqlite_migration = "1.2.0"
+axum = { workspace = true }
+axum_typed_multipart = { workspace = true }
+dotenvy = { workspace = true }
+futures-util = { workspace = true }
+image = { workspace = true }
+rusqlite = { workspace = true }
+rusqlite_migration = { workspace = true }
 serde = { workspace = true }
-serde_json = "1.0.127"
-tempfile = "3.12.0"
-tokio = { version = "1.40.0", features = ["full"] }
-tower-http = { version = "0.5.2", features = ["cors"] }
-turbojpeg = { version = "1.1.1", features = ["image"] }
-zarrs = "0.16.4"
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+turbojpeg = { workspace = true }
 
 [features]
 default = [

@@ -1,7 +1,7 @@
 use crate::api::common::*;
-use crate::types::{MetadataLayer, UploadAssetRequest};
+use crate::types::UploadAssetRequest;
 use axum_typed_multipart::{FieldData, TypedMultipart};
-use shared::structs::AnnotationLayer;
+use shared::structs::{AnnotationLayer, MetadataLayer};
 use std::{
     path::{Path, PathBuf},
     process::Command,
