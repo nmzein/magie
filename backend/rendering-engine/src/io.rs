@@ -58,9 +58,6 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
         tile_request.y,
     )?;
 
-    #[cfg(feature = "time")]
-    let start = time("Interleaving RGB channels", level, x, y, start);
-
     let Some(image_buffer) = RgbImage::from_raw(TILE_SIZE, TILE_SIZE, raw_buffer) else {
         return Err(anyhow::anyhow!(
             "Could not convert tile Vec<u8> to ImageBuffer."
@@ -70,15 +67,15 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
     let mut jpeg_tile =
         turbojpeg::compress_image(&image_buffer, 70, turbojpeg::Subsamp::Sub2x2)?.to_vec();
 
-    #[cfg(feature = "time")]
-    time("Encoding tile to JPEG", level, x, y, start);
-
     // Prepend tile position and level
     // (will be in this form [level, x, y, tile...])
     // ! FIX: x, y can be > u8.
     jpeg_tile.insert(0, tile_request.y as u8);
     jpeg_tile.insert(0, tile_request.x as u8);
     jpeg_tile.insert(0, tile_request.level as u8);
+
+    #[cfg(feature = "time")]
+    time("Total tile took", level, x, y, start);
 
     Ok(jpeg_tile)
 }
