@@ -1,20 +1,17 @@
 [package]
-name = "decoders"
+name = "encoders"
 version = "0.1.0"
 edition = "2021"
 
 [build-dependencies]
 shared = { version = "0.1.0", path = "../shared" }
-syn = { workspace = true }
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
 anyhow = { workspace = true }
-
-# Optional Dependencies
-openslide-rs = { version = "2.1.1", optional = true }
+zarrs = { workspace = true }
 
 [features]
-default = ["openslide"]
+default = ["omezarr"]
 
-openslide = ["dep:openslide-rs"]
+omezarr = []

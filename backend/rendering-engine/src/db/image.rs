@@ -1,7 +1,7 @@
 use crate::db::common::*;
-use crate::types::{AnnotationLayer as OutAnnotationLayer, ImageProperties, MetadataLayer};
+use crate::types::{AnnotationLayer as OutAnnotationLayer, ImageProperties};
 use rusqlite::named_params;
-use shared::structs::AnnotationLayer as InAnnotationLayer;
+use shared::structs::{AnnotationLayer as InAnnotationLayer, MetadataLayer};
 use std::path::PathBuf;
 
 pub fn insert(

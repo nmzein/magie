@@ -42,3 +42,12 @@ impl AnnotationLayer {
         self.annotations.push(geometry);
     }
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct MetadataLayer {
+    pub level: u32,
+    pub cols: u32,
+    pub rows: u32,
+    pub width: u32,
+    pub height: u32,
+}
