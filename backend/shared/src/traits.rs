@@ -10,11 +10,11 @@ pub trait Decoder: Send {
 
 pub trait Encoder: Send {
     fn convert(
-        &self,
         input_path: &Path,
         output_path: &Path,
         decoder: Box<dyn Decoder>,
     ) -> Result<Vec<MetadataLayer>>;
+    fn retrieve(image_path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>>;
 }
 
 pub trait Generator: Send + Sync {

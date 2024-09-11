@@ -27,7 +27,6 @@ tempfile = { workspace = true }
 tokio = { workspace = true }
 tower-http = { workspace = true }
 turbojpeg = { workspace = true }
-zarrs = { workspace = true }
 
 [features]
 default = [

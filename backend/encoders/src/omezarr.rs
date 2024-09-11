@@ -1,12 +1,13 @@
 use crate::common::*;
 
+static GROUP_PATH: &str = "/group";
+
 pub const NAME: &str = "OMEZarr";
 
 pub struct Module;
 
 impl Encoder for Module {
     fn convert(
-        &self,
         input_path: &Path,
         output_path: &Path,
         decoder: Box<dyn Decoder>,
@@ -117,5 +118,25 @@ impl Encoder for Module {
         }
 
         Ok(metadata)
+    }
+
+    fn retrieve(image_path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
+        let store = Arc::new(FilesystemStore::new(image_path)?);
+        let array = Arc::new(Array::open(store, &format!("{GROUP_PATH}/{}", level))?);
+
+        let x: u64 = x.into();
+        let y: u64 = y.into();
+
+        // Retrieve tile for each RGB channel.
+        let channels = array.retrieve_chunks_elements(&ArraySubset::new_with_start_end_inc(
+            vec![0, 0, 0, y, x],
+            vec![0, 2, 0, y, x],
+        )?)?;
+
+        // Interleave RGB channels.
+        let mut tile = Vec::with_capacity(TILE_LENGTH * 3);
+        interleave(&channels, &mut tile);
+
+        Ok(tile)
     }
 }

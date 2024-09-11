@@ -1891,7 +1891,6 @@ dependencies = [
  "tokio",
  "tower-http",
  "turbojpeg",
- "zarrs",
 ]
 
 [[package]]

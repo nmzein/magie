@@ -21,7 +21,8 @@ fn main() -> Result<()> {
 fn declare_deps(common: &mut File) -> Result<()> {
     writeln!(
         common,
-        r#"pub use anyhow::Result;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+pub use anyhow::Result;
 pub use shared::{{structs::AnnotationLayer, traits::Generator}};
 pub use std::path::Path;"#
     )?;
@@ -32,7 +33,8 @@ pub use std::path::Path;"#
 fn handle_no_generators(export: &mut File) -> Result<()> {
     writeln!(
         export,
-        r#"use shared::traits::Generator;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+use crate::common::*;
 
 pub fn get(_name: &str) -> Option<Box<dyn Generator>> {{
     None
@@ -47,7 +49,8 @@ pub const NAMES: [&str; 0] = [];"#
 fn handle_generators(export: &mut File, generators: Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"use shared::traits::Generator;
+        r#"/// Auto-generated file. Any changes will be overwritten.
+use crate::common::*;
 
 pub fn get(name: &str) -> Option<Box<dyn Generator>> {{
     match name {{"#
