@@ -163,7 +163,7 @@
 		});
 	});
 
-	let scene: Scene | undefined;
+	let scene: Scene | undefined = $state();
 
 	$effect(() => {
 		if (defined(canvas)) {
