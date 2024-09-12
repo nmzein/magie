@@ -42,8 +42,15 @@
 	});
 
 	$effect(() => {
-		if (fillMaterial && defined(mesh)) {
+		if (defined(mesh)) {
 			mesh.material = fillMaterial;
+			render(layer.tag, mesh);
+		}
+	});
+
+	$effect(() => {
+		if (defined(mesh)) {
+			mesh.visible = layer.visible;
 			render(layer.tag, mesh);
 		}
 	});
