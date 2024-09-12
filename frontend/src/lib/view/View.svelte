@@ -3,7 +3,7 @@
 	import { image, transformer } from '$states';
 	import AnnotationLayer from '$view/AnnotationLayer.svelte';
 	import ImageLayer from '$view/ImageLayer.svelte';
-	import { OrthographicCamera } from 'three';
+	import { Mesh, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 
 	let panStartX = $state(0);
 	let panStartY = $state(0);
@@ -40,6 +40,20 @@
 		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('mouseup', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
+
+		let script = document.createElement('script');
+		script.onload = function () {
+			let stats = new Stats();
+
+			stats.showPanel(0);
+			document.body.appendChild(stats.dom);
+			requestAnimationFrame(function loop() {
+				stats.update();
+				requestAnimationFrame(loop);
+			});
+		};
+		script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
+		document.head.appendChild(script);
 
 		return () => {
 			document.removeEventListener('touchmove', handleTouchMove);
@@ -128,6 +142,50 @@
 
 		transformer.zoom(event.deltaY, event.clientX, event.clientY);
 	}
+
+	let canvas: HTMLCanvasElement | undefined = $state();
+
+	const CANVAS_HEIGHT = 8000;
+	let CANVAS_WIDTH = $derived.by(() => {
+		if (!image.initialised || !defined(image.width) || !defined(image.height)) return;
+		return CANVAS_HEIGHT * (image.width / image.height);
+	});
+
+	// Create a renderer with a transparent canvas.
+	const renderer = $derived.by(() => {
+		if (!defined(canvas)) return;
+
+		return new WebGLRenderer({
+			canvas,
+			alpha: true,
+			precision: 'highp',
+			powerPreference: 'high-performance'
+		});
+	});
+
+	let scene: Scene | undefined = $state();
+
+	$effect(() => {
+		if (defined(canvas)) {
+			scene = new Scene();
+		}
+	});
+
+	function render(tag: string, mesh: Mesh) {
+		if (!defined(camera) || !defined(renderer) || !defined(scene)) return;
+
+		let start = performance.now();
+
+		// Remove mesh if it exists.
+		scene.remove(mesh);
+		// Add the mesh to the scene.
+		scene.add(mesh);
+		// Render the scene.
+		renderer.render(scene, camera);
+
+		console.log('Rendering Layer', tag, 'took', performance.now() - start, 'ms');
+		console.log('Scene Polycount: ', renderer.info.render.triangles);
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -145,9 +203,13 @@
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
 		<div id="annotation-layers" class="absolute z-20 h-full w-full">
-			{#if defined(image.info) && defined(image.properties) && defined(camera)}
+			{#if defined(CANVAS_WIDTH)}
+				<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
+				></canvas>
+			{/if}
+			{#if defined(image.info) && defined(image.properties) && defined(camera) && defined(renderer) && defined(scene)}
 				{#each image.properties.annotations as layer}
-					<AnnotationLayer imageId={image.info.id} {layer} {camera} />
+					<AnnotationLayer imageId={image.info.id} {layer} {render} />
 				{/each}
 			{/if}
 		</div>

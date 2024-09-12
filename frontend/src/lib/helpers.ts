@@ -6,8 +6,8 @@ export function appendPx<T extends Record<string, number>>(values: T): T {
 	return result;
 }
 
-export function defined<T>(value: T | undefined): value is T {
-	return value !== undefined;
+export function defined<T>(value: T | undefined | null): value is T {
+	return value !== undefined && value !== null;
 }
 
 export function truncateNumber(num: number, digits: number = 2) {
