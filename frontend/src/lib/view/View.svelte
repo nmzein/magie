@@ -207,7 +207,7 @@
 				<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
 				></canvas>
 			{/if}
-			{#if defined(image.info) && defined(image.properties) && defined(camera) && defined(renderer)}
+			{#if defined(image.info) && defined(image.properties) && defined(camera) && defined(renderer) && defined(scene)}
 				{#each image.properties.annotations as layer}
 					<AnnotationLayer imageId={image.info.id} {layer} {render} />
 				{/each}
