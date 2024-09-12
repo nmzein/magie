@@ -19,7 +19,7 @@ import {
 	PUBLIC_GENERATORS_SUBDIR
 } from '$env/static/public';
 import { image, repository } from '$states';
-import type { Geometries, Properties, Directory, WebSocketRequest } from '$types';
+import type { Properties, Directory, WebSocketRequest } from '$types';
 import { defined } from '$helpers';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
