@@ -163,10 +163,16 @@
 		});
 	});
 
-	const scene = new Scene();
+	let scene: Scene | undefined;
+
+	$effect(() => {
+		if (defined(canvas)) {
+			scene = new Scene();
+		}
+	});
 
 	function render(tag: string, mesh: Mesh) {
-		if (!defined(camera) || !defined(renderer)) return;
+		if (!defined(camera) || !defined(renderer) || !defined(scene)) return;
 
 		let start = performance.now();
 
