@@ -5,15 +5,7 @@
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
 
-	let {
-		variant,
-		value,
-		selectionBox
-	}: {
-		variant: string;
-		value: Directory | Image;
-		selectionBox: SelectionBox;
-	} = $props();
+	let { value, selectionBox }: { value: Directory | Image; selectionBox: SelectionBox } = $props();
 
 	let item: HTMLButtonElement | undefined = $state();
 	let itemBounds = $derived(item?.getBoundingClientRect());
@@ -51,10 +43,13 @@
 	}
 
 	function handleOpen() {
-		if (variant === 'directory') {
-			explorer.navigateTo(value.id);
-		} else if (variant === 'image') {
-			image.load(value);
+		switch (value.type) {
+			case 'directory':
+				explorer.navigateTo(value.id);
+				break;
+			case 'image':
+				image.load(value);
+				break;
 		}
 	}
 </script>
@@ -68,6 +63,6 @@
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
 >
-	<Icon name={variant} class="h-20 w-20" />
+	<Icon name={value.type} class="h-20 w-20" />
 	{value.name}
 </Button>

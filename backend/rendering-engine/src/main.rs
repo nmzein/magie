@@ -47,6 +47,7 @@ async fn main() {
     // Image routes.
     let image_upload_url = &fetch_env_var("PUBLIC_IMAGE_UPLOAD_SUBDIR");
     let image_delete_url = &fetch_env_var("PUBLIC_IMAGE_DELETE_SUBDIR");
+    let image_move_url = &fetch_env_var("PUBLIC_IMAGE_MOVE_SUBDIR");
     let image_properties_url = &fetch_env_var("PUBLIC_IMAGE_PROPERTIES_SUBDIR");
     let image_annotation_url = &fetch_env_var("PUBLIC_IMAGE_ANNOTATIONS_SUBDIR");
     let image_tiles_url = &fetch_env_var("PUBLIC_IMAGE_TILES_SUBDIR");
@@ -85,7 +86,11 @@ async fn main() {
         .route(directory_move_url, post(api::directory::r#move::r#move))
         // Image routes.
         .route(image_upload_url, post(api::image::upload::upload))
-        .route(image_delete_url, post(api::image::delete::delete))
+        .route(
+            &format!("{image_delete_url}/:id"),
+            delete(api::image::delete::delete),
+        )
+        .route(image_move_url, post(api::image::r#move::r#move))
         .route(
             &format!("{image_properties_url}/:id"),
             get(api::image::properties::properties),

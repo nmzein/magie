@@ -35,6 +35,7 @@ export type AnnotationLayer = {
 export type ImageLayer = HTMLImageElement[][];
 
 export type Directory = {
+	type: 'directory';
 	id: number;
 	name: string;
 	files: Image[];
@@ -42,6 +43,7 @@ export type Directory = {
 };
 
 export type Image = {
+	type: 'image';
 	id: number;
 	name: string;
 };
@@ -49,18 +51,15 @@ export type Image = {
 export type Path = string[];
 export type Route = number[];
 
-export type ItemExt = DirectoryExt | ImageExt;
-
-export type ImageExt = {
+export type Navigable<T = Image | Directory> = {
 	path: Path;
 	route: Route;
-	data: Image;
+	data: T;
 };
 
-export type DirectoryExt = {
-	path: Path;
-	route: Route;
-	data: Directory;
+export type Clipboard = {
+	mode: 'cut' | 'copy' | undefined;
+	items: (Image | Directory)[];
 };
 
 export type Bounds = { width: number; height: number; left: number; top: number };

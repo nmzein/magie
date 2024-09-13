@@ -207,3 +207,48 @@ pub fn get_annotation_layer_path(
 
     Ok(path)
 }
+
+pub fn r#move(id: u32, destination_id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let conn = conn.lock().unwrap();
+    let mut stmt = conn.prepare(
+        r#"
+            UPDATE images
+            SET parent_id = ?1
+            WHERE id = ?2;
+        "#,
+    )?;
+
+    stmt.execute([destination_id, id])?;
+
+    #[cfg(feature = "log.database")]
+    log(
+        &format!("MOVE <Image: {id}> to <Directory: {destination_id}>"),
+        None,
+    );
+
+    Ok(())
+}
+
+pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
+    let (parent_id, name): (u32, String);
+    {
+        let conn = conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT parent_id, name
+            FROM images
+            WHERE id = ?1;
+            "#,
+        )?;
+
+        (parent_id, name) = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    }
+
+    let parent_directory_path = crate::db::directory::path(parent_id, Arc::clone(&conn))?;
+    let path = parent_directory_path.join(name);
+
+    #[cfg(feature = "log.database")]
+    log(&format!("GET <Image Path: {id}>"), Some(&path));
+
+    Ok(path)
+}

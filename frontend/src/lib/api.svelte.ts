@@ -11,6 +11,7 @@ import {
 	// Image routes.
 	PUBLIC_IMAGE_UPLOAD_SUBDIR,
 	PUBLIC_IMAGE_DELETE_SUBDIR,
+	PUBLIC_IMAGE_MOVE_SUBDIR,
 	PUBLIC_IMAGE_PROPERTIES_SUBDIR,
 	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
 	PUBLIC_IMAGE_TILES_SUBDIR,
@@ -35,6 +36,7 @@ const DIRECTORY_MOVE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR);
 // Image routes.
 const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
 const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
+const IMAGE_MOVE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_MOVE_SUBDIR);
 const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
 export const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
 const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
@@ -74,8 +76,25 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
+	async function DeleteImage(image_id: number, mode: 'soft' | 'hard') {
+		const url = appendPathSegment(IMAGE_DELETE_URL, image_id);
+		const registry = await DELETE<Directory>(url, { mode });
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
 	async function MoveDirectory(target_id: number, dest_id: number) {
 		const registry = await POST<Directory>(DIRECTORY_MOVE_URL, { target_id, dest_id });
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
+	async function MoveImage(target_id: number, dest_id: number) {
+		const registry = await POST<Directory>(IMAGE_MOVE_URL, { target_id, dest_id });
 
 		if (registry === undefined) return;
 
@@ -190,7 +209,9 @@ export const http = (() => {
 		GetProperties,
 		CreateDirectory,
 		DeleteDirectory,
+		DeleteImage,
 		MoveDirectory,
+		MoveImage,
 		SendUploadAssets
 	};
 })();
