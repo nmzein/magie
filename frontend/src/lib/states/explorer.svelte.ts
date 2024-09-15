@@ -1,18 +1,18 @@
-import type { Image, Route, Directory, ItemExt, DirectoryExt } from '$types';
+import type { Image, Route, Directory, Navigable, Clipboard } from '$types';
 import { defined } from '$helpers';
 import { repository } from '$states';
 import { http } from '$api';
 
 export class Explorer {
 	// Selected directories (in main panel).
-	public selected: (Directory | Image)[] = $state([]);
+	public selected: (Image | Directory)[] = $state([]);
 	// Clipboard for cut/copy/paste.
-	public clipboard: { mode: 'cut' | 'copy' | undefined; items: (Directory | Image)[] } = $state({
+	public clipboard: Clipboard = $state({
 		mode: undefined,
 		items: []
 	});
 	// Pinned directories (in side panel).
-	public pinned: ItemExt[] = $state([]);
+	public pinned: Navigable[] = $state([]);
 	// Stack of directories to keep track of navigation.
 	// TODO: Default to directory last opened by the user.
 	private stack: Route[] = $state([[2]]);
@@ -27,7 +27,7 @@ export class Explorer {
 	}
 
 	// Actual current directory information obtained from registry.
-	public currentDirectory: DirectoryExt | undefined = $derived.by(() => {
+	public currentDirectory: Navigable<Directory> | undefined = $derived.by(() => {
 		if (!defined(repository.registry) || !defined(this._currentRoute)) return;
 
 		let path = [];
@@ -143,13 +143,13 @@ export class Explorer {
 		});
 	}
 
-	public pin(item: ItemExt) {
+	public pin(item: Navigable) {
 		// Check not already pinned.
 		if (this.pinned.some((i) => i === item)) return;
 		this.pinned.push(item);
 	}
 
-	public unpin(item: ItemExt) {
+	public unpin(item: Navigable) {
 		// Search for index of dir in pinned.
 		const index = this.pinned.findIndex((i) => i === item);
 		if (index === -1) return;
@@ -158,7 +158,14 @@ export class Explorer {
 
 	public deleteSelected(mode: 'soft' | 'hard') {
 		this.selected.forEach((item) => {
-			http.DeleteDirectory(item.id, mode);
+			switch (item.type) {
+				case 'directory':
+					http.DeleteDirectory(item.id, mode);
+					break;
+				case 'image':
+					http.DeleteImage(item.id, mode);
+					break;
+			}
 		});
 	}
 
@@ -173,7 +180,14 @@ export class Explorer {
 		if (this.clipboard.mode === 'cut') {
 			this.clipboard.items.forEach((item) => {
 				if (!defined(this.currentDirectory)) return;
-				http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+				switch (item.type) {
+					case 'directory':
+						http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+						break;
+					case 'image':
+						http.MoveImage(item.id, this.currentDirectory?.data.id);
+						break;
+				}
 			});
 		} else if (this.clipboard.mode === 'copy') {
 			// TODO

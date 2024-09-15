@@ -82,10 +82,10 @@
 >
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
 		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
-			<Item variant="directory" value={subdirectory} {selectionBox} />
+			<Item value={subdirectory} {selectionBox} />
 		{/each}
 		{#each explorer.currentDirectory.data.files as file}
-			<Item variant="image" value={file} {selectionBox} />
+			<Item value={file} {selectionBox} />
 		{/each}
 		{#if explorer.showDirectoryCreator}
 			<DirectoryCreator />

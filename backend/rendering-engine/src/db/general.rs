@@ -33,6 +33,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
     )?;
     let files = stmt.query_map([], |row| {
         Ok(File {
+            r#type: "image".into(),
             id: row.get(0)?,
             name: row.get(1)?,
             parent_id: row.get(2)?,
@@ -63,6 +64,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
     )?;
     let directories = stmt.query_map([], |row| {
         Ok(Directory {
+            r#type: "directory".into(),
             id: row.get(0)?,
             name: row.get(1)?,
             lft: row.get(2)?,
