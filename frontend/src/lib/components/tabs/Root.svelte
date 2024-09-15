@@ -3,15 +3,22 @@
 	import { getTabState, setTabState, type Modes, type TabClasses } from './context.svelte.ts';
 
 	let {
+		id,
 		currentTab = $bindable(),
 		mode,
 		classes,
 		children
-	}: { currentTab?: string; mode?: Modes; classes?: TabClasses; children: Snippet } = $props();
+	}: {
+		id: string;
+		currentTab?: string;
+		mode?: Modes;
+		classes?: TabClasses;
+		children: Snippet;
+	} = $props();
 
-	setTabState(mode, currentTab, classes);
+	setTabState(id, mode, currentTab, classes);
 
-	let tState = getTabState();
+	let tState = getTabState(id);
 
 	$effect(() => {
 		tState.currentTab; // Triggers the effect when tState.currentTab changes.

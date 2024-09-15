@@ -194,7 +194,7 @@
 	onmousedown={handleMouseDown}
 	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
-	class="h-screen overflow-hidden"
+	class="absolute h-screen overflow-hidden"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div

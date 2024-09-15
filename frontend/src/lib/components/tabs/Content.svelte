@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getTabState } from './context.svelte.ts';
+	import { getTabListState, getTabState } from './context.svelte.ts';
 
 	let {
 		value,
@@ -12,11 +12,12 @@
 		children: Snippet;
 	} = $props();
 
-	let tState = getTabState();
+	let data = getTabListState();
+	let tState = getTabState(data.id);
 </script>
 
 {#if !disabled && value === tState.currentTab}
-	<div class={tState.classes.content}>
+	<div class={tState.classes?.content}>
 		{@render children()}
 	</div>
 {/if}

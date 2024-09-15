@@ -1,17 +1,67 @@
 <script lang="ts">
 	import { explorer, SelectionBox } from '$states';
-	import type { Directory, Image } from '$types';
+	import type { Bounds, Directory, Image } from '$types';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
 
-	let mainPanel: HTMLDivElement | undefined = $state();
-	let mainPanelBounds = $derived(mainPanel?.getBoundingClientRect());
 	let selectionBoxElement: HTMLDivElement | undefined = $state();
 
-	const selectionBox: SelectionBox<Directory | Image> | undefined = $derived.by(() => {
-		if (!defined(selectionBoxElement) || !defined(mainPanelBounds)) return;
-		return new SelectionBox(selectionBoxElement, mainPanelBounds);
+	let mainPanelBounds: Bounds | undefined = $state();
+	function resizeobserver(element: HTMLElement) {
+		function update() {
+			mainPanelBounds = element.getBoundingClientRect();
+		}
+
+		const observer = new ResizeObserver(update);
+
+		observer.observe(element);
+
+		update();
+
+		return {
+			destroy() {
+				observer.unobserve(element);
+			}
+		};
+	}
+
+	function positionobserver(element: HTMLElement) {
+		let lastPosition = { x: 0, y: 0 };
+
+		function update() {
+			const rect = element.getBoundingClientRect();
+			const newPosition = { x: rect.x, y: rect.y };
+
+			// Check if the position has changed
+			if (newPosition.x !== lastPosition.x || newPosition.y !== lastPosition.y) {
+				lastPosition = newPosition;
+				mainPanelBounds = rect; // Update your reactive value
+			}
+		}
+
+		// Use requestAnimationFrame to continuously check for changes
+		function loop() {
+			update();
+			requestAnimationFrame(loop); // Keep checking on each frame
+		}
+
+		loop(); // Start the loop on mount
+
+		return {
+			destroy() {
+				// Cleanup if necessary
+			}
+		};
+	}
+
+	const selectionBox: SelectionBox<Directory | Image> = new SelectionBox();
+
+	$effect(() => {
+		if (mainPanelBounds || selectionBoxElement) {
+			selectionBox.parentBounds = mainPanelBounds;
+			selectionBox.selectionBox = selectionBoxElement;
+		}
 	});
 
 	$effect(() => {
@@ -77,7 +127,8 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px]"
-	bind:this={mainPanel}
+	use:resizeobserver
+	use:positionobserver
 	onmousedown={handleMouseDown}
 >
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}

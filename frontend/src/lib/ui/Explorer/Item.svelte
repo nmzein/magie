@@ -1,14 +1,59 @@
 <script lang="ts">
-	import type { Directory, Image } from '$types';
+	import type { Bounds, Directory, Image } from '$types';
 	import { image, explorer, type SelectionBox } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
-	import Button from '$components/Button.svelte';
 
 	let { value, selectionBox }: { value: Directory | Image; selectionBox: SelectionBox } = $props();
 
-	let item: HTMLButtonElement | undefined = $state();
-	let itemBounds = $derived(item?.getBoundingClientRect());
+	let itemBounds: Bounds | undefined = $state();
+
+	function resizeobserver(element: HTMLElement) {
+		function update() {
+			itemBounds = element.getBoundingClientRect();
+		}
+
+		const observer = new ResizeObserver(update);
+		observer.observe(element);
+
+		update();
+
+		return {
+			destroy() {
+				observer.unobserve(element);
+			}
+		};
+	}
+
+	function positionobserver(element: HTMLElement) {
+		let lastPosition = { x: 0, y: 0 };
+
+		function update() {
+			const rect = element.getBoundingClientRect();
+			const newPosition = { x: rect.x, y: rect.y };
+
+			// Check if the position has changed
+			if (newPosition.x !== lastPosition.x || newPosition.y !== lastPosition.y) {
+				lastPosition = newPosition;
+				itemBounds = rect; // Update your reactive value
+			}
+		}
+
+		// Use requestAnimationFrame to continuously check for changes
+		function loop() {
+			update();
+			requestAnimationFrame(loop); // Keep checking on each frame
+		}
+
+		loop(); // Start the loop on mount
+
+		return {
+			destroy() {
+				// Cleanup if necessary
+			}
+		};
+	}
+
 	let intersected = $derived(defined(itemBounds) && selectionBox.intersecting(itemBounds, value));
 	let selected = $derived(explorer.isSelected(value));
 
@@ -55,6 +100,8 @@
 </script>
 
 <button
+	use:resizeobserver
+	use:positionobserver
 	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center rounded-lg px-[10px] pb-[10px] text-sm hover:backdrop-blur-[15px]
 		   {intersected ? '!bg-primary/10 !backdrop-blur-[15px]' : ''}
 		   {selected ? '!bg-accent/20 hover:!bg-accent/30 active:!bg-accent/40' : ''}"
