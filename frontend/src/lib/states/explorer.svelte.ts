@@ -1,9 +1,11 @@
-import type { Image, Route, Directory, Navigable, Clipboard } from '$types';
+import type { Image, Route, Directory, Navigable, Clipboard, Point } from '$types';
 import { defined } from '$helpers';
 import { repository } from '$states';
 import { http } from '$api';
 
 export class Explorer {
+	public positionSet = false;
+	public position: Point = $state({ x: 0, y: 0 });
 	// Selected directories (in main panel).
 	public selected: (Image | Directory)[] = $state([]);
 	// Clipboard for cut/copy/paste.
