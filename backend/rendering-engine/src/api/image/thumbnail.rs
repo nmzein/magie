@@ -23,11 +23,6 @@ pub async fn thumbnail(Extension(conn): Extension<AppState>, Path(id): Path<u32>
 
     path = path.join("thumbnail.jpg");
 
-    println!(
-        "Thumbnail path: {:?}",
-        path.to_str().unwrap_or("Invalid path")
-    );
-
     // Try to open and read the thumbnail image
     match File::open(&path).await {
         Ok(mut file) => {
