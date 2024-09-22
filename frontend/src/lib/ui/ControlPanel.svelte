@@ -30,10 +30,10 @@
 </Tabs.Root>
 
 {#snippet UILayer()}
-	<div class="absolute flex w-full flex-row gap-[10px]">
+	<div class="pointer-events-none absolute flex w-full flex-row gap-[10px]">
 		<Tabs.ContentSpace id="applets">
 			<div
-				class="h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
+				class=" h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
 				bind:contentRect={contentSpaceBounds}
 			>
 				<Tabs.Content value="explorer">

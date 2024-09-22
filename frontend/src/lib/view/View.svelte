@@ -31,8 +31,8 @@
 			}
 		}
 
-		// maxLevel = image.metadata.length - 1;
-		// currentLevel = image.metadata.length - 1;
+		// transformer.maxLevel = image.properties.metadata.length - 1;
+		// transformer.currentLevel = image.properties.metadata.length - 1;
 	});
 
 	$effect(() => {
@@ -202,17 +202,19 @@
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
-		<div id="annotation-layers" class="absolute z-20 h-full w-full">
-			{#if defined(CANVAS_WIDTH)}
-				<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
-				></canvas>
-			{/if}
-			{#if defined(image.info) && defined(image.properties) && defined(camera) && defined(renderer) && defined(scene)}
-				{#each image.properties.annotations as layer}
-					<AnnotationLayer imageId={image.info.id} {layer} {render} />
-				{/each}
-			{/if}
-		</div>
+		{#if image.initialised && defined(image.properties) && image.properties.annotations.length > 0}
+			<div id="annotation-layers" class="absolute z-20 h-full w-full">
+				{#if defined(CANVAS_WIDTH)}
+					<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
+					></canvas>
+				{/if}
+				{#if defined(image.info) && defined(camera) && defined(renderer) && defined(scene)}
+					{#each image.properties.annotations as layer}
+						<AnnotationLayer imageId={image.info.id} {layer} {render} />
+					{/each}
+				{/if}
+			</div>
+		{/if}
 		<div id="image-layers" class="absolute z-10 h-full w-full">
 			{#if defined(transformer.currentLevel)}
 				{#each image.tiles as layer, layerIndex}
