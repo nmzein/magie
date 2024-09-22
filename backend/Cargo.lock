@@ -568,6 +568,7 @@ name = "decoders"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "image",
  "openslide-rs",
  "shared",
  "syn 2.0.77",
@@ -2076,6 +2077,7 @@ name = "shared"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "image",
  "serde",
 ]
 

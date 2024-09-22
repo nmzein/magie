@@ -183,6 +183,8 @@ async fn handle_image(
     // Path where the encoded image will be stored.
     let enc_img_path = path.join(ENCODED_IMAGE_NAME);
 
+    let thumbnail_path = path.join("thumbnail.jpg");
+
     // Save image to disk.
     match crate::io::save_asset(file.contents, &upl_img_path).await {
         Ok(_) => {
@@ -205,7 +207,7 @@ async fn handle_image(
     }
 
     // Encode image to Zarr derivative format.
-    match crate::io::convert(&upl_img_path, &enc_img_path).await {
+    match crate::io::convert(&upl_img_path, &enc_img_path, &thumbnail_path).await {
         Ok(metadata) => {
             #[cfg(feature = "log.success")]
             log::<()>(
