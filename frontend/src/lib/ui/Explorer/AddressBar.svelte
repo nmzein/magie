@@ -4,7 +4,7 @@
 </script>
 
 <div
-	class="bg-primary/15 flex h-[35px] flex-[6] flex-row items-center gap-[5px] overflow-x-auto overflow-y-hidden rounded-lg p-[5px] text-sm"
+	class="bg-primary/15 flex h-[35px] flex-[6] select-none flex-row items-center gap-[5px] overflow-x-auto overflow-y-hidden rounded-lg p-[5px] text-sm"
 >
 	{#if explorer.currentDirectory !== undefined}
 		{#each explorer.currentDirectory.path as path, index}

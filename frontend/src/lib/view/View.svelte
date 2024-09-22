@@ -224,7 +224,10 @@
 		</div>
 	</div>
 	{#if image.initialised}
-		<div id="coordinates-panel" class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px]">
+		<div
+			id="coordinates-panel"
+			class="panel absolute bottom-[10px] left-[10px] select-none px-[7px] py-[3px]"
+		>
 			<span class="font-bold">x:</span>
 			{x},
 			<span class="font-bold">y:</span>
