@@ -33,7 +33,7 @@
 							await uploader.upload();
 						}}
 					>
-						<div class="flex h-full flex-col justify-between gap-5">
+						<div class="flex h-full select-none flex-col justify-between gap-5">
 							<Tabs.Root
 								classes={{
 									list: 'rounded-md bg-primary/10 w-fit p-1 self-center',
@@ -45,22 +45,24 @@
 								}}
 								bind:currentTab={uploader.options.annotations}
 							>
-								<Tabs.List>
+								<Tabs.TriggerList>
 									<Tabs.Trigger value="none">None</Tabs.Trigger>
 									<Tabs.Trigger value="provide">Provide</Tabs.Trigger>
 									<Tabs.Trigger value="generate" disabled>Generate</Tabs.Trigger>
-								</Tabs.List>
-								<Tabs.Content value="none">
-									<div
-										class="text-secondary/80 bg-tertiary/50 flex h-full items-center justify-center rounded-md p-10 text-center text-sm"
-									>
-										Continue to upload without annotations, or, select a different option from the
-										tabs above.
-									</div>
-								</Tabs.Content>
-								<Tabs.Content value="provide">
-									<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
-								</Tabs.Content>
+								</Tabs.TriggerList>
+								<Tabs.ContentSpace>
+									<Tabs.Content value="none">
+										<div
+											class="text-secondary/80 bg-tertiary/50 flex h-full items-center justify-center rounded-md p-10 text-center text-sm"
+										>
+											Continue to upload without annotations, or, select a different option from the
+											tabs above.
+										</div>
+									</Tabs.Content>
+									<Tabs.Content value="provide">
+										<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
+									</Tabs.Content>
+								</Tabs.ContentSpace>
 							</Tabs.Root>
 						</div>
 					</Pages.Page>

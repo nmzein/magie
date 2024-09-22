@@ -3,13 +3,13 @@
 	import { getTabState, setTabState, type Modes, type TabClasses } from './context.svelte.ts';
 
 	let {
-		id,
+		id = '',
 		currentTab = $bindable(),
 		mode,
 		classes,
 		children
 	}: {
-		id: string;
+		id?: string;
 		currentTab?: string;
 		mode?: Modes;
 		classes?: TabClasses;

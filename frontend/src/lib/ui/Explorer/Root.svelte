@@ -27,25 +27,26 @@
 			}
 		};
 	}
+
 	$effect(() => {
 		if (!defined(explorerBounds) || explorer.positionSet) return;
 
 		explorer.position = {
 			x: 0.5 * (contentSpaceBounds.width - explorerBounds.width),
-			y: 0.5 * (contentSpaceBounds.height - explorerBounds.height)
+			y: 0.3 * (contentSpaceBounds.height - explorerBounds.height)
 		};
 
 		explorer.positionSet = true;
 	});
 </script>
 
-<Uploader />
-
 <div
 	class="panel flex max-w-[800px] origin-center origin-center flex-col !border-none"
 	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
 	use:resizeobserver
 >
+	<Uploader />
+
 	<TopBar
 		bind:offsetX={explorer.position.x}
 		bind:offsetY={explorer.position.y}

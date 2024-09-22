@@ -31,15 +31,20 @@
 
 {#snippet UILayer()}
 	<div class="absolute flex w-full flex-row gap-[10px]">
-		<Tabs.ContentSpace id="applets" bind:bounds={contentSpaceBounds}>
-			<Tabs.Content value="explorer">
-				{#if defined(contentSpaceBounds)}
-					<Explorer {contentSpaceBounds} />
-				{/if}
-			</Tabs.Content>
-			<Tabs.Content value="control" disabled={!image.initialised}>
-				<AnnotationControls />
-			</Tabs.Content>
+		<Tabs.ContentSpace id="applets">
+			<div
+				class="h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
+				bind:contentRect={contentSpaceBounds}
+			>
+				<Tabs.Content value="explorer">
+					{#if defined(contentSpaceBounds)}
+						<Explorer {contentSpaceBounds} />
+					{/if}
+				</Tabs.Content>
+				<Tabs.Content value="control" disabled={!image.initialised}>
+					<AnnotationControls />
+				</Tabs.Content>
+			</div>
 		</Tabs.ContentSpace>
 
 		<nav class="pointer-events-none p-[10px] pl-0">
