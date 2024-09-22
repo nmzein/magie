@@ -8,7 +8,7 @@
 	{#each explorer.pinned as item}
 		<Button
 			onclick={() => explorer.routeTo(item.route)}
-			class="hover:bg-primary/15 flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7.5px]"
+			class="hover:bg-primary/15 flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7.5px] text-left"
 		>
 			{item.data.name}
 		</Button>
