@@ -13,6 +13,7 @@ import {
 	PUBLIC_IMAGE_DELETE_SUBDIR,
 	PUBLIC_IMAGE_MOVE_SUBDIR,
 	PUBLIC_IMAGE_PROPERTIES_SUBDIR,
+	PUBLIC_IMAGE_THUMBNAIL_SUBDIR,
 	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
 	PUBLIC_IMAGE_TILES_SUBDIR,
 	// General routes.
@@ -38,6 +39,7 @@ const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
 const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
 const IMAGE_MOVE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_MOVE_SUBDIR);
 const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
+const IMAGE_THUMBNAIL_URL = new URL(HTTP_URL + PUBLIC_IMAGE_THUMBNAIL_SUBDIR);
 export const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
 const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
 
@@ -57,6 +59,17 @@ export const http = (() => {
 	async function GetProperties(image_id: number) {
 		const url = appendPathSegment(IMAGE_PROPERTIES_URL, image_id);
 		return await GET<Properties>(url);
+	}
+
+	async function GetThumbnail(image_id: number) {
+		const url = appendPathSegment(IMAGE_THUMBNAIL_URL, image_id);
+		let blob = await GET<Blob>(url, {}, false);
+
+		if (blob === undefined) return;
+
+		const image = new Image();
+		image.src = URL.createObjectURL(blob);
+		return image;
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
@@ -123,7 +136,7 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
-	async function GET<Resp>(_url: URL, params?: Record<string, any>) {
+	async function GET<Resp>(_url: URL, params?: Record<string, any>, parse: boolean = true) {
 		const url = constructUrl(_url, params);
 
 		try {
@@ -131,8 +144,12 @@ export const http = (() => {
 
 			if (response.ok) {
 				try {
-					const data: Resp = await response.json();
-					return data;
+					if (parse) {
+						const data: Resp = await response.json();
+						return data;
+					} else {
+						return await response.blob();
+					}
 				} catch (error) {
 					console.error(`Parse Error [${url.pathname}]:`, error);
 				}
@@ -207,6 +224,7 @@ export const http = (() => {
 		GetGenerators,
 		GetRegistry,
 		GetProperties,
+		GetThumbnail,
 		CreateDirectory,
 		DeleteDirectory,
 		DeleteImage,

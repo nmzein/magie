@@ -3,8 +3,19 @@
 	import { image, explorer, type SelectionBox } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
+	import { http } from '$api';
+	import { onMount } from 'svelte';
 
 	let { value, selectionBox }: { value: Directory | Image; selectionBox: SelectionBox } = $props();
+
+	let thumbnail: HTMLImageElement | undefined = $state();
+
+	onMount(async () => {
+		if (value.type === 'image' && value.id !== 1) {
+			thumbnail = await http.GetThumbnail(value.id);
+		}
+		console.log(thumbnail);
+	});
 
 	let itemBounds: Bounds | undefined = $state();
 
@@ -102,13 +113,17 @@
 <button
 	use:resizeobserver
 	use:positionobserver
-	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center rounded-lg px-[10px] pb-[10px] text-sm hover:backdrop-blur-[15px]
+	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center gap-3 rounded-lg p-3 text-sm hover:backdrop-blur-[15px]
 		   {intersected ? '!bg-primary/10 !backdrop-blur-[15px]' : ''}
 		   {selected ? '!bg-accent/20 hover:!bg-accent/30 active:!bg-accent/40' : ''}"
 	onmousedown={(e) => handleMouseDown(e)}
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
 >
-	<Icon name={value.type} class="h-20 w-20" />
+	{#if defined(thumbnail)}
+		<img src={thumbnail.src} alt={value.name} class="h-16 rounded-md" />
+	{:else}
+		<Icon name={value.type} class="my-[-13px] h-[90px] w-[90px]" />
+	{/if}
 	{value.name}
 </button>
