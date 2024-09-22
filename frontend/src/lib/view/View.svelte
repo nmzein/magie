@@ -36,9 +36,10 @@
 	});
 
 	$effect(() => {
+		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('touchmove', handleTouchMove);
-		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('mouseup', handlePanEnd);
+		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
 		let script = document.createElement('script');
@@ -56,9 +57,10 @@
 		document.head.appendChild(script);
 
 		return () => {
+			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('touchmove', handleTouchMove);
-			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('mouseup', handlePanEnd);
+			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('wheel', handleWheel);
 		};
 	});
@@ -192,7 +194,6 @@
 <div
 	role="img"
 	onmousedown={handleMouseDown}
-	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
 	class="absolute h-screen overflow-hidden"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
