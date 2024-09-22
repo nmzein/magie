@@ -14,8 +14,8 @@ anyhow = { workspace = true }
 flate2 = { version = "1.0.33", optional = true }
 geo-types = { version = "0.7.13", optional = true }
 rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
-serde = { version = "1.0.209", features = ["derive"], optional = true }
-serde_json = { version = "1.0.127", optional = true }
+serde = { version = "1.0.210", features = ["derive"], optional = true }
+serde_json = { version = "1.0.128", optional = true }
 wkb = { version = "0.7.1", optional = true }
 
 [features]
