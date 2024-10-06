@@ -11,7 +11,9 @@ import {
 	// Image routes.
 	PUBLIC_IMAGE_UPLOAD_SUBDIR,
 	PUBLIC_IMAGE_DELETE_SUBDIR,
+	PUBLIC_IMAGE_MOVE_SUBDIR,
 	PUBLIC_IMAGE_PROPERTIES_SUBDIR,
+	PUBLIC_IMAGE_THUMBNAIL_SUBDIR,
 	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
 	PUBLIC_IMAGE_TILES_SUBDIR,
 	// General routes.
@@ -35,7 +37,9 @@ const DIRECTORY_MOVE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR);
 // Image routes.
 const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
 const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
+const IMAGE_MOVE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_MOVE_SUBDIR);
 const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
+const IMAGE_THUMBNAIL_URL = new URL(HTTP_URL + PUBLIC_IMAGE_THUMBNAIL_SUBDIR);
 export const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
 const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
 
@@ -57,6 +61,17 @@ export const http = (() => {
 		return await GET<Properties>(url);
 	}
 
+	async function GetThumbnail(image_id: number) {
+		const url = appendPathSegment(IMAGE_THUMBNAIL_URL, image_id);
+		let blob = await GET<Blob>(url, {}, false);
+
+		if (blob === undefined) return;
+
+		const image = new Image();
+		image.src = URL.createObjectURL(blob);
+		return image;
+	}
+
 	async function CreateDirectory(parent_id: number, name: string) {
 		const registry = await POST<Directory>(DIRECTORY_CREATE_URL, { parent_id, name });
 
@@ -74,8 +89,25 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
+	async function DeleteImage(image_id: number, mode: 'soft' | 'hard') {
+		const url = appendPathSegment(IMAGE_DELETE_URL, image_id);
+		const registry = await DELETE<Directory>(url, { mode });
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
 	async function MoveDirectory(target_id: number, dest_id: number) {
 		const registry = await POST<Directory>(DIRECTORY_MOVE_URL, { target_id, dest_id });
+
+		if (registry === undefined) return;
+
+		repository.registry = registry;
+	}
+
+	async function MoveImage(target_id: number, dest_id: number) {
+		const registry = await POST<Directory>(IMAGE_MOVE_URL, { target_id, dest_id });
 
 		if (registry === undefined) return;
 
@@ -104,7 +136,7 @@ export const http = (() => {
 		repository.registry = registry;
 	}
 
-	async function GET<Resp>(_url: URL, params?: Record<string, any>) {
+	async function GET<Resp>(_url: URL, params?: Record<string, any>, parse: boolean = true) {
 		const url = constructUrl(_url, params);
 
 		try {
@@ -112,8 +144,12 @@ export const http = (() => {
 
 			if (response.ok) {
 				try {
-					const data: Resp = await response.json();
-					return data;
+					if (parse) {
+						const data: Resp = await response.json();
+						return data;
+					} else {
+						return await response.blob();
+					}
 				} catch (error) {
 					console.error(`Parse Error [${url.pathname}]:`, error);
 				}
@@ -188,9 +224,12 @@ export const http = (() => {
 		GetGenerators,
 		GetRegistry,
 		GetProperties,
+		GetThumbnail,
 		CreateDirectory,
 		DeleteDirectory,
+		DeleteImage,
 		MoveDirectory,
+		MoveImage,
 		SendUploadAssets
 	};
 })();

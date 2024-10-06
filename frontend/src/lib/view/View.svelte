@@ -31,34 +31,22 @@
 			}
 		}
 
-		// maxLevel = image.metadata.length - 1;
-		// currentLevel = image.metadata.length - 1;
+		// transformer.maxLevel = image.properties.metadata.length - 1;
+		// transformer.currentLevel = image.properties.metadata.length - 1;
 	});
 
 	$effect(() => {
+		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('touchmove', handleTouchMove);
-		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('mouseup', handlePanEnd);
+		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
-		let script = document.createElement('script');
-		script.onload = function () {
-			let stats = new Stats();
-
-			stats.showPanel(0);
-			document.body.appendChild(stats.dom);
-			requestAnimationFrame(function loop() {
-				stats.update();
-				requestAnimationFrame(loop);
-			});
-		};
-		script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
-		document.head.appendChild(script);
-
 		return () => {
+			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('touchmove', handleTouchMove);
-			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('mouseup', handlePanEnd);
+			document.removeEventListener('touchend', handlePanEnd);
 			document.removeEventListener('wheel', handleWheel);
 		};
 	});
@@ -192,9 +180,8 @@
 <div
 	role="img"
 	onmousedown={handleMouseDown}
-	onmousemove={handleMouseMove}
 	ontouchstart={handleTouchStart}
-	class="h-screen overflow-hidden"
+	class="absolute h-screen overflow-hidden"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div
@@ -202,17 +189,19 @@
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
-		<div id="annotation-layers" class="absolute z-20 h-full w-full">
-			{#if defined(CANVAS_WIDTH)}
-				<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
-				></canvas>
-			{/if}
-			{#if defined(image.info) && defined(image.properties) && defined(camera) && defined(renderer) && defined(scene)}
-				{#each image.properties.annotations as layer}
-					<AnnotationLayer imageId={image.info.id} {layer} {render} />
-				{/each}
-			{/if}
-		</div>
+		{#if image.initialised && defined(image.properties) && image.properties.annotations.length > 0}
+			<div id="annotation-layers" class="absolute z-20 h-full w-full">
+				{#if defined(CANVAS_WIDTH)}
+					<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
+					></canvas>
+				{/if}
+				{#if defined(image.info) && defined(camera) && defined(renderer) && defined(scene)}
+					{#each image.properties.annotations as layer}
+						<AnnotationLayer imageId={image.info.id} {layer} {render} />
+					{/each}
+				{/if}
+			</div>
+		{/if}
 		<div id="image-layers" class="absolute z-10 h-full w-full">
 			{#if defined(transformer.currentLevel)}
 				{#each image.tiles as layer, layerIndex}
@@ -222,7 +211,10 @@
 		</div>
 	</div>
 	{#if image.initialised}
-		<div id="coordinates-panel" class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px]">
+		<div
+			id="coordinates-panel"
+			class="panel absolute bottom-[10px] left-[10px] select-none px-[7px] py-[3px]"
+		>
 			<span class="font-bold">x:</span>
 			{x},
 			<span class="font-bold">y:</span>

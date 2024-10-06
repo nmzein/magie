@@ -1,12 +1,18 @@
 use crate::types::TileRequest;
 use anyhow::Result;
 use image::RgbImage;
-use shared::{constants::*, structs::MetadataLayer};
+use shared::{
+    constants::*,
+    structs::{MetadataLayer, Size},
+};
 use std::path::Path;
 #[cfg(feature = "time")]
 use std::time::Instant;
 use tempfile::NamedTempFile;
 use tokio::fs;
+
+static THUMBNAIL_WIDTH: u32 = 256;
+static THUMBNAIL_HEIGHT: u32 = 128;
 
 pub async fn create(path: &Path) -> Result<()> {
     // Create directory.
@@ -50,6 +56,7 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
     #[cfg(feature = "time")]
     let start = Instant::now();
 
+    // TODO: Dont call .to_vec inside the encoder
     let raw_buffer = encoders::export::retrieve(
         "OMEZarr",
         path,
@@ -80,7 +87,11 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
     Ok(jpeg_tile)
 }
 
-pub async fn convert(upl_img_path: &Path, enc_img_path: &Path) -> Result<Vec<MetadataLayer>> {
+pub async fn convert(
+    upl_img_path: &Path,
+    enc_img_path: &Path,
+    thumbnail_path: &Path,
+) -> Result<Vec<MetadataLayer>> {
     let Some(extension) = upl_img_path.extension().and_then(|ext| ext.to_str()) else {
         return Err(anyhow::anyhow!("Image has no extension."));
     };
@@ -91,9 +102,28 @@ pub async fn convert(upl_img_path: &Path, enc_img_path: &Path) -> Result<Vec<Met
     }
 
     for decoder in decoders {
+        //create thumb
+        let thumbnail_buffer = decoder.thumbnail(
+            upl_img_path,
+            &Size {
+                width: THUMBNAIL_WIDTH,
+                height: THUMBNAIL_HEIGHT,
+            },
+        )?;
+
         // If successful, return early, otherwise log error and continue.
         match encoders::export::convert("OMEZarr", &upl_img_path, &enc_img_path, decoder) {
-            Ok(metadata) => return Ok(metadata),
+            Ok(metadata) => {
+                // Convert thumbnail buffer to JPEG.
+                let thumbnail_jpeg =
+                    turbojpeg::compress_image(&thumbnail_buffer, 70, turbojpeg::Subsamp::Sub2x2)?
+                        .to_vec();
+
+                // Save thumbnail to disk.
+                fs::write(thumbnail_path, thumbnail_jpeg).await?;
+
+                return Ok(metadata);
+            }
             Err(e) => {
                 eprintln!("Error <Decoders>: Decoder failed to convert image.");
                 eprintln!("Details: {:?}", e);

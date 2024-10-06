@@ -1,17 +1,25 @@
 <script lang="ts">
 	import { explorer, SelectionBox } from '$states';
-	import type { Directory, Image } from '$types';
+	import { DEFAULT_POINT, type Bounds, type Directory, type Image } from '$types';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
+	import { boundingclientrect } from '$actions';
+	import ContextMenu from './ContextMenu.svelte';
 
-	let mainPanel: HTMLDivElement | undefined = $state();
-	let mainPanelBounds = $derived(mainPanel?.getBoundingClientRect());
+	const selectionBox: SelectionBox<Directory | Image> = new SelectionBox();
 	let selectionBoxElement: HTMLDivElement | undefined = $state();
+	let mainPanelBounds: Bounds | undefined = $state();
+	let contextMenu = $state({
+		show: false,
+		position: DEFAULT_POINT
+	});
 
-	const selectionBox: SelectionBox<Directory | Image> | undefined = $derived.by(() => {
-		if (!defined(selectionBoxElement) || !defined(mainPanelBounds)) return;
-		return new SelectionBox(selectionBoxElement, mainPanelBounds);
+	$effect(() => {
+		if (mainPanelBounds || selectionBoxElement) {
+			selectionBox.parentBounds = mainPanelBounds;
+			selectionBox.selectionBox = selectionBoxElement;
+		}
 	});
 
 	$effect(() => {
@@ -29,7 +37,8 @@
 	function handleMouseDown(event: MouseEvent) {
 		explorer.deselectAll();
 
-		if (!defined(selectionBox)) return;
+		// Return if not left click.
+		if (!defined(selectionBox) || event.button !== 0) return;
 
 		selectionBox.start({ x: event.clientX, y: event.clientY });
 	}
@@ -74,22 +83,43 @@
 	}
 </script>
 
+{#if defined(mainPanelBounds)}
+	<ContextMenu
+		bind:show={contextMenu.show}
+		position={contextMenu.position}
+		parentBounds={mainPanelBounds}
+	/>
+{/if}
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px]"
-	bind:this={mainPanel}
+	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px] {contextMenu.show
+		? 'overflow-hidden'
+		: 'overflow-auto'}"
+	use:boundingclientrect={(v) => (mainPanelBounds = v)}
 	onmousedown={handleMouseDown}
+	oncontextmenu={(e) => {
+		e.preventDefault();
+		contextMenu = {
+			show: true,
+			position: {
+				x: e.clientX,
+				y: e.clientY
+			}
+		};
+	}}
 >
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
-		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
-			<Item variant="directory" value={subdirectory} {selectionBox} />
-		{/each}
-		{#each explorer.currentDirectory.data.files as file}
-			<Item variant="image" value={file} {selectionBox} />
-		{/each}
 		{#if explorer.showDirectoryCreator}
 			<DirectoryCreator />
 		{/if}
+		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
+			<Item value={subdirectory} {selectionBox} />
+		{/each}
+		{#each explorer.currentDirectory.data.files as file}
+			<Item value={file} {selectionBox} />
+		{/each}
 	{/if}
 
 	<div

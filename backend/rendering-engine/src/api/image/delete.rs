@@ -1,48 +1,128 @@
-use crate::api::common::*;
+use crate::{api::common::*, types::DeleteMode};
+use std::path::PathBuf;
 
-pub async fn delete(Extension(conn): Extension<AppState>, Json(id): Json<u32>) -> Response {
+#[derive(Deserialize)]
+pub struct Params {
+    mode: DeleteMode,
+}
+
+pub async fn delete(
+    Extension(conn): Extension<AppState>,
+    Path(id): Path<u32>,
+    Query(Params { mode }): Query<Params>,
+) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!("Received request to delete image with id: {id}."),
+        &format!(
+            "[ID/M00]: Received request to delete image with id `{id}` using mode `{mode:?}`."
+        ),
         None,
     );
 
-    let (name, path) = match crate::db::image::get(id, Arc::clone(&conn)) {
-        Ok(paths) => paths,
+    let image_path = match crate::db::image::path(id, Arc::clone(&conn)) {
+        Ok(path) => path,
         Err(e) => {
             return log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to retrieve paths for image with id: {id}."),
+                StatusCode::NOT_FOUND,
+                &format!("[ID/E00]: Image with id `{id}` does not exist in the database."),
                 Some(e),
             );
         }
     };
 
-    // Delete image directory from the filesystem.
-    let _ = crate::io::delete(&path).await.map_err(|e| async {
+    let bin_path = match crate::db::directory::path(BIN_ID, Arc::clone(&conn)) {
+        Ok(path) => path,
+        Err(e) => {
+            return log(
+                StatusCode::NOT_FOUND,
+                &format!("[ID/E01]: Bin directory was not found in the database."),
+                Some(e),
+            );
+        }
+    };
+
+    if image_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[ID/E02]: Cannot soft delete an image that is already in the Bin."),
+            None,
+        );
+    }
+
+    let result = match mode {
+        DeleteMode::Soft => soft_delete(id, &image_path, &bin_path, Arc::clone(&conn)).await,
+        DeleteMode::Hard => hard_delete(id, &image_path, Arc::clone(&conn)).await,
+    };
+
+    if let Err(error) = result {
+        return error;
+    }
+
+    match crate::db::general::get_registry(Arc::clone(&conn)) {
+        Ok(registry) => {
+            #[cfg(feature = "log.success")]
+            log::<()>(
+                StatusCode::OK,
+                "[ID/M01]: Successfully retrieved registry from the database.",
+                None,
+            );
+
+            Json(registry).into_response()
+        }
+        Err(e) => log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "[ID/E03]: Failed to retrieve registry from the database.",
+            Some(e),
+        ),
+    }
+}
+
+pub async fn hard_delete(id: u32, image_path: &PathBuf, conn: AppState) -> Result<(), Response> {
+    let _ = crate::io::delete(&image_path).await.map_err(|e| {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("Could not delete directory for image with name `{}`.", name),
+            &format!("[ID-H/E00]: Failed to hard delete image with id `{id}` from the filesystem."),
             Some(e),
         );
     });
 
-    // Remove entries from the state database.
-    let _ = crate::db::image::delete(id, Arc::clone(&conn)).map_err(|e| async {
+    let _ = crate::db::image::delete(id, Arc::clone(&conn)).map_err(|e| {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "Could not delete image with name `{}` from state database.",
-                name
-            ),
+            &format!("[ID-H/E01]: Failed to hard delete image with id `{id}` from the database."),
             Some(e),
         );
     });
 
-    return log::<()>(
-        StatusCode::OK,
-        &format!("Successfully deleted image with name `{}`.", name),
-        None,
-    );
+    Ok(())
+}
+
+pub async fn soft_delete(
+    id: u32,
+    image_path: &PathBuf,
+    bin_path: &PathBuf,
+    conn: AppState,
+) -> Result<(), Response> {
+    let _ = crate::io::r#move(&image_path, &bin_path)
+        .await
+        .map_err(|e| {
+            return log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!(
+                    "[ID-S/E00]: Failed to soft delete image with id `{id}` from the filesystem."
+                ),
+                Some(e),
+            );
+        });
+
+    let _ = crate::db::image::r#move(id, BIN_ID, Arc::clone(&conn)).map_err(|e| {
+        return log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("[ID-S/E01]: Failed to soft delete image with id `{id}` from the database."),
+            Some(e),
+        );
+    });
+
+    Ok(())
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getTabState } from './context.svelte.ts';
+	import { getTabState, getTabListState } from './context.svelte.ts';
 	import Button from '$components/Button.svelte';
 	import { twMerge } from 'tailwind-merge';
 
@@ -16,7 +16,8 @@
 		children: Snippet;
 	} = $props();
 
-	let tState = getTabState();
+	let data = getTabListState();
+	let tState = getTabState(data.id);
 </script>
 
 <Button

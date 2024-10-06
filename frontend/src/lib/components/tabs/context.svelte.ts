@@ -1,8 +1,6 @@
 import { applyDefaults, defined, type DeepRequired } from '$helpers';
 import { setContext, getContext } from 'svelte';
 
-const TAB_KEY = Symbol('TAB');
-
 export type Modes = 'buttons' | 'tab' | 'collapsible-tab' | 'toggle';
 export type TabClasses = {
 	list?: string;
@@ -15,12 +13,12 @@ const DEFAULT_CLASSES: DeepRequired<TabClasses> = {
 	content: ''
 };
 
-export function setTabState(mode?: Modes, currentTab?: string, classes?: TabClasses) {
-	return setContext(TAB_KEY, new TabState(mode, currentTab, classes));
+export function setTabState(id: string, mode?: Modes, currentTab?: string, classes?: TabClasses) {
+	return setContext(id, new TabState(mode, currentTab, classes));
 }
 
-export function getTabState() {
-	return getContext<ReturnType<typeof setTabState>>(TAB_KEY);
+export function getTabState(id: string) {
+	return getContext<ReturnType<typeof setTabState>>(id);
 }
 
 class TabState {
@@ -43,8 +41,19 @@ class TabState {
 	}
 
 	set classes(classes: Partial<TabClasses> | undefined) {
-		if (!defined(classes)) return;
-
 		this._classes = applyDefaults(classes, this._classes);
 	}
+}
+
+export function setTabListState(_id: string) {
+	let id = $state(_id);
+	return setContext('TAB-LIST', {
+		get id() {
+			return id;
+		}
+	});
+}
+
+export function getTabListState() {
+	return getContext<ReturnType<typeof setTabListState>>('TAB-LIST');
 }
