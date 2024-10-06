@@ -1,4 +1,4 @@
-FROM node:22.9.0-bookworm-slim AS node
+FROM node:21.7.3-bookworm-slim AS node
 FROM rust:1.80.0-slim-bookworm AS rust
 FROM debian:bookworm-slim AS debian
 
