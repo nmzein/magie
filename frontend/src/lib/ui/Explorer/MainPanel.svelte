@@ -5,7 +5,6 @@
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
 	import { boundingclientrect } from '$actions';
-	import * as Dropdown from '$components/dropdown';
 	import ContextMenu from './ContextMenu.svelte';
 
 	const selectionBox: SelectionBox<Directory | Image> = new SelectionBox();

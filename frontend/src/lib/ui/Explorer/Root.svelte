@@ -25,10 +25,13 @@
 	});
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="panel flex max-w-[800px] origin-center origin-center flex-col !border-none"
 	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
 	use:resizeobserver={(v) => (explorerBounds = v)}
+	onmousedown={(e) => e.stopPropagation()}
+	onwheel={(e) => e.stopPropagation()}
 >
 	<Uploader />
 
