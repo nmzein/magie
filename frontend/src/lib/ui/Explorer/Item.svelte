@@ -66,20 +66,21 @@
 	}
 </script>
 
-<button
-	use:boundingclientrect={(v) => (itemBounds = v)}
-	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center gap-3 rounded-lg p-3 text-sm hover:backdrop-blur-[15px]
-		   {intersected ? '!bg-primary/10 !backdrop-blur-[15px]' : ''}
-		   {selected ? '!bg-accent/20 hover:!bg-accent/30 active:!bg-accent/40' : ''}"
-	onmousedown={(e) => handleMouseDown(e)}
-	ondblclick={() => handleOpen()}
-	onkeypress={(e) => handleKeypress(e)}
-	oncontextmenu={(e) => e.stopPropagation()}
->
-	{#if defined(thumbnail)}
-		<img src={thumbnail.src} alt={value.name} class="h-16 rounded-md" />
-	{:else}
-		<Icon name={value.type} class="my-[-13px] h-[90px] w-[90px]" />
-	{/if}
-	{value.name}
-</button>
+<div use:boundingclientrect={(v) => (itemBounds = v)}>
+	<button
+		class="hover:bg-primary/10 active:bg-primary/20 flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm hover:backdrop-blur-[15px]
+	{intersected ? '!bg-primary/10 !backdrop-blur-[15px]' : ''}
+	{selected ? '!bg-accent/20 hover:!bg-accent/30 active:!bg-accent/40' : ''}"
+		onmousedown={(e) => handleMouseDown(e)}
+		ondblclick={() => handleOpen()}
+		onkeypress={(e) => handleKeypress(e)}
+		oncontextmenu={(e) => e.stopPropagation()}
+	>
+		{#if defined(thumbnail)}
+			<img src={thumbnail.src} alt={value.name} class="h-16 rounded-md" />
+		{:else}
+			<Icon name={value.type} class="my-[-13px] h-[90px] w-[90px]" />
+		{/if}
+		{value.name}
+	</button>
+</div>

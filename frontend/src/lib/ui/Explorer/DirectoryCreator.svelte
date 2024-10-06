@@ -8,6 +8,8 @@
 	let name = $state('');
 
 	$effect(() => {
+		explorer.deselectAll();
+
 		let timeout = setTimeout(() => {
 			document.addEventListener('click', handleClick);
 		}, 10);
@@ -54,7 +56,7 @@
 
 <Button
 	bind:component={button}
-	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center rounded-lg px-[10px] pb-[10px] text-xs hover:backdrop-blur-[15px]"
+	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[10px] text-xs hover:backdrop-blur-[15px]"
 	onkeypress={(e) => handleKeypress(e)}
 >
 	<Icon name="directory" class="h-20 w-20" />
