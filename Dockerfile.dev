@@ -21,7 +21,7 @@ COPY ./frontend/svelte.config.js /app/frontend
 COPY ./frontend/vite.config.ts /app/frontend
 
 RUN --mount=type=cache,target=/var/cache/app/npm \
-    npm ci --legacy-peer-deps
+    npm ci
 
 # Copy rest of files.
 COPY ./frontend /app/frontend
