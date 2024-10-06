@@ -38,7 +38,8 @@
 	function handleMouseDown(event: MouseEvent) {
 		explorer.deselectAll();
 
-		if (!defined(selectionBox)) return;
+		// Return if not left click.
+		if (!defined(selectionBox) || event.button !== 0) return;
 
 		selectionBox.start({ x: event.clientX, y: event.clientY });
 	}
