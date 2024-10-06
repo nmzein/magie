@@ -6,9 +6,9 @@
 
 	const classes = {
 		trigger:
-			'flex flex-row m-[4px] p-[7.5px] pr-[5px] rounded-[5px] gap-[7px] items-center hover:bg-primary/10 text-sm',
-		list: 'flex flex-col absolute mt-[48px] ml-[4px] bg-tertiary/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm',
-		item: 'flex flex-row gap-[10px] items-center m-[2px] px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10'
+			'flex flex-row m-1 p-[7.5px] pr-[5px] rounded-[5px] gap-[7px] items-center hover:bg-primary/10 text-sm',
+		list: 'flex flex-col absolute ml-1 mt-1 bg-tertiary/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm',
+		item: 'flex flex-row gap-2.5 items-center m-0.5 px-2.5 py-[7.5px] rounded-[5px] hover:bg-primary/10'
 	};
 </script>
 

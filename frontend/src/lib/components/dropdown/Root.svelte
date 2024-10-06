@@ -26,4 +26,6 @@
 	});
 </script>
 
-{@render children()}
+<div>
+	{@render children()}
+</div>
