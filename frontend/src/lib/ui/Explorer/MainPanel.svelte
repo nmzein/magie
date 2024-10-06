@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { explorer, SelectionBox } from '$states';
-	import type { Bounds, Directory, Image } from '$types';
+	import { DEFAULT_POINT, type Bounds, type Directory, type Image } from '$types';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
 	import { boundingclientrect } from '$actions';
 	import * as Dropdown from '$components/dropdown';
+	import ContextMenu from './ContextMenu.svelte';
 
 	const selectionBox: SelectionBox<Directory | Image> = new SelectionBox();
 	let selectionBoxElement: HTMLDivElement | undefined = $state();
 	let mainPanelBounds: Bounds | undefined = $state();
 	let contextMenu = $state({
 		show: false,
-		x: 0,
-		y: 0
+		position: DEFAULT_POINT
 	});
 
 	$effect(() => {
@@ -84,26 +84,13 @@
 	}
 </script>
 
-{#snippet ContextMenu()}
-	{#if defined(mainPanelBounds)}
-		{@const classes = {
-			list: `flex flex-col mt-[4px] ml-[4px] bg-tertiary/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm`,
-			item: 'flex flex-row gap-[10px] items-center m-[2px] px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10'
-		}}
-
-		<div
-			class="absolute"
-			style={`transform: translate(${contextMenu.x - mainPanelBounds.left}px, ${contextMenu.y - mainPanelBounds.top}px)`}
-		>
-			<Dropdown.Root {classes} bind:show={contextMenu.show}>
-				<Dropdown.List>
-					<Dropdown.Item>Select All</Dropdown.Item>
-					<Dropdown.Item>Paste</Dropdown.Item>
-				</Dropdown.List>
-			</Dropdown.Root>
-		</div>
-	{/if}
-{/snippet}
+{#if defined(mainPanelBounds)}
+	<ContextMenu
+		bind:show={contextMenu.show}
+		position={contextMenu.position}
+		parentBounds={mainPanelBounds}
+	/>
+{/if}
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -115,13 +102,13 @@
 		e.preventDefault();
 		contextMenu = {
 			show: true,
-			x: e.clientX,
-			y: e.clientY
+			position: {
+				x: e.clientX,
+				y: e.clientY
+			}
 		};
 	}}
 >
-	{@render ContextMenu()}
-
 	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
 		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
 			<Item value={subdirectory} {selectionBox} />
