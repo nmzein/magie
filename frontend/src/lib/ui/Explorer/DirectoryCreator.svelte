@@ -56,16 +56,16 @@
 
 <Button
 	bind:component={button}
-	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[10px] text-xs hover:backdrop-blur-[15px]"
+	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
 	onkeypress={(e) => handleKeypress(e)}
 >
-	<Icon name="directory" class="h-20 w-20" />
+	<Icon name="directory" class="h-[90px] w-[90px]" />
 	<!-- svelte-ignore a11y_autofocus -->
 	<input
 		autofocus
 		type="text"
-		class="bg-primary/15 h-7 w-full grow rounded-[inherit] px-[10px] py-[5px] focus:outline-none"
+		class="bg-primary/15 mt-[-5px] h-7 w-full grow rounded-[inherit] px-[10px] py-[5px] text-center focus:outline-none"
 		bind:value={name}
-		placeholder="New Directory"
+		placeholder=""
 	/>
 </Button>
