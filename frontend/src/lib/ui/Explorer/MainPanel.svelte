@@ -95,7 +95,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px]"
+	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] overflow-auto px-5 py-[10px]"
 	use:boundingclientrect={(v) => (mainPanelBounds = v)}
 	onmousedown={handleMouseDown}
 	oncontextmenu={(e) => {
