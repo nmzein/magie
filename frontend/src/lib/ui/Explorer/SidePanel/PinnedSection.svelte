@@ -14,7 +14,7 @@
 					image.load(item.data);
 				}
 			}}
-			class="flex w-full items-center gap-[10px] rounded-lg py-2 text-left hover:underline"
+			class="flex w-full items-center gap-[10px] rounded-lg text-left hover:underline"
 		>
 			{item.data.name}
 		</Button>
