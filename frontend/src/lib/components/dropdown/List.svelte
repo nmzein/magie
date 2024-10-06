@@ -11,11 +11,11 @@
 	function addEventListener() {
 		$effect(() => {
 			setTimeout(() => {
-				document.addEventListener('click', handleClickOutside);
+				document.addEventListener('mousedown', handleClickOutside);
 			}, 10);
 
 			return () => {
-				document.removeEventListener('click', handleClickOutside);
+				document.removeEventListener('mousedown', handleClickOutside);
 			};
 		});
 	}
