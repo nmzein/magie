@@ -5,6 +5,7 @@
 	import Icon from '$icon';
 	import { http } from '$api';
 	import { onMount } from 'svelte';
+	import { boundingclientrect } from '$actions';
 
 	let { value, selectionBox }: { value: Directory | Image; selectionBox: SelectionBox } = $props();
 
@@ -14,57 +15,9 @@
 		if (value.type === 'image' && value.id !== 1) {
 			thumbnail = await http.GetThumbnail(value.id);
 		}
-		console.log(thumbnail);
 	});
 
 	let itemBounds: Bounds | undefined = $state();
-
-	function resizeobserver(element: HTMLElement) {
-		function update() {
-			itemBounds = element.getBoundingClientRect();
-		}
-
-		const observer = new ResizeObserver(update);
-		observer.observe(element);
-
-		update();
-
-		return {
-			destroy() {
-				observer.unobserve(element);
-			}
-		};
-	}
-
-	function positionobserver(element: HTMLElement) {
-		let lastPosition = { x: 0, y: 0 };
-
-		function update() {
-			const rect = element.getBoundingClientRect();
-			const newPosition = { x: rect.x, y: rect.y };
-
-			// Check if the position has changed
-			if (newPosition.x !== lastPosition.x || newPosition.y !== lastPosition.y) {
-				lastPosition = newPosition;
-				itemBounds = rect; // Update your reactive value
-			}
-		}
-
-		// Use requestAnimationFrame to continuously check for changes
-		function loop() {
-			update();
-			requestAnimationFrame(loop); // Keep checking on each frame
-		}
-
-		loop(); // Start the loop on mount
-
-		return {
-			destroy() {
-				// Cleanup if necessary
-			}
-		};
-	}
-
 	let intersected = $derived(defined(itemBounds) && selectionBox.intersecting(itemBounds, value));
 	let selected = $derived(explorer.isSelected(value));
 
@@ -73,6 +26,9 @@
 		// propagating to main panel which would
 		// trigger a deselectAll()
 		event.stopPropagation();
+
+		// Do not deselect if right click using touchpad.
+		if (event.buttons === 2) return;
 
 		if (event.ctrlKey) {
 			// If ctrl key is pressed, the user wants
@@ -111,14 +67,14 @@
 </script>
 
 <button
-	use:resizeobserver
-	use:positionobserver
+	use:boundingclientrect={(v) => (itemBounds = v)}
 	class="hover:bg-primary/10 active:bg-primary/20 flex flex-col items-center gap-3 rounded-lg p-3 text-sm hover:backdrop-blur-[15px]
 		   {intersected ? '!bg-primary/10 !backdrop-blur-[15px]' : ''}
 		   {selected ? '!bg-accent/20 hover:!bg-accent/30 active:!bg-accent/40' : ''}"
 	onmousedown={(e) => handleMouseDown(e)}
 	ondblclick={() => handleOpen()}
 	onkeypress={(e) => handleKeypress(e)}
+	oncontextmenu={(e) => e.stopPropagation()}
 >
 	{#if defined(thumbnail)}
 		<img src={thumbnail.src} alt={value.name} class="h-16 rounded-md" />

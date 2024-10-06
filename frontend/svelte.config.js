@@ -13,14 +13,15 @@ const config = {
 		// See https://kit.svelte.dev/docs/adapters for more information about adapters.
 		adapter: adapter(),
 		alias: {
-			$ui: './src/lib/ui',
-			$components: './src/lib/components',
-			$icon: './src/lib/components/Icon.svelte',
-			$view: './src/lib/view',
+			$actions: './src/lib/actions',
 			$api: './src/lib/api.svelte.ts',
+			$components: './src/lib/components',
+			$helpers: './src/lib/helpers.ts',
+			$icon: './src/lib/components/Icon.svelte',
 			$states: './src/lib/states',
 			$types: './src/lib/types.ts',
-			$helpers: './src/lib/helpers.ts'
+			$ui: './src/lib/ui',
+			$view: './src/lib/view'
 		}
 	}
 };

@@ -42,20 +42,6 @@
 		document.addEventListener('touchend', handlePanEnd);
 		document.addEventListener('wheel', handleWheel);
 
-		let script = document.createElement('script');
-		script.onload = function () {
-			let stats = new Stats();
-
-			stats.showPanel(0);
-			document.body.appendChild(stats.dom);
-			requestAnimationFrame(function loop() {
-				stats.update();
-				requestAnimationFrame(loop);
-			});
-		};
-		script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
-		document.head.appendChild(script);
-
 		return () => {
 			document.removeEventListener('mousemove', handleMouseMove);
 			document.removeEventListener('touchmove', handleTouchMove);
