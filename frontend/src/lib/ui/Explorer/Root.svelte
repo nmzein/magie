@@ -7,26 +7,11 @@
 	import type { Bounds } from '$types';
 	import { explorer } from '$states';
 	import { defined } from '$helpers';
+	import { resizeobserver } from '$actions';
 
 	let { contentSpaceBounds }: { contentSpaceBounds: Bounds } = $props();
 
 	let explorerBounds: Bounds | undefined = $state();
-	function resizeobserver(element: HTMLElement) {
-		function update() {
-			explorerBounds = element.getBoundingClientRect();
-		}
-
-		const observer = new ResizeObserver(update);
-		observer.observe(element);
-
-		update();
-
-		return {
-			destroy() {
-				observer.unobserve(element);
-			}
-		};
-	}
 
 	$effect(() => {
 		if (!defined(explorerBounds) || explorer.positionSet) return;
@@ -43,7 +28,7 @@
 <div
 	class="panel flex max-w-[800px] origin-center origin-center flex-col !border-none"
 	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
-	use:resizeobserver
+	use:resizeobserver={(v) => (explorerBounds = v)}
 >
 	<Uploader />
 

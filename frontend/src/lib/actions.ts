@@ -7,3 +7,20 @@ export function boundingclientrect(element: HTMLElement, callback: (value: DOMRe
 
 	loop();
 }
+
+export function resizeobserver(element: HTMLElement, callback: (bounds: DOMRect) => void) {
+	function update() {
+		callback(element.getBoundingClientRect());
+	}
+
+	const observer = new ResizeObserver(update);
+	observer.observe(element);
+
+	update();
+
+	return {
+		destroy() {
+			observer.disconnect();
+		}
+	};
+}
