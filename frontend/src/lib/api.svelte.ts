@@ -48,22 +48,20 @@ const REGISTRY_URL = new URL(HTTP_URL + PUBLIC_REGISTRY_SUBDIR);
 const GENERATORS_URL = new URL(HTTP_URL + PUBLIC_GENERATORS_SUBDIR);
 
 export const http = (() => {
-	async function GetGenerators() {
-		return await GET<string[]>(GENERATORS_URL);
+	async function GetGenerators(): Promise<string[] | undefined> {
+		return await GET(GENERATORS_URL);
 	}
 
-	async function GetRegistry() {
-		return await GET<Directory>(REGISTRY_URL);
+	async function GetRegistry(): Promise<Directory | undefined> {
+		return await GET(REGISTRY_URL);
 	}
 
-	async function GetProperties(image_id: number) {
-		const url = appendPathSegment(IMAGE_PROPERTIES_URL, image_id);
-		return await GET<Properties>(url);
+	async function GetProperties(image_id: number): Promise<Properties | undefined> {
+		return await GET(IMAGE_PROPERTIES_URL, [image_id]);
 	}
 
-	async function GetThumbnail(image_id: number) {
-		const url = appendPathSegment(IMAGE_THUMBNAIL_URL, image_id);
-		let blob = await GET<Blob>(url, {}, false);
+	async function GetThumbnail(image_id: number): Promise<HTMLImageElement | undefined> {
+		const blob: Blob | undefined = await GET(IMAGE_THUMBNAIL_URL, [image_id]);
 
 		if (blob === undefined) return;
 
@@ -73,7 +71,7 @@ export const http = (() => {
 	}
 
 	async function CreateDirectory(parent_id: number, name: string) {
-		const registry = await POST<Directory>(DIRECTORY_CREATE_URL, { parent_id, name });
+		const registry: Directory | undefined = await POST(DIRECTORY_CREATE_URL, { parent_id, name });
 
 		if (registry === undefined) return;
 
@@ -81,8 +79,9 @@ export const http = (() => {
 	}
 
 	async function DeleteDirectory(directory_id: number, mode: 'soft' | 'hard') {
-		const url = appendPathSegment(DIRECTORY_DELETE_URL, directory_id);
-		const registry = await DELETE<Directory>(url, { mode });
+		const registry: Directory | undefined = await DELETE(DIRECTORY_DELETE_URL, [directory_id], {
+			mode
+		});
 
 		if (registry === undefined) return;
 
@@ -90,8 +89,9 @@ export const http = (() => {
 	}
 
 	async function DeleteImage(image_id: number, mode: 'soft' | 'hard') {
-		const url = appendPathSegment(IMAGE_DELETE_URL, image_id);
-		const registry = await DELETE<Directory>(url, { mode });
+		const registry: Directory | undefined = await DELETE(IMAGE_DELETE_URL, [image_id], {
+			mode
+		});
 
 		if (registry === undefined) return;
 
@@ -99,7 +99,7 @@ export const http = (() => {
 	}
 
 	async function MoveDirectory(target_id: number, dest_id: number) {
-		const registry = await POST<Directory>(DIRECTORY_MOVE_URL, { target_id, dest_id });
+		const registry: Directory | undefined = await POST(DIRECTORY_MOVE_URL, { target_id, dest_id });
 
 		if (registry === undefined) return;
 
@@ -107,7 +107,7 @@ export const http = (() => {
 	}
 
 	async function MoveImage(target_id: number, dest_id: number) {
-		const registry = await POST<Directory>(IMAGE_MOVE_URL, { target_id, dest_id });
+		const registry: Directory | undefined = await POST(IMAGE_MOVE_URL, { target_id, dest_id });
 
 		if (registry === undefined) return;
 
@@ -129,26 +129,32 @@ export const http = (() => {
 		}
 		formData.append('generator_name', generator);
 
-		const registry = await POST<Directory>(IMAGE_UPLOAD_URL, formData, 'multipart');
+		const registry: Directory | undefined = await POST(IMAGE_UPLOAD_URL, formData, 'multipart');
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function GET<Resp>(_url: URL, params?: Record<string, any>, parse: boolean = true) {
-		const url = constructUrl(_url, params);
+	async function GET<Resp = any>(
+		_url: URL,
+		paths?: (string | number)[],
+		params?: Record<string, any>
+	): Promise<Resp | undefined> {
+		const url = constructUrl(_url, paths, params);
 
 		try {
 			const response = await fetch(url, { method: 'GET' });
 
 			if (response.ok) {
 				try {
-					if (parse) {
+					// Check if the generic type Resp is Blob and handle accordingly
+					if (response.headers.get('Content-Type')?.includes('image/jpeg')) {
+						const data = (await response.blob()) as Resp;
+						return data;
+					} else if (response.headers.get('Content-Type')?.includes('json')) {
 						const data: Resp = await response.json();
 						return data;
-					} else {
-						return await response.blob();
 					}
 				} catch (error) {
 					console.error(`Parse Error [${url.pathname}]:`, error);
@@ -161,7 +167,11 @@ export const http = (() => {
 		}
 	}
 
-	async function POST<Resp>(url: URL, body: any, contentType: 'json' | 'multipart' = 'json') {
+	async function POST<Resp = any>(
+		url: URL,
+		body: any,
+		contentType: 'json' | 'multipart' = 'json'
+	): Promise<Resp | undefined> {
 		try {
 			let response: Response;
 
@@ -199,8 +209,12 @@ export const http = (() => {
 		}
 	}
 
-	async function DELETE<Resp>(_url: URL, params?: Record<string, any>) {
-		const url = constructUrl(_url, params);
+	async function DELETE<Resp = any>(
+		_url: URL,
+		paths?: (string | number)[],
+		params?: Record<string, any>
+	): Promise<Resp | undefined> {
+		const url = constructUrl(_url, paths, params);
 
 		try {
 			const response = await fetch(url, { method: 'DELETE' });
@@ -260,16 +274,21 @@ export function ConnectWebSocket() {
 	websocket = new WebSocketState();
 }
 
-function appendPathSegment(url: URL, segment: any) {
-	return new URL(url + '/' + segment);
-}
+function constructUrl(_url: URL, paths?: (string | number)[], params?: Record<string, any>) {
+	let url = new URL(_url);
 
-function constructUrl(_url: URL, params?: Record<string, any>) {
-	const url = new URL(_url);
+	if (defined(paths)) {
+		const fullPath = paths.join('/');
+
+		// Create a new URL object using the base URL and the full path
+		url = new URL(`${_url}/${fullPath}`);
+	}
 
 	if (defined(params)) {
 		for (const [key, value] of Object.entries(params)) {
-			url.searchParams.append(key, value.toString());
+			if (value !== undefined && value !== null) {
+				url.searchParams.append(key, value.toString());
+			}
 		}
 	}
 
