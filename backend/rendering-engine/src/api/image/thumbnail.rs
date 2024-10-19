@@ -30,6 +30,14 @@ pub async fn thumbnail(Extension(conn): Extension<AppState>, Path(id): Path<u32>
             // Read the file content into a buffer
             match file.read_to_end(&mut buffer).await {
                 Ok(_) => {
+                    log::<()>(
+                        StatusCode::OK,
+                        &format!(
+                            "[IT/M01]: Successfully read the thumbnail of image with id `{id}`."
+                        ),
+                        None,
+                    );
+
                     // Create a response with the binary content of the image
                     (
                         StatusCode::OK,
