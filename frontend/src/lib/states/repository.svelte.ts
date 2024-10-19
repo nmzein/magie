@@ -1,7 +1,7 @@
 import type { Directory } from '$types';
 import { http } from '$api';
 
-export class Repository {
+export class RepositoryState {
 	public registry: Directory | undefined = $state();
 	public generators: string[] = $state([]);
 	public decoders: string[] = $state([]);

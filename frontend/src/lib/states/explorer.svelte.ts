@@ -3,7 +3,7 @@ import { defined } from '$helpers';
 import { repository } from '$states';
 import { http } from '$api';
 
-export class Explorer {
+export class ExplorerState {
 	public positionSet = false;
 	public position: Point = $state({ x: 0, y: 0 });
 	// Selected directories (in main panel).

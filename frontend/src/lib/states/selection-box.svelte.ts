@@ -2,7 +2,7 @@ import { DEFAULT_BOUND, type Bounds, DEFAULT_POINT, type Point } from '$types';
 import { appendPx, defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
 
-export class SelectionBox<T = any> {
+export class SelectionBoxState<T = any> {
 	private _dragging: boolean = $state(false);
 	private startPosition: Point = DEFAULT_POINT;
 	public selectionBox: HTMLElement | undefined;

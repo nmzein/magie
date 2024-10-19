@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { explorer, SelectionBox } from '$states';
+	import { explorer, SelectionBoxState } from '$states';
 	import { DEFAULT_POINT, type Bounds, type Directory, type Image } from '$types';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
 	import { boundingclientrect } from '$actions';
-	import ContextMenu from './ContextMenu.svelte';
 
-	const selectionBox: SelectionBox<Directory | Image> = new SelectionBox();
+	const selectionBox: SelectionBoxState<Directory | Image> = new SelectionBoxState();
 	let selectionBoxElement: HTMLDivElement | undefined = $state();
 	let mainPanelBounds: Bounds | undefined = $state();
 	let contextMenu = $state({
