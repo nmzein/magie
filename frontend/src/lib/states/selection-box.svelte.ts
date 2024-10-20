@@ -3,19 +3,26 @@ import { appendPx, defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
 
 export class SelectionBoxState<T = any> {
-	private _dragging: boolean = $state(false);
+	public _dragging: boolean = $state(false);
 	private startPosition: Point = DEFAULT_POINT;
-	public selectionBox: HTMLElement | undefined;
+	public element: HTMLElement | undefined;
 	private bounds: Bounds = $state(DEFAULT_BOUND);
 	public parentBounds: DOMRect | Bounds | undefined;
 	private intersected: SvelteSet<T> = new SvelteSet();
+	private _show: boolean = $derived(
+		this._dragging && (this.bounds.width > 10 || this.bounds.height > 10)
+	);
 
 	public get dragging(): boolean {
 		return this._dragging;
 	}
 
+	public get show(): boolean {
+		return this._show;
+	}
+
 	public start(cursor: Point) {
-		if (this._dragging || !defined(this.parentBounds) || !defined(this.selectionBox)) return;
+		if (this._dragging || !defined(this.parentBounds) || !defined(this.element)) return;
 
 		this._dragging = true;
 
@@ -31,11 +38,11 @@ export class SelectionBoxState<T = any> {
 			top: this.startPosition.y
 		};
 
-		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+		Object.assign(this.element.style, appendPx(this.bounds));
 	}
 
 	public update(cursor: Point) {
-		if (!this._dragging || !defined(this.parentBounds) || !defined(this.selectionBox)) return;
+		if (!this._dragging || !defined(this.parentBounds) || !defined(this.element)) return;
 
 		// Clamp current mouse position between 0 and parent's width/height.
 		const currentX = Math.max(
@@ -57,7 +64,7 @@ export class SelectionBoxState<T = any> {
 			top: height < 0 ? currentY : this.startPosition.y
 		};
 
-		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+		Object.assign(this.element.style, appendPx(this.bounds));
 	}
 
 	public stop(): T[] {

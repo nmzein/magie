@@ -7,6 +7,7 @@
 	import { defined, truncateNumber } from '$helpers';
 	import Button from '$components/Button.svelte';
 	import type { Bounds } from '$types';
+	import ContextMenu from './ContextMenu.svelte';
 
 	const classes = {
 		list: 'panel flex flex-col gap-[2px] p-[3px]',
@@ -30,10 +31,12 @@
 </Tabs.Root>
 
 {#snippet UILayer()}
-	<div class="pointer-events-none absolute flex w-full flex-row gap-[10px]">
+	<div class="absolute flex w-full flex-row gap-[10px] overflow-hidden">
+		<ContextMenu />
+
 		<Tabs.ContentSpace id="applets">
 			<div
-				class=" h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
+				class="pointer-events-none h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
 				bind:contentRect={contentSpaceBounds}
 			>
 				<Tabs.Content value="explorer">

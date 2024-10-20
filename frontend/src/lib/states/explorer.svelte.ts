@@ -123,6 +123,12 @@ export class ExplorerState {
 		this.selected.push(item);
 	}
 
+	public selectAll() {
+		if (!defined(this.currentDirectory)) return;
+		this.selected = this.currentDirectory.data.subdirectories;
+		this.selected = this.selected.concat(this.currentDirectory.data.files);
+	}
+
 	public deselect(item: Directory | Image) {
 		this.selected = this.selected.filter((i) => i !== item);
 	}
@@ -192,6 +198,7 @@ export class ExplorerState {
 				}
 			});
 		} else if (this.clipboard.mode === 'copy') {
+			console.log('TODO!');
 			// TODO
 		}
 	}

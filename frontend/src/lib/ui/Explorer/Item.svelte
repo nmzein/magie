@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Bounds, Directory, Image } from '$types';
-	import { image, explorer, type SelectionBox } from '$states';
+	import { image, explorer, type SelectionBoxState, contextMenu } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
@@ -8,7 +8,10 @@
 	import { boundingclientrect } from '$actions';
 	import { twMerge } from 'tailwind-merge';
 
-	let { value, selectionBox }: { value: Directory | Image; selectionBox: SelectionBox } = $props();
+	let {
+		value,
+		selectionBoxState
+	}: { value: Directory | Image; selectionBoxState: SelectionBoxState } = $props();
 
 	let thumbnail: HTMLImageElement | undefined = $state();
 
@@ -19,10 +22,12 @@
 	});
 
 	let itemBounds: Bounds | undefined = $state();
-	let intersected = $derived(defined(itemBounds) && selectionBox.intersecting(itemBounds, value));
+	let intersected = $derived(
+		defined(itemBounds) && selectionBoxState.intersecting(itemBounds, value)
+	);
 	let selected = $derived(explorer.isSelected(value));
 
-	function handleMouseDown(event: MouseEvent) {
+	function handlePointerDown(event: PointerEvent) {
 		// Do not deselect if right click using touchpad.
 		if (event.buttons === 2) return;
 
@@ -72,10 +77,22 @@
 		class={twMerge(
 			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
 		)}
-		onmousedown={(e) => handleMouseDown(e)}
+		onpointerdown={(e) => handlePointerDown(e)}
 		ondblclick={() => handleOpen()}
 		onkeypress={(e) => handleKeypress(e)}
-		oncontextmenu={(e) => e.stopPropagation()}
+		oncontextmenu={(e) => {
+			e.stopPropagation();
+			e.preventDefault();
+			if (!selected) {
+				explorer.select(value);
+			}
+			contextMenu.show = true;
+			contextMenu.position = { x: e.clientX, y: e.clientY };
+			contextMenu.items = [
+				{ name: 'Open', action: () => handleOpen() },
+				{ name: 'Cut', action: () => explorer.clipSelected('cut') }
+			];
+		}}
 	>
 		{#if defined(thumbnail)}
 			<img src={thumbnail.src} alt={value.name} class="h-16 rounded-md" />

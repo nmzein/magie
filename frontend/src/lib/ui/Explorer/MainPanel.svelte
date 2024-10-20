@@ -1,57 +1,39 @@
 <script lang="ts">
-	import { explorer, SelectionBoxState } from '$states';
-	import { DEFAULT_POINT, type Bounds, type Directory, type Image } from '$types';
+	import { contextMenu, explorer, SelectionBoxState } from '$states';
+	import { type Bounds, type Directory, type Image } from '$types';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { defined } from '$helpers';
 	import { boundingclientrect } from '$actions';
 
-	const selectionBox: SelectionBoxState<Directory | Image> = new SelectionBoxState();
+	let selectionBoxState: SelectionBoxState<Directory | Image> = new SelectionBoxState();
 	let selectionBoxElement: HTMLDivElement | undefined = $state();
 	let mainPanelBounds: Bounds | undefined = $state();
-	let contextMenu = $state({
-		show: false,
-		position: DEFAULT_POINT
-	});
 
 	$effect(() => {
 		if (mainPanelBounds || selectionBoxElement) {
-			selectionBox.parentBounds = mainPanelBounds;
-			selectionBox.selectionBox = selectionBoxElement;
+			selectionBoxState.parentBounds = mainPanelBounds;
+			selectionBoxState.element = selectionBoxElement;
 		}
 	});
 
-	$effect(() => {
-		document.addEventListener('keydown', handleKeyDown);
-		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('mouseup', handleMouseUp);
+	function handlePointerDown(event: MouseEvent) {
+		// Return if not left click.
+		if (event.button !== 0) return;
 
-		return () => {
-			document.removeEventListener('keydown', handleKeyDown);
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('mouseup', handleMouseUp);
-		};
-	});
-
-	function handleMouseDown(event: MouseEvent) {
 		explorer.deselectAll();
 
-		// Return if not left click.
-		if (!defined(selectionBox) || event.button !== 0) return;
-
-		selectionBox.start({ x: event.clientX, y: event.clientY });
+		selectionBoxState.start({ x: event.clientX, y: event.clientY });
 	}
 
-	function handleMouseMove(event: MouseEvent) {
-		if (!defined(selectionBox)) return;
-
-		selectionBox.update({ x: event.clientX, y: event.clientY });
+	function handlePointerMove(event: MouseEvent) {
+		selectionBoxState.update({ x: event.clientX, y: event.clientY });
 	}
 
-	function handleMouseUp() {
-		if (!defined(selectionBox) || !selectionBox.dragging) return;
+	function handlePointerUp() {
+		if (!selectionBoxState.dragging) return;
 
-		explorer.selected = selectionBox.stop();
+		explorer.selected = selectionBoxState.stop();
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -82,48 +64,45 @@
 	}
 </script>
 
-{#if defined(mainPanelBounds)}
-	<ContextMenu
-		bind:show={contextMenu.show}
-		position={contextMenu.position}
-		parentBounds={mainPanelBounds}
-	/>
-{/if}
+<svelte:document
+	onkeydown={handleKeyDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+/>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-	class="relative grid h-[400px] grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px] {contextMenu.show
+	class="relative grid h-[400px] select-none grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px] {contextMenu.show
 		? 'overflow-hidden'
 		: 'overflow-auto'}"
 	use:boundingclientrect={(v) => (mainPanelBounds = v)}
-	onmousedown={handleMouseDown}
+	onpointerdown={handlePointerDown}
 	oncontextmenu={(e) => {
 		e.preventDefault();
-		contextMenu = {
-			show: true,
-			position: {
-				x: e.clientX,
-				y: e.clientY
-			}
-		};
+		contextMenu.show = true;
+		contextMenu.position = { x: e.clientX, y: e.clientY };
+		contextMenu.items = [
+			{ name: 'Select All', action: () => explorer.selectAll() },
+			{ name: 'Paste', action: () => explorer.paste() }
+		];
 	}}
 >
-	{#if defined(explorer.currentDirectory) && defined(selectionBox)}
+	{#if defined(explorer.currentDirectory) && defined(selectionBoxState)}
 		{#if explorer.showDirectoryCreator}
 			<DirectoryCreator />
 		{/if}
 		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
-			<Item value={subdirectory} {selectionBox} />
+			<Item value={subdirectory} {selectionBoxState} />
 		{/each}
 		{#each explorer.currentDirectory.data.files as file}
-			<Item value={file} {selectionBox} />
+			<Item value={file} {selectionBoxState} />
 		{/each}
 	{/if}
 
 	<div
 		bind:this={selectionBoxElement}
 		class="border-accent bg-accent/20 absolute rounded-[10px] border"
-		class:invisible={!selectionBox?.dragging}
+		class:invisible={!selectionBoxState.show}
 	></div>
 </div>
