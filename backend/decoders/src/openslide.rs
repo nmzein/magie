@@ -52,4 +52,16 @@ impl Decoder for Module {
 
         Ok(tile)
     }
+
+    fn thumbnail(&self, image_path: &Path, size: &Size) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
+        use openslide_rs::Size;
+
+        let image = OpenSlide::new(image_path)?;
+        let thumbnail = image.thumbnail_rgb(&Size {
+            w: size.width,
+            h: size.height,
+        })?;
+
+        Ok(thumbnail)
+    }
 }

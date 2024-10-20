@@ -30,10 +30,10 @@ pub use shared::{{
 }};
 pub use std::{{path::Path, sync::Arc}};
 pub use zarrs::{{
-    array::{{Array, ArrayBuilder, DataType, FillValue}},
+    array::{{codec::GzipCodec, Array, ArrayBuilder, DataType, FillValue}},
     array_subset::ArraySubset,
+    filesystem::FilesystemStore,
     group::GroupBuilder,
-    storage::store::FilesystemStore,
 }};
 
 pub fn interleave<'a>(channels: &[u8], tile: &'a mut Vec<u8>) -> &'a [u8] {{

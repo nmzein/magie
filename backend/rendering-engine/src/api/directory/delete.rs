@@ -1,17 +1,12 @@
-use crate::{api::common::*, types::MoveMode};
+use crate::{
+    api::common::*,
+    types::{DeleteMode, MoveMode},
+};
 use std::path::PathBuf;
 
 #[derive(Deserialize)]
 pub struct Params {
-    mode: Mode,
-}
-
-#[derive(Deserialize, Debug, PartialEq)]
-pub enum Mode {
-    #[serde(alias = "hard")]
-    Hard,
-    #[serde(alias = "soft")]
-    Soft,
+    mode: DeleteMode,
 }
 
 pub async fn delete(
@@ -68,7 +63,7 @@ pub async fn delete(
         }
     };
 
-    if directory_path.starts_with(&bin_path) && mode == Mode::Soft {
+    if directory_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
         return log::<()>(
             StatusCode::BAD_REQUEST,
             &format!("[DD/E04]: Cannot soft delete a directory that is already in the Bin."),
@@ -77,8 +72,8 @@ pub async fn delete(
     }
 
     let result = match mode {
-        Mode::Hard => hard_delete(id, &directory_path, Arc::clone(&conn)).await,
-        Mode::Soft => soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await,
+        DeleteMode::Soft => soft_delete(id, &directory_path, &bin_path, Arc::clone(&conn)).await,
+        DeleteMode::Hard => hard_delete(id, &directory_path, Arc::clone(&conn)).await,
     };
 
     if let Err(error) = result {

@@ -54,10 +54,7 @@ impl Encoder for Module {
                 FillValue::from(41u8),
             )
             // Define compression algorithm and strength.
-            .bytes_to_bytes_codecs(vec![
-                #[cfg(feature = "lz4")]
-                Box::new(codec::Lz4Codec::new(9)?),
-            ])
+            .bytes_to_bytes_codecs(vec![Arc::new(GzipCodec::new(9)?)])
             // Define dimension names - time, RGB channel, z, y, x axis.
             .dimension_names(vec!["t", "c", "z", "y", "x"].into())
             .build(store.clone(), &array_path)?;

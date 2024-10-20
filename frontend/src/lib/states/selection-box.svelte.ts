@@ -2,25 +2,27 @@ import { DEFAULT_BOUND, type Bounds, DEFAULT_POINT, type Point } from '$types';
 import { appendPx, defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
 
-export class SelectionBox<T = any> {
-	private _dragging: boolean = $state(false);
+export class SelectionBoxState<T = any> {
+	public _dragging: boolean = $state(false);
 	private startPosition: Point = DEFAULT_POINT;
-	private selectionBox: HTMLElement;
+	public element: HTMLElement | undefined;
 	private bounds: Bounds = $state(DEFAULT_BOUND);
-	private parentBounds: DOMRect | Bounds;
+	public parentBounds: DOMRect | Bounds | undefined;
 	private intersected: SvelteSet<T> = new SvelteSet();
-
-	constructor(selectionBox: HTMLElement, parentBounds: DOMRect | Bounds) {
-		this.selectionBox = selectionBox;
-		this.parentBounds = parentBounds;
-	}
+	private _show: boolean = $derived(
+		this._dragging && (this.bounds.width > 10 || this.bounds.height > 10)
+	);
 
 	public get dragging(): boolean {
 		return this._dragging;
 	}
 
+	public get show(): boolean {
+		return this._show;
+	}
+
 	public start(cursor: Point) {
-		if (this._dragging) return;
+		if (this._dragging || !defined(this.parentBounds) || !defined(this.element)) return;
 
 		this._dragging = true;
 
@@ -36,11 +38,11 @@ export class SelectionBox<T = any> {
 			top: this.startPosition.y
 		};
 
-		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+		Object.assign(this.element.style, appendPx(this.bounds));
 	}
 
 	public update(cursor: Point) {
-		if (!this._dragging) return;
+		if (!this._dragging || !defined(this.parentBounds) || !defined(this.element)) return;
 
 		// Clamp current mouse position between 0 and parent's width/height.
 		const currentX = Math.max(
@@ -62,7 +64,7 @@ export class SelectionBox<T = any> {
 			top: height < 0 ? currentY : this.startPosition.y
 		};
 
-		Object.assign(this.selectionBox.style, appendPx(this.bounds));
+		Object.assign(this.element.style, appendPx(this.bounds));
 	}
 
 	public stop(): T[] {
@@ -80,7 +82,7 @@ export class SelectionBox<T = any> {
 	}
 
 	public intersecting(target: DOMRect | Bounds, item: T | undefined = undefined): boolean {
-		if (!this._dragging) return false;
+		if (!this._dragging || !defined(this.parentBounds)) return false;
 
 		const targetLeft = target.left - this.parentBounds.left;
 		const targetTop = target.top - this.parentBounds.top;

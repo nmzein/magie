@@ -1,4 +1,4 @@
-FROM node:21.6.2-bookworm-slim AS node
+FROM node:21.7.3-bookworm-slim AS node
 FROM rust:1.80.0-slim-bookworm AS rust
 FROM debian:bookworm-slim AS debian
 
@@ -17,7 +17,7 @@ COPY ./frontend /app/frontend
 WORKDIR /app/frontend
 
 RUN --mount=type=cache,target=/var/cache/app/npm \
-    npm ci --legacy-peer-deps
+    npm ci
 
 WORKDIR /app
 COPY .env /app

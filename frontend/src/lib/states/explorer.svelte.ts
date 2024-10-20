@@ -1,18 +1,21 @@
-import type { Image, Route, Directory, ItemExt, DirectoryExt } from '$types';
+import type { Image, Route, Directory, Navigable, Clipboard, Point } from '$types';
 import { defined } from '$helpers';
 import { repository } from '$states';
 import { http } from '$api';
 
-export class Explorer {
+export class ExplorerState {
+	public positionSet = false;
+	public position: Point = $state({ x: 0, y: 0 });
 	// Selected directories (in main panel).
-	public selected: (Directory | Image)[] = $state([]);
+	public selected: (Image | Directory)[] = $state([]);
 	// Clipboard for cut/copy/paste.
-	public clipboard: { mode: 'cut' | 'copy' | undefined; items: (Directory | Image)[] } = $state({
+	public clipboard: Clipboard = $state({
 		mode: undefined,
 		items: []
 	});
+	public emptyClipboard = $derived(this.clipboard.items.length === 0);
 	// Pinned directories (in side panel).
-	public pinned: ItemExt[] = $state([]);
+	public pinned: Navigable[] = $state([]);
 	// Stack of directories to keep track of navigation.
 	// TODO: Default to directory last opened by the user.
 	private stack: Route[] = $state([[2]]);
@@ -25,9 +28,8 @@ export class Explorer {
 	get currentRoute() {
 		return this._currentRoute;
 	}
-
 	// Actual current directory information obtained from registry.
-	public currentDirectory: DirectoryExt | undefined = $derived.by(() => {
+	public currentDirectory: Navigable<Directory> | undefined = $derived.by(() => {
 		if (!defined(repository.registry) || !defined(this._currentRoute)) return;
 
 		let path = [];
@@ -42,7 +44,6 @@ export class Explorer {
 
 		return { path, route: this._currentRoute, data: currentDirectory };
 	});
-
 	public showUploader: boolean = $state(false);
 	public showDirectoryCreator: boolean = $state(false);
 
@@ -52,7 +53,7 @@ export class Explorer {
 		this.stack = [[repository.registry.subdirectories[0].id]];
 	}
 
-	public insertIntoStack(route: Route) {
+	private insertIntoStack(route: Route) {
 		// Slice stack to current pointer and insert new directory.
 		this.stack = this.stack?.slice(0, this.stackPointer + 1);
 		this.stack?.push(route);
@@ -61,7 +62,7 @@ export class Explorer {
 
 	// Defaults to going up to parent directory.
 	public up(index: number = this._currentRoute.length - 2) {
-		if (this._currentRoute.length <= 1) return;
+		if (this._currentRoute.length <= 1 || index === this._currentRoute.length - 1) return;
 
 		this.deselectAll();
 
@@ -99,12 +100,16 @@ export class Explorer {
 	}
 
 	public routeTo(route: Route) {
+		if (route.length === 0 || this.currentDirectory?.data.id == route[route.length - 1]) return;
+
 		this.deselectAll();
 
 		this.insertIntoStack(route);
 	}
 
 	public navigateTo(id: number) {
+		if (this.currentDirectory?.data.id === id) return;
+
 		this.deselectAll();
 
 		// Important: concat() creates a copy of current.
@@ -121,12 +126,22 @@ export class Explorer {
 		this.selected.push(item);
 	}
 
+	public selectAll() {
+		if (!defined(this.currentDirectory)) return;
+		this.selected = this.currentDirectory.data.subdirectories;
+		this.selected = this.selected.concat(this.currentDirectory.data.files);
+	}
+
 	public deselect(item: Directory | Image) {
 		this.selected = this.selected.filter((i) => i !== item);
 	}
 
 	public deselectAll() {
 		this.selected = [];
+	}
+
+	public isPinned(item: Directory | Image): boolean {
+		return this.pinned.some((i) => i.data.id === item.id);
 	}
 
 	public pinSelected() {
@@ -143,13 +158,21 @@ export class Explorer {
 		});
 	}
 
-	public pin(item: ItemExt) {
+	public unpinSelected() {
+		this.selected.forEach((item) => {
+			const index = this.pinned.findIndex((i) => i.data.id === item.id);
+			if (index === -1) return;
+			this.pinned.splice(index, 1);
+		});
+	}
+
+	public pin(item: Navigable) {
 		// Check not already pinned.
 		if (this.pinned.some((i) => i === item)) return;
 		this.pinned.push(item);
 	}
 
-	public unpin(item: ItemExt) {
+	public unpin(item: Navigable) {
 		// Search for index of dir in pinned.
 		const index = this.pinned.findIndex((i) => i === item);
 		if (index === -1) return;
@@ -158,7 +181,14 @@ export class Explorer {
 
 	public deleteSelected(mode: 'soft' | 'hard') {
 		this.selected.forEach((item) => {
-			http.DeleteDirectory(item.id, mode);
+			switch (item.type) {
+				case 'directory':
+					http.DeleteDirectory(item.id, mode);
+					break;
+				case 'image':
+					http.DeleteImage(item.id, mode);
+					break;
+			}
 		});
 	}
 
@@ -169,13 +199,39 @@ export class Explorer {
 		};
 	}
 
+	public clearClipboard() {
+		this.clipboard = {
+			mode: undefined,
+			items: []
+		};
+	}
+
 	public paste() {
 		if (this.clipboard.mode === 'cut') {
 			this.clipboard.items.forEach((item) => {
-				if (!defined(this.currentDirectory)) return;
-				http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+				// Return if the item is already in the current directory.
+				if (
+					!defined(this.currentDirectory) ||
+					this.currentDirectory?.data.subdirectories.some((i) => i.id === item.id)
+				) {
+					this.deselectAll();
+					this.clearClipboard();
+					return;
+				}
+
+				switch (item.type) {
+					case 'directory':
+						http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+						break;
+					case 'image':
+						http.MoveImage(item.id, this.currentDirectory?.data.id);
+						break;
+				}
 			});
+			this.deselectAll();
+			this.clearClipboard();
 		} else if (this.clipboard.mode === 'copy') {
+			console.log('TODO!');
 			// TODO
 		}
 	}

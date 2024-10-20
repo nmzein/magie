@@ -2,7 +2,7 @@ import type { UploaderOptions } from '$types';
 import { http } from '$api';
 import { repository } from '$states';
 
-export class Uploader {
+export class UploaderState {
 	public parentDirectoryId: number | undefined = $state();
 	public image: File | undefined = $state();
 	public annotations: File | undefined = $state();

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { getDropdownState } from './context.svelte';
+	import { twMerge } from 'tailwind-merge';
 
 	let { children }: { children: Snippet } = $props();
 
@@ -10,11 +11,11 @@
 	function addEventListener() {
 		$effect(() => {
 			setTimeout(() => {
-				document.addEventListener('click', handleClickOutside);
+				document.addEventListener('mousedown', handleClickOutside);
 			}, 10);
 
 			return () => {
-				document.removeEventListener('click', handleClickOutside);
+				document.removeEventListener('mousedown', handleClickOutside);
 			};
 		});
 	}
@@ -28,7 +29,7 @@
 
 {#if dState.show}
 	{addEventListener()}
-	<div class={dState.classes.list} bind:this={dropdown}>
+	<div class={twMerge('select-none', dState.classes.list)} bind:this={dropdown}>
 		{@render children()}
 	</div>
 {/if}
