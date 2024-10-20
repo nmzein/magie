@@ -89,7 +89,7 @@
 			contextMenu.show = true;
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
-				{ name: 'Open', action: () => handleOpen() },
+				{ name: 'Open', action: () => handleOpen(), hidden: explorer.selected.length !== 1 },
 				{ name: 'Cut', action: () => explorer.clipSelected('cut') }
 			];
 		}}

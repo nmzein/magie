@@ -17,7 +17,7 @@
 	<Dropdown.Root {classes} bind:show={contextMenu.show}>
 		<Dropdown.List>
 			{#each contextMenu.items as item}
-				<Dropdown.Item onclick={item.action} disabled={item.disabled}>
+				<Dropdown.Item onclick={item.action} disabled={item.disabled} hidden={item.hidden}>
 					{item.name}
 				</Dropdown.Item>
 			{/each}

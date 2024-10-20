@@ -6,8 +6,9 @@
 	let {
 		onclick,
 		disabled = false,
+		hidden = false,
 		children
-	}: { onclick?: () => void; disabled?: boolean; children: Snippet } = $props();
+	}: { onclick?: () => void; disabled?: boolean; hidden?: boolean; children: Snippet } = $props();
 
 	let dState = getDropdownState();
 </script>
@@ -19,6 +20,7 @@
 	}}
 	class={dState.classes.item}
 	{disabled}
+	{hidden}
 >
 	{@render children()}
 </Button>
