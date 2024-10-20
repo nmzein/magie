@@ -52,7 +52,7 @@
 		} else if (!event.shiftKey && event.key === 'Delete') {
 			event.preventDefault();
 			// If delete in bin then hard delete.
-			if (explorer.currentRoute[0] === 1) {
+			if (explorer.currentDirectory?.data.id === 1) {
 				explorer.deleteSelected('hard');
 			} else {
 				explorer.deleteSelected('soft');

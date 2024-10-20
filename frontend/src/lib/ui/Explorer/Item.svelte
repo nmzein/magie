@@ -90,7 +90,24 @@
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
 				{ name: 'Open', action: () => handleOpen(), hidden: explorer.selected.length !== 1 },
-				{ name: 'Cut', action: () => explorer.clipSelected('cut') }
+				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
+				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
+				{
+					name: 'Move to Bin',
+					action: () => explorer.deleteSelected('soft'),
+					hidden: explorer.currentDirectory?.data.id === 1
+				},
+				{
+					name: 'Delete from Bin',
+					action: () => explorer.deleteSelected('hard'),
+					hidden: explorer.currentDirectory?.data.id !== 1
+				},
+				{
+					name: 'Recover from Bin',
+					action: () => {},
+					disabled: true,
+					hidden: explorer.currentDirectory?.data.id !== 1
+				}
 			];
 		}}
 	>
