@@ -55,7 +55,7 @@ export class ExplorerState {
 		this.stack = [[repository.registry.subdirectories[0].id]];
 	}
 
-	public insertIntoStack(route: Route) {
+	private insertIntoStack(route: Route) {
 		// Slice stack to current pointer and insert new directory.
 		this.stack = this.stack?.slice(0, this.stackPointer + 1);
 		this.stack?.push(route);
@@ -64,7 +64,7 @@ export class ExplorerState {
 
 	// Defaults to going up to parent directory.
 	public up(index: number = this._currentRoute.length - 2) {
-		if (this._currentRoute.length <= 1) return;
+		if (this._currentRoute.length <= 1 || index === this._currentRoute.length - 1) return;
 
 		this.deselectAll();
 
@@ -102,12 +102,16 @@ export class ExplorerState {
 	}
 
 	public routeTo(route: Route) {
+		if (route.length === 0 || this.currentDirectory?.data.id == route[route.length - 1]) return;
+
 		this.deselectAll();
 
 		this.insertIntoStack(route);
 	}
 
 	public navigateTo(id: number) {
+		if (this.currentDirectory?.data.id === id) return;
+
 		this.deselectAll();
 
 		// Important: concat() creates a copy of current.
