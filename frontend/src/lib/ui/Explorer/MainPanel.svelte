@@ -18,10 +18,10 @@
 	});
 
 	function handlePointerDown(event: MouseEvent) {
+		explorer.deselectAll();
+
 		// Return if not left click.
 		if (event.button !== 0) return;
-
-		explorer.deselectAll();
 
 		selectionBoxState.start({ x: event.clientX, y: event.clientY });
 	}

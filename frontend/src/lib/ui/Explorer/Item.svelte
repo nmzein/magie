@@ -28,15 +28,15 @@
 	let selected = $derived(explorer.isSelected(value));
 
 	function handlePointerDown(event: PointerEvent) {
+		// Stop the mousedown event from
+		// propagating to main panel which would
+		// trigger a deselectAll()
+		event.stopPropagation();
+
 		// Do not deselect if right click using touchpad.
 		if (event.buttons === 2) return;
 
 		if (event.ctrlKey) {
-			// Stop the mousedown event from
-			// propagating to main panel which would
-			// trigger a deselectAll()
-			event.stopPropagation();
-
 			// If ctrl key is pressed, the user wants
 			// to select more than one item.
 			// Toggle selection based on current value.
