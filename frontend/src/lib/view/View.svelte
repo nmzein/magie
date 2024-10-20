@@ -35,30 +35,14 @@
 		// transformer.currentLevel = image.properties.metadata.length - 1;
 	});
 
-	$effect(() => {
-		document.addEventListener('mousemove', handleMouseMove);
-		document.addEventListener('touchmove', handleTouchMove);
-		document.addEventListener('mouseup', handlePanEnd);
-		document.addEventListener('touchend', handlePanEnd);
-		document.addEventListener('wheel', handleWheel);
-
-		return () => {
-			document.removeEventListener('mousemove', handleMouseMove);
-			document.removeEventListener('touchmove', handleTouchMove);
-			document.removeEventListener('mouseup', handlePanEnd);
-			document.removeEventListener('touchend', handlePanEnd);
-			document.removeEventListener('wheel', handleWheel);
-		};
-	});
-
-	function handleMouseDown(event: MouseEvent) {
+	function onmousedown(event: MouseEvent) {
 		if (!image.initialised) return;
 
 		event.preventDefault();
 		handlePanStart(event);
 	}
 
-	function handleTouchStart(event: TouchEvent) {
+	function ontouchstart(event: TouchEvent) {
 		if (!image.initialised) return;
 
 		handlePanStart(event.touches[0]);
@@ -72,7 +56,7 @@
 		panStartY = event.clientY;
 	}
 
-	function handleMouseMove(event: MouseEvent) {
+	function onmousemove(event: MouseEvent) {
 		if (!image.initialised) return;
 
 		event.preventDefault();
@@ -102,7 +86,7 @@
 		handlePan(event);
 	}
 
-	function handleTouchMove(event: TouchEvent) {
+	function ontouchmove(event: TouchEvent) {
 		if (!image.initialised) return;
 
 		if (!isDragging) return;
@@ -125,7 +109,7 @@
 		isDragging = false;
 	}
 
-	function handleWheel(event: WheelEvent) {
+	function onwheel(event: WheelEvent) {
 		if (!image.initialised) return;
 
 		transformer.zoom(event.deltaY, event.clientX, event.clientY);
@@ -176,12 +160,20 @@
 	}
 </script>
 
+<svelte:document
+	{onmousemove}
+	{ontouchmove}
+	onmouseup={handlePanEnd}
+	ontouchend={handlePanEnd}
+	{onwheel}
+/>
+
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
 	role="img"
-	onmousedown={handleMouseDown}
-	ontouchstart={handleTouchStart}
-	class="absolute h-screen overflow-hidden"
+	{onmousedown}
+	{ontouchstart}
+	class="absolute h-dvh overflow-hidden"
 	style="cursor: {isDragging ? 'grab' : 'crosshair'};"
 >
 	<div

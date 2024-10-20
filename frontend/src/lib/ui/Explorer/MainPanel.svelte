@@ -17,7 +17,7 @@
 		}
 	});
 
-	function handlePointerDown(event: MouseEvent) {
+	function onpointerdown(event: PointerEvent) {
 		explorer.deselectAll();
 
 		// Return if not left click.
@@ -26,17 +26,17 @@
 		selectionBoxState.start({ x: event.clientX, y: event.clientY });
 	}
 
-	function handlePointerMove(event: MouseEvent) {
+	function onpointermove(event: PointerEvent) {
 		selectionBoxState.update({ x: event.clientX, y: event.clientY });
 	}
 
-	function handlePointerUp() {
+	function onpointerup() {
 		if (!selectionBoxState.dragging) return;
 
 		explorer.selected = selectionBoxState.stop();
 	}
 
-	function handleKeyDown(event: KeyboardEvent) {
+	function onkeydown(event: KeyboardEvent) {
 		if (event.ctrlKey && event.key === 'p') {
 			event.preventDefault();
 			explorer.pinSelected();
@@ -62,13 +62,21 @@
 			explorer.deleteSelected('hard');
 		}
 	}
+
+	function oncontextmenu(event: MouseEvent) {
+		event.preventDefault();
+		contextMenu.show = true;
+		contextMenu.position = { x: event.clientX, y: event.clientY };
+		contextMenu.items = [
+			{ name: 'Select All', action: () => explorer.selectAll() },
+			{ name: 'Paste', action: () => explorer.paste(), disabled: explorer.emptyClipboard },
+			{ name: 'New Image', action: () => (explorer.showUploader = true) },
+			{ name: 'New Directory', action: () => (explorer.showDirectoryCreator = true) }
+		];
+	}
 </script>
 
-<svelte:document
-	onkeydown={handleKeyDown}
-	onpointermove={handlePointerMove}
-	onpointerup={handlePointerUp}
-/>
+<svelte:document {onkeydown} {onpointermove} {onpointerup} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -77,18 +85,8 @@
 		? 'overflow-hidden'
 		: 'overflow-auto'}"
 	use:boundingclientrect={(v) => (mainPanelBounds = v)}
-	onpointerdown={handlePointerDown}
-	oncontextmenu={(e) => {
-		e.preventDefault();
-		contextMenu.show = true;
-		contextMenu.position = { x: e.clientX, y: e.clientY };
-		contextMenu.items = [
-			{ name: 'Select All', action: () => explorer.selectAll() },
-			{ name: 'Paste', action: () => explorer.paste(), disabled: explorer.emptyClipboard },
-			{ name: 'New Image', action: () => (explorer.showUploader = true) },
-			{ name: 'New Directory', action: () => (explorer.showDirectoryCreator = true) }
-		];
-	}}
+	{onpointerdown}
+	{oncontextmenu}
 >
 	{#if defined(explorer.currentDirectory) && defined(selectionBoxState)}
 		{#if explorer.showDirectoryCreator}
