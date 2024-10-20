@@ -90,6 +90,16 @@
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
 				{ name: 'Open', action: () => handleOpen(), hidden: explorer.selected.length !== 1 },
+				{
+					name: 'Pin',
+					action: () => explorer.pinSelected(),
+					hidden: explorer.isPinned(value) && explorer.selected.length === 1
+				},
+				{
+					name: 'Unpin',
+					action: () => explorer.unpinSelected(),
+					hidden: !explorer.isPinned(value) || explorer.selected.length !== 1
+				},
 				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
 				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
 				{

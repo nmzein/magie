@@ -140,6 +140,10 @@ export class ExplorerState {
 		this.selected = [];
 	}
 
+	public isPinned(item: Directory | Image): boolean {
+		return this.pinned.some((i) => i.data.id === item.id);
+	}
+
 	public pinSelected() {
 		this.selected.forEach((item) => {
 			if (!defined(this.currentDirectory)) return;
@@ -151,6 +155,14 @@ export class ExplorerState {
 				route: this._currentRoute.concat(item.id),
 				data: item
 			});
+		});
+	}
+
+	public unpinSelected() {
+		this.selected.forEach((item) => {
+			const index = this.pinned.findIndex((i) => i.data.id === item.id);
+			if (index === -1) return;
+			this.pinned.splice(index, 1);
 		});
 	}
 
