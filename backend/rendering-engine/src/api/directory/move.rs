@@ -41,6 +41,14 @@ pub async fn r#move(
         );
     }
 
+    if target_id == dest_id {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("[DM/E03]: Cannot move a directory into itself."),
+            None,
+        );
+    }
+
     // Retrieve target directory path.
     let target_directory_path = match crate::db::directory::path(target_id, Arc::clone(&conn)) {
         Ok(path) => path,
@@ -48,7 +56,7 @@ pub async fn r#move(
             return log(
                 StatusCode::NOT_FOUND,
                 &format!(
-                    "[DM/E03]: Target directory with id `{target_id}` does not exist in the database."
+                    "[DM/E04]: Target directory with id `{target_id}` does not exist in the database."
                 ),
                 Some(e),
             );
@@ -61,7 +69,7 @@ pub async fn r#move(
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[DM/E04]: Destination directory with id `{dest_id}` does not exist in the database."),
+                &format!("[DM/E05]: Destination directory with id `{dest_id}` does not exist in the database."),
                 Some(e),
             );
         }
@@ -73,7 +81,7 @@ pub async fn r#move(
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("[DM/E05]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the filesystem."),
+                    &format!("[DM/E06]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the filesystem."),
                 Some(e),
             );
         });
@@ -83,7 +91,7 @@ pub async fn r#move(
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[DM/E06]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the database."),
+                &format!("[DM/E07]: Failed to move directory with id `{target_id}` to directory with id `{dest_id}` in the database."),
 
                 Some(e),
             );
@@ -102,7 +110,7 @@ pub async fn r#move(
         }
         Err(e) => log(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "[DM/E07]: Failed to retrieve registry from the database.",
+            "[DM/E08]: Failed to retrieve registry from the database.",
             Some(e),
         ),
     }
