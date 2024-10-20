@@ -28,7 +28,6 @@ export class ExplorerState {
 	get currentRoute() {
 		return this._currentRoute;
 	}
-
 	// Actual current directory information obtained from registry.
 	public currentDirectory: Navigable<Directory> | undefined = $derived.by(() => {
 		if (!defined(repository.registry) || !defined(this._currentRoute)) return;
@@ -45,7 +44,6 @@ export class ExplorerState {
 
 		return { path, route: this._currentRoute, data: currentDirectory };
 	});
-
 	public showUploader: boolean = $state(false);
 	public showDirectoryCreator: boolean = $state(false);
 
