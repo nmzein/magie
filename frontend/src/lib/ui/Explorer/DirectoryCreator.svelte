@@ -47,7 +47,7 @@
 		}
 	}
 
-	function handleKeypress(event: KeyboardEvent) {
+	function handleKeyPress(event: KeyboardEvent) {
 		if (event.key === 'Enter' && name !== '') {
 			create(name);
 		}
@@ -57,7 +57,8 @@
 <Button
 	bind:component={button}
 	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
-	onkeypress={(e) => handleKeypress(e)}
+	onkeypress={(e) => handleKeyPress(e)}
+	onkeydown={(e) => e.stopPropagation()}
 >
 	<Icon name="directory" class="h-[90px] w-[90px]" />
 	<!-- svelte-ignore a11y_autofocus -->
