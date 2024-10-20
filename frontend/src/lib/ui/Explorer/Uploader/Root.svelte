@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { scale } from 'svelte/transition';
 	import { explorer, uploader } from '$states';
 	import { defined } from '$helpers';
 	import TopBar from './TopBar.svelte';
@@ -9,10 +8,7 @@
 </script>
 
 {#if explorer.showUploader}
-	<div
-		class="absolute z-10 m-10 h-[calc(100%-80px)] w-[calc(100%-80px)] rounded-xl"
-		transition:scale={{ duration: 200 }}
-	>
+	<div class="absolute z-10 m-10 h-[calc(100%-80px)] w-[calc(100%-80px)] rounded-xl">
 		<div
 			class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2"
 			role="dialog"

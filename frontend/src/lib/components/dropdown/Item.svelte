@@ -3,7 +3,11 @@
 	import { getDropdownState } from './context.svelte';
 	import Button from '$components/Button.svelte';
 
-	let { onclick = () => {}, children }: { onclick?: () => void; children: Snippet } = $props();
+	let {
+		onclick,
+		disabled = false,
+		children
+	}: { onclick?: () => void; disabled?: boolean; children: Snippet } = $props();
 
 	let dState = getDropdownState();
 </script>
@@ -11,9 +15,10 @@
 <Button
 	onclick={() => {
 		dState.close();
-		onclick();
+		onclick?.();
 	}}
 	class={dState.classes.item}
+	{disabled}
 >
 	{@render children()}
 </Button>

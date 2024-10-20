@@ -84,7 +84,9 @@
 		contextMenu.position = { x: e.clientX, y: e.clientY };
 		contextMenu.items = [
 			{ name: 'Select All', action: () => explorer.selectAll() },
-			{ name: 'Paste', action: () => explorer.paste() }
+			{ name: 'Paste', action: () => explorer.paste(), disabled: explorer.emptyClipboard },
+			{ name: 'New Image', action: () => (explorer.showUploader = true) },
+			{ name: 'New Directory', action: () => (explorer.showDirectoryCreator = true) }
 		];
 	}}
 >

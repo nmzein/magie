@@ -13,6 +13,7 @@ export class ExplorerState {
 		mode: undefined,
 		items: []
 	});
+	public emptyClipboard = $derived(this.clipboard.items.length === 0);
 	// Pinned directories (in side panel).
 	public pinned: Navigable[] = $state([]);
 	// Stack of directories to keep track of navigation.
@@ -184,10 +185,26 @@ export class ExplorerState {
 		};
 	}
 
+	public clearClipboard() {
+		this.clipboard = {
+			mode: undefined,
+			items: []
+		};
+	}
+
 	public paste() {
 		if (this.clipboard.mode === 'cut') {
 			this.clipboard.items.forEach((item) => {
-				if (!defined(this.currentDirectory)) return;
+				// Return if the item is already in the current directory.
+				if (
+					!defined(this.currentDirectory) ||
+					this.currentDirectory?.data.subdirectories.some((i) => i.id === item.id)
+				) {
+					this.deselectAll();
+					this.clearClipboard();
+					return;
+				}
+
 				switch (item.type) {
 					case 'directory':
 						http.MoveDirectory(item.id, this.currentDirectory?.data.id);
@@ -197,6 +214,8 @@ export class ExplorerState {
 						break;
 				}
 			});
+			this.deselectAll();
+			this.clearClipboard();
 		} else if (this.clipboard.mode === 'copy') {
 			console.log('TODO!');
 			// TODO

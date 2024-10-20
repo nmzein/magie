@@ -25,12 +25,23 @@
 		default: 'items-center px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10',
 		primary: 'items-center px-4 py-[10px] rounded-full text-[15px] bg-accent hover:bg-accent-light'
 	};
+
+	let disabledVariants = {
+		default: 'cursor-default text-primary/50 hover:bg-transparent',
+		primary: 'cursor-default'
+	};
+
+	let disabledClasses = $derived.by(() => {
+		if (!disabled) return '';
+		if (variant) return disabledVariants[variant];
+		return disabledVariants.default;
+	});
 </script>
 
 <button
 	bind:this={component}
 	class={twMerge(
-		`cursor-pointer text-sm ${variant ? variants[variant] : ''} ${className} ${invisible ? 'invisible' : ''} ${disabled ? 'cursor-default' : ''}`
+		`cursor-pointer text-sm ${variant && variants[variant]} ${className} ${invisible && 'invisible'} ${disabledClasses}`
 	)}
 	{disabled}
 	{...restProps}
