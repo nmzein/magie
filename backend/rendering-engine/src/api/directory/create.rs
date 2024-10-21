@@ -1,4 +1,7 @@
-use crate::{api::common::*, Check, Error, Logger};
+use crate::{
+    api::common::*,
+    log::{Check, Error, Logger},
+};
 
 #[derive(Deserialize)]
 pub struct Params {
