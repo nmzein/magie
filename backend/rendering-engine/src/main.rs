@@ -10,14 +10,18 @@ mod types;
 mod tests;
 
 use axum::{
+    body::Body,
     extract::DefaultBodyLimit,
-    http::{header::CONTENT_TYPE, HeaderValue, Method},
+    http::{header::CONTENT_TYPE, HeaderValue, Method, Request, StatusCode, Uri},
+    middleware::{self, Next},
+    response::IntoResponse,
     routing::{delete, get, post},
     Extension, Router,
 };
 use std::{
     env,
     sync::{Arc, Mutex},
+    time::Instant,
 };
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -77,7 +81,10 @@ async fn main() {
 
     let app = Router::new()
         // Directory routes.
-        .route(directory_create_url, post(api::directory::create::create))
+        .route(
+            directory_create_url,
+            post(api::directory::create::create).layer(middleware::from_fn(log_middleware)),
+        )
         // TODO: Reflect this in env file.
         .route(
             &format!("{directory_delete_url}/:id"),
@@ -119,4 +126,86 @@ async fn main() {
 
 fn fetch_env_var(name: &str) -> String {
     env::var(name).expect(&format!("{name} is not set."))
+}
+
+#[derive(Clone, Debug)]
+pub struct RequestInfo {
+    pub method: Method,
+    pub uri: Uri,
+    pub query: String,
+}
+
+async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse {
+    // Extract information from the request
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let query = uri.query().unwrap_or_default().to_string();
+
+    let mut logger = Logger::new();
+
+    logger.log(Log::Started(RequestInfo { method, uri, query }));
+
+    let logger = Arc::new(logger);
+
+    // Pass the request information to the next middleware/handler
+    req.extensions_mut().insert(Arc::clone(&logger));
+
+    // Start the request timer.
+    let start = Instant::now();
+
+    // Call the next middleware/handler.
+    let response = next.run(req).await;
+
+    // Calculate time taken to process the request.
+    let duration = start.elapsed().as_millis();
+
+    logger.print();
+    println!("Request took {}ms to process.", duration);
+
+    response
+}
+
+#[derive(Clone)]
+pub struct Logger {
+    logs: Vec<Log>,
+}
+
+impl Logger {
+    fn new() -> Self {
+        Self { logs: Vec::new() }
+    }
+
+    fn log(&mut self, log: Log) {
+        self.logs.push(log);
+    }
+
+    fn print(&self) {
+        for log in &self.logs {
+            match log {
+                Log::Started(request_info) => {
+                    println!(
+                        "Started {} {} for {:?}",
+                        request_info.method, request_info.uri, request_info.query
+                    );
+                }
+                _ => {} // Log::Message(message) => {
+                        //     println!("{}", message);
+                        // }
+                        // Log::Error(status_code, message) => {
+                        //     eprintln!("[DC/E00]: Cannot create directory under priviledged directories.");
+                        // }
+                        // Log::Completed(status_code) => {
+                        //     println!("[DC/M01]: Successfully retrieved registry from the state database.");
+                        // }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Log {
+    Started(RequestInfo),
+    Message(String),
+    Error(StatusCode, String),
+    Completed(StatusCode),
 }

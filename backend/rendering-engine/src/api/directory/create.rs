@@ -1,4 +1,4 @@
-use crate::api::common::*;
+use crate::{api::common::*, Logger};
 
 #[derive(Deserialize)]
 pub struct Body {
@@ -6,11 +6,13 @@ pub struct Body {
     pub name: String,
 }
 
-pub async fn create(
+pub async fn create<'a>(
+    Extension(logger): Extension<Arc<Logger>>,
     Extension(conn): Extension<AppState>,
     Json(Body { parent_id, name }): Json<Body>,
 ) -> Response {
-    #[cfg(feature = "log.request")]
+    println!("Got here");
+
     log::<()>(
         StatusCode::ACCEPTED,
         &format!("[DC/M00]: Received request to create directory with name `{name}` under parent with id `{parent_id}`."),
@@ -19,7 +21,7 @@ pub async fn create(
 
     if PRIVILEDGED.contains(&parent_id) {
         return log::<()>(
-            StatusCode::BAD_REQUEST,
+            StatusCode::FORBIDDEN,
             &format!("[DC/E00]: Cannot create directory under priviledged directories."),
             None,
         );
