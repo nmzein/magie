@@ -31,12 +31,14 @@ turbojpeg = { workspace = true }
 [features]
 default = [
     # "time",
-    "log.success",
-    "log.request",
+    "log.console",
+    # "log.success",
+    # "log.request",
     # "log.database",
 ]
 
 time = []
+"log.console" = []
 "log.success" = []
 "log.request" = []
 "log.database" = []

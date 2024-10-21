@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use crate::{api::common::*, Logger};
 
 #[derive(Deserialize)]
@@ -9,19 +7,22 @@ pub struct Params {
 }
 
 pub async fn create(
-    Extension(logger): Extension<Arc<Logger>>,
+    Extension(mut logger): Extension<Logger>,
     Extension(conn): Extension<AppState>,
     Query(Params { name, parent }): Query<Params>,
 ) -> Response {
     if PRIVILEDGED.contains(&parent) {
-        return log::<()>(
-            StatusCode::FORBIDDEN,
-            &format!("[DC/E00]: Cannot create directory under priviledged directories."),
-            None,
-        );
+        let code = StatusCode::FORBIDDEN;
+        let msg = "[DC/E00]: Cannot create directory under priviledged directories.";
+
+        logger.error(code, msg, None);
+        return (code, msg).into_response();
     }
 
-    let start = Instant::now();
+    logger.log(
+        "Parent Directory Check",
+        Some("Parent directory is not a priviledged directory."),
+    );
 
     // Check if a directory with the same name already exists under the parent directory.
     let path = match crate::db::directory::exists(parent, &name, Arc::clone(&conn)) {
@@ -44,7 +45,10 @@ pub async fn create(
         }
     };
 
-    // logger.message("Conflict Check", start.elapsed().as_millis(), "");
+    logger.log(
+        "Name Conflict Check",
+        Some("Directory with the same name does not exist."),
+    );
 
     // Create the directory in the filesystem.
     let _ = crate::io::create(&path).await.map_err(|e| async {
@@ -57,6 +61,8 @@ pub async fn create(
         );
     });
 
+    logger.log("Filesystem Directory Created", None);
+
     // Insert the directory into the database.
     let _ = crate::db::directory::insert(parent, &name, Arc::clone(&conn)).map_err(|e|  {
         return log(
@@ -68,14 +74,11 @@ pub async fn create(
         );
     });
 
+    logger.log("Database Directory Created", None);
+
     match crate::db::general::get_registry(Arc::clone(&conn)) {
         Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "[DC/M01]: Successfully retrieved registry from the state database.",
-                None,
-            );
+            logger.success(StatusCode::CREATED, "Created Directory", "");
 
             Json(registry).into_response()
         }

@@ -12,7 +12,7 @@ mod tests;
 use axum::{
     body::Body,
     extract::DefaultBodyLimit,
-    http::{header::CONTENT_TYPE, HeaderValue, Method, Request, StatusCode, Uri},
+    http::{header::CONTENT_TYPE, HeaderValue, Method, Request, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -21,7 +21,7 @@ use axum::{
 use std::{
     env,
     sync::{Arc, Mutex},
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
@@ -128,13 +128,6 @@ fn fetch_env_var(name: &str) -> String {
     env::var(name).expect(&format!("{name} is not set."))
 }
 
-#[derive(Clone, Debug)]
-pub struct RequestInfo {
-    pub method: Method,
-    pub path: String,
-    pub query: Vec<(String, String)>,
-}
-
 async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse {
     // Extract information from the request
     let method = req.method().clone();
@@ -153,32 +146,13 @@ async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse
         })
         .collect();
 
-    let mut logger = Logger::new();
-
-    logger.log(Log::Started(RequestInfo {
-        method,
-        path,
-        query,
-    }));
-
-    let logger = Arc::new(logger);
+    let logger = Logger::start(method, path, query);
 
     // Pass the request information to the next middleware/handler
-    req.extensions_mut().insert(Arc::clone(&logger));
-
-    // Start the request timer.
-    let start = Instant::now();
+    req.extensions_mut().insert(logger);
 
     // Call the next middleware/handler.
     let response = next.run(req).await;
-
-    // Calculate time taken to process the request.
-    let duration = start.elapsed().as_millis();
-
-    let mut logger = logger.as_ref().clone();
-
-    logger.log(Log::Completed(response.status(), duration));
-    logger.print();
 
     response
 }
@@ -186,55 +160,88 @@ async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse
 #[derive(Clone)]
 pub struct Logger {
     logs: Vec<Log>,
+    start: Instant,
+    lap: Instant,
+}
+
+#[derive(Clone)]
+pub enum Log {
+    Started(Method, String, Vec<(String, String)>),
+    Message(String, String, Duration),
+    Error(String, String),
+    Completed(StatusCode),
 }
 
 impl Logger {
-    fn new() -> Self {
-        Self { logs: Vec::new() }
+    fn start(method: Method, path: String, query: Vec<(String, String)>) -> Self {
+        Self {
+            logs: vec![Log::Started(method, path, query)],
+            start: Instant::now(),
+            lap: Instant::now(),
+        }
     }
 
-    fn log(&mut self, log: Log) {
-        self.logs.push(log);
-    }
-
-    fn message(&mut self, title: &str, duration: u128, message: &str) {
+    fn log(&mut self, title: &str, message: Option<&str>) {
         self.logs.push(Log::Message(
             title.to_string(),
-            duration,
-            message.to_string(),
+            message.unwrap_or_default().to_string(),
+            self.lap.elapsed(),
         ));
+        self.lap = Instant::now();
     }
 
-    fn print(&self) {
+    fn success(&mut self, status_code: StatusCode, title: &str, message: &str) {
+        self.logs.push(Log::Message(
+            title.to_string(),
+            message.to_string(),
+            self.lap.elapsed(),
+        ));
+        self.end(status_code);
+    }
+
+    fn error(&mut self, status_code: StatusCode, message: &str, details: Option<&str>) {
+        self.logs.push(Log::Error(
+            message.to_string(),
+            details.unwrap_or_default().to_string(),
+        ));
+        self.end(status_code);
+    }
+
+    fn end(&mut self, status_code: StatusCode) {
+        let duration = self.start.elapsed();
+        self.logs.push(Log::Completed(status_code));
+
         for log in &self.logs {
             match log {
-                Log::Started(request_info) => {
-                    println!("Started {} {}", request_info.method, request_info.path);
+                Log::Started(method, path, query) => {
+                    #[cfg(feature = "log.console")]
+                    println!("\nStarted {} {}", method, path);
 
                     // Format request_info.query so that it is in the form {key: value}, {key: value}, ...
-                    let query = request_info
-                        .query
+                    let query = query
                         .iter()
                         .map(|(key, value)| format!("{key}: {value}"))
                         .collect::<Vec<String>>()
                         .join(", ");
 
+                    #[cfg(feature = "log.console")]
                     println!("  Params: {{{query}}}");
                 }
-                Log::Message(title, duration, message) => {
-                    println!("  {title} ({duration}ms)  {message}");
+                Log::Message(title, message, msg_duration) => {
+                    #[cfg(feature = "log.console")]
+                    println!("  {title} ({msg_duration:?})  {message}");
                 }
-                Log::Completed(status_code, duration) => {
-                    println!("Completed {} in {}ms", status_code, duration);
+                Log::Error(message, details) => {
+                    #[cfg(feature = "log.console")]
+                    println!("  Error: {message}");
+                    #[cfg(feature = "log.console")]
+                    println!("         {details}");
+                }
+                Log::Completed(status_code) => {
+                    #[cfg(feature = "log.console")]
+                    println!("Completed {status_code} in {duration:?}");
                 }
             }
         }
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum Log {
-    Started(RequestInfo),
-    Message(String, u128, String),
-    Completed(StatusCode, u128),
 }

@@ -99,8 +99,6 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
         collapse_stack(&mut registry);
     }
 
-    println!("{:#?}", registry[0]);
-
     Ok(registry[0].clone())
 }
 
