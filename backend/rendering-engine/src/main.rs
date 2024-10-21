@@ -15,7 +15,7 @@ use axum::{
     http::{header::CONTENT_TYPE, HeaderValue, Method, Request, StatusCode, Uri},
     middleware::{self, Next},
     response::IntoResponse,
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Extension, Router,
 };
 use std::{
@@ -83,7 +83,7 @@ async fn main() {
         // Directory routes.
         .route(
             directory_create_url,
-            post(api::directory::create::create).layer(middleware::from_fn(log_middleware)),
+            put(api::directory::create::create).layer(middleware::from_fn(log_middleware)),
         )
         // TODO: Reflect this in env file.
         .route(
@@ -131,19 +131,35 @@ fn fetch_env_var(name: &str) -> String {
 #[derive(Clone, Debug)]
 pub struct RequestInfo {
     pub method: Method,
-    pub uri: Uri,
-    pub query: String,
+    pub path: String,
+    pub query: Vec<(String, String)>,
 }
 
 async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse {
     // Extract information from the request
     let method = req.method().clone();
     let uri = req.uri().clone();
-    let query = uri.query().unwrap_or_default().to_string();
+    let path: String = uri.path().to_string();
+    let query: Vec<(String, String)> = uri
+        .query()
+        .unwrap_or_default()
+        .split('&') // Split by '&' to get individual key-value pairs
+        .filter_map(|pair| {
+            // Split each pair by '=' and collect them into (key, value)
+            let mut parts = pair.splitn(2, '=');
+            let key = parts.next()?.to_string(); // The key part
+            let value = parts.next().unwrap_or_default().to_string(); // The value part (default to empty if missing)
+            Some((key, value))
+        })
+        .collect();
 
     let mut logger = Logger::new();
 
-    logger.log(Log::Started(RequestInfo { method, uri, query }));
+    logger.log(Log::Started(RequestInfo {
+        method,
+        path,
+        query,
+    }));
 
     let logger = Arc::new(logger);
 
@@ -159,8 +175,10 @@ async fn log_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse
     // Calculate time taken to process the request.
     let duration = start.elapsed().as_millis();
 
+    let mut logger = logger.as_ref().clone();
+
+    logger.log(Log::Completed(response.status(), duration));
     logger.print();
-    println!("Request took {}ms to process.", duration);
 
     response
 }
@@ -179,24 +197,36 @@ impl Logger {
         self.logs.push(log);
     }
 
+    fn message(&mut self, title: &str, duration: u128, message: &str) {
+        self.logs.push(Log::Message(
+            title.to_string(),
+            duration,
+            message.to_string(),
+        ));
+    }
+
     fn print(&self) {
         for log in &self.logs {
             match log {
                 Log::Started(request_info) => {
-                    println!(
-                        "Started {} {} for {:?}",
-                        request_info.method, request_info.uri, request_info.query
-                    );
+                    println!("Started {} {}", request_info.method, request_info.path);
+
+                    // Format request_info.query so that it is in the form {key: value}, {key: value}, ...
+                    let query = request_info
+                        .query
+                        .iter()
+                        .map(|(key, value)| format!("{key}: {value}"))
+                        .collect::<Vec<String>>()
+                        .join(", ");
+
+                    println!("  Params: {{{query}}}");
                 }
-                _ => {} // Log::Message(message) => {
-                        //     println!("{}", message);
-                        // }
-                        // Log::Error(status_code, message) => {
-                        //     eprintln!("[DC/E00]: Cannot create directory under priviledged directories.");
-                        // }
-                        // Log::Completed(status_code) => {
-                        //     println!("[DC/M01]: Successfully retrieved registry from the state database.");
-                        // }
+                Log::Message(title, duration, message) => {
+                    println!("  {title} ({duration}ms)  {message}");
+                }
+                Log::Completed(status_code, duration) => {
+                    println!("Completed {} in {}ms", status_code, duration);
+                }
             }
         }
     }
@@ -205,7 +235,6 @@ impl Logger {
 #[derive(Clone, Debug)]
 pub enum Log {
     Started(RequestInfo),
-    Message(String),
-    Error(StatusCode, String),
-    Completed(StatusCode),
+    Message(String, u128, String),
+    Completed(StatusCode, u128),
 }

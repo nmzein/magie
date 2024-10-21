@@ -1,25 +1,19 @@
+use std::time::Instant;
+
 use crate::{api::common::*, Logger};
 
 #[derive(Deserialize)]
-pub struct Body {
-    pub parent_id: u32,
+pub struct Params {
     pub name: String,
+    pub parent: u32,
 }
 
-pub async fn create<'a>(
+pub async fn create(
     Extension(logger): Extension<Arc<Logger>>,
     Extension(conn): Extension<AppState>,
-    Json(Body { parent_id, name }): Json<Body>,
+    Query(Params { name, parent }): Query<Params>,
 ) -> Response {
-    println!("Got here");
-
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[DC/M00]: Received request to create directory with name `{name}` under parent with id `{parent_id}`."),
-        None,
-    );
-
-    if PRIVILEDGED.contains(&parent_id) {
+    if PRIVILEDGED.contains(&parent) {
         return log::<()>(
             StatusCode::FORBIDDEN,
             &format!("[DC/E00]: Cannot create directory under priviledged directories."),
@@ -27,14 +21,16 @@ pub async fn create<'a>(
         );
     }
 
+    let start = Instant::now();
+
     // Check if a directory with the same name already exists under the parent directory.
-    let path = match crate::db::directory::exists(parent_id, &name, Arc::clone(&conn)) {
+    let path = match crate::db::directory::exists(parent, &name, Arc::clone(&conn)) {
         Ok(Some(path)) => path,
         Ok(None) => {
             return log::<()>(
                 StatusCode::CONFLICT,
                 &format!(
-                    "[DC/E01]: Directory with name `{name}` already exists under parent with id `{parent_id}`."
+                    "[DC/E01]: Directory with name `{name}` already exists under parent with id `{parent}`."
                 ),
                 None,
             );
@@ -42,29 +38,31 @@ pub async fn create<'a>(
         Err(e) => {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[DC/E02]: Failed to check if directory with name `{name}` exists under parent with id `{parent_id}`."),
+                &format!("[DC/E02]: Failed to check if directory with name `{name}` exists under parent with id `{parent}`."),
                 Some(e),
             );
         }
     };
+
+    // logger.message("Conflict Check", start.elapsed().as_millis(), "");
 
     // Create the directory in the filesystem.
     let _ = crate::io::create(&path).await.map_err(|e| async {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "[DC/E03]: Failed to create directory with name `{name}` under parent with id `{parent_id}`."
+                "[DC/E03]: Failed to create directory with name `{name}` under parent with id `{parent}`."
             ),
             Some(e),
         );
     });
 
     // Insert the directory into the database.
-    let _ = crate::db::directory::insert(parent_id, &name, Arc::clone(&conn)).map_err(|e|  {
+    let _ = crate::db::directory::insert(parent, &name, Arc::clone(&conn)).map_err(|e|  {
         return log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!(
-                "[DC/E04]: Failed to insert directory with name `{name}` under parent with id `{parent_id}` into the database."
+                "[DC/E04]: Failed to insert directory with name `{name}` under parent with id `{parent}` into the database."
             ),
             Some(e),
         );

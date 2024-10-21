@@ -70,8 +70,8 @@ export const http = (() => {
 		return image;
 	}
 
-	async function CreateDirectory(parent_id: number, name: string) {
-		const registry: Directory | undefined = await POST(DIRECTORY_CREATE_URL, { parent_id, name });
+	async function CreateDirectory(parent: number, name: string) {
+		const registry: Directory | undefined = await PUT(DIRECTORY_CREATE_URL, [], { name, parent });
 
 		if (registry === undefined) return;
 
@@ -164,6 +164,31 @@ export const http = (() => {
 			}
 		} catch (error) {
 			console.error(`Fetch Error [${url.pathname}]:`, error);
+		}
+	}
+
+	async function PUT<Resp = any>(
+		_url: URL,
+		paths?: (string | number)[],
+		params?: Record<string, any>
+	): Promise<Resp | undefined> {
+		const url = constructUrl(_url, paths, params);
+
+		try {
+			const response = await fetch(url, { method: 'PUT' });
+
+			if (response.ok) {
+				try {
+					const data: Resp = await response.json();
+					return data;
+				} catch (error) {
+					console.error(`Parse Error [${url}]:`, error);
+				}
+			} else {
+				console.error(`Response Error [${url}]:`, response.status, response.statusText);
+			}
+		} catch (error) {
+			console.error(`Fetch Error [${url}]:`, error);
 		}
 	}
 
@@ -274,10 +299,10 @@ export function ConnectWebSocket() {
 	websocket = new WebSocketState();
 }
 
-function constructUrl(_url: URL, paths?: (string | number)[], params?: Record<string, any>) {
+function constructUrl(_url: URL, paths: (string | number)[] = [], params?: Record<string, any>) {
 	let url = new URL(_url);
 
-	if (defined(paths)) {
+	if (paths.length > 0) {
 		const fullPath = paths.join('/');
 
 		// Create a new URL object using the base URL and the full path
