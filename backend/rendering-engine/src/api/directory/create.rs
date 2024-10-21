@@ -1,4 +1,4 @@
-use crate::{api::common::*, Logger};
+use crate::{api::common::*, Check, Error, Logger};
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -12,80 +12,90 @@ pub async fn create(
     Query(Params { name, parent }): Query<Params>,
 ) -> Response {
     if PRIVILEDGED.contains(&parent) {
-        let code = StatusCode::FORBIDDEN;
-        let msg = "[DC/E00]: Cannot create directory under priviledged directories.";
-
-        logger.error(code, msg, None);
-        return (code, msg).into_response();
+        return logger.error(
+            StatusCode::FORBIDDEN,
+            Error::RequestIntegrityError,
+            "DC-E00",
+            "Cannot create directory under priviledged directories.",
+            None,
+        );
+    } else {
+        logger.report(
+            Check::RequestIntegrityCheck,
+            "Specified parent directory is not a priviledged directory.",
+        );
     }
-
-    logger.log(
-        "Parent Directory Check",
-        Some("Parent directory is not a priviledged directory."),
-    );
 
     // Check if a directory with the same name already exists under the parent directory.
     let path = match crate::db::directory::exists(parent, &name, Arc::clone(&conn)) {
-        Ok(Some(path)) => path,
+        Ok(Some(path)) => {
+            logger.report(
+                Check::ResourceConflictCheck,
+                "Directory name is unique under parent.",
+            );
+
+            path
+        }
         Ok(None) => {
-            return log::<()>(
+            return logger.error(
                 StatusCode::CONFLICT,
-                &format!(
-                    "[DC/E01]: Directory with name `{name}` already exists under parent with id `{parent}`."
-                ),
+                Error::ResourceConflictError,
+                "DC-E01",
+                "Directory with the same name exists.",
                 None,
             );
         }
         Err(e) => {
-            return log(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[DC/E02]: Failed to check if directory with name `{name}` exists under parent with id `{parent}`."),
-                Some(e),
+                Error::DatabaseQueryError,
+                "DC-E02",
+                "Failed to check if directory with name exists under parent.",
+                Some(e.to_string()),
             );
         }
     };
 
-    logger.log(
-        "Name Conflict Check",
-        Some("Directory with the same name does not exist."),
-    );
-
     // Create the directory in the filesystem.
-    let _ = crate::io::create(&path).await.map_err(|e| async {
-        return log(
+    let _ = crate::io::create(&path).await.map_err(|e| {
+        return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "[DC/E03]: Failed to create directory with name `{name}` under parent with id `{parent}`."
-            ),
-            Some(e),
+            Error::DirectoryCreationError,
+            "DC-E03",
+            "Failed to create directory.",
+            Some(e.to_string()),
         );
     });
 
-    logger.log("Filesystem Directory Created", None);
+    logger.log("Directory created in the filesystem.");
 
     // Insert the directory into the database.
-    let _ = crate::db::directory::insert(parent, &name, Arc::clone(&conn)).map_err(|e|  {
-        return log(
+    let _ = crate::db::directory::insert(parent, &name, Arc::clone(&conn)).map_err(|e| {
+        return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!(
-                "[DC/E04]: Failed to insert directory with name `{name}` under parent with id `{parent}` into the database."
-            ),
-            Some(e),
+            Error::DatabaseInsertionError,
+            "DC-E04",
+            "Failed to insert directory into the database.",
+            Some(e.to_string()),
         );
     });
 
-    logger.log("Database Directory Created", None);
+    logger.log("Directory inserted into the database.");
 
     match crate::db::general::get_registry(Arc::clone(&conn)) {
         Ok(registry) => {
-            logger.success(StatusCode::CREATED, "Created Directory", "");
+            logger.success(StatusCode::CREATED, "Directory created successfully.");
 
-            Json(registry).into_response()
+            return Json(registry).into_response();
         }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "[DC/E05]: Failed to retrieve registry from the state database.",
-            Some(e),
-        ),
+        Err(e) => {
+            return logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseQueryError,
+                "DC-E05",
+                "Failed to retrieve registry from the database.",
+                Some(e.to_string()),
+            )
+        }
     }
 }
