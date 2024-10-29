@@ -84,7 +84,6 @@ pub struct TileRequest {
 
 #[derive(TryFromMultipart)]
 pub struct UploadAssetRequest {
-    pub parent_directory_id: u32,
     #[form_data(limit = "unlimited")]
     pub image_file: FieldData<NamedTempFile>,
     #[form_data(limit = "unlimited")]

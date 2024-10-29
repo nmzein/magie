@@ -14,7 +14,7 @@ use axum::{
     extract::DefaultBodyLimit,
     http::{header::CONTENT_TYPE, HeaderValue, Method},
     middleware::{self},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post},
     Extension, Router,
 };
 use log::logging_middleware;
@@ -34,31 +34,14 @@ async fn main() {
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
-    let database_path = &fetch_env_var("DATABASE_PATH");
-    let database_url = &fetch_env_var("DATABASE_URL");
+    // TODO: Store in a STORES db.
+    let database_path = "./state/db.sqlite";
+    let database_url = "sqlite://../state/db.sqlite";
+
     let domain = &fetch_env_var("PUBLIC_DOMAIN");
     let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
     let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
-
-    // Directory routes.
-    let directory_create_url = &fetch_env_var("PUBLIC_DIRECTORY_CREATE_SUBDIR");
-    let directory_delete_url = &fetch_env_var("PUBLIC_DIRECTORY_DELETE_SUBDIR");
-    let directory_rename_url = &fetch_env_var("PUBLIC_DIRECTORY_RENAME_SUBDIR");
-    let directory_move_url = &fetch_env_var("PUBLIC_DIRECTORY_MOVE_SUBDIR");
-
-    // Image routes.
-    let image_upload_url = &fetch_env_var("PUBLIC_IMAGE_UPLOAD_SUBDIR");
-    let image_delete_url = &fetch_env_var("PUBLIC_IMAGE_DELETE_SUBDIR");
-    let image_move_url = &fetch_env_var("PUBLIC_IMAGE_MOVE_SUBDIR");
-    let image_properties_url = &fetch_env_var("PUBLIC_IMAGE_PROPERTIES_SUBDIR");
-    let image_thumbnail_url = &fetch_env_var("PUBLIC_IMAGE_THUMBNAIL_SUBDIR");
-    let image_annotation_url = &fetch_env_var("PUBLIC_IMAGE_ANNOTATIONS_SUBDIR");
-    let image_tiles_url = &fetch_env_var("PUBLIC_IMAGE_TILES_SUBDIR");
-
-    // General routes.
-    let registry_url = &fetch_env_var("PUBLIC_REGISTRY_SUBDIR");
-    let generators_url = &fetch_env_var("PUBLIC_GENERATORS_SUBDIR");
 
     let conn = db::general::connect(database_path, database_url)
         .expect("Could not establish a connection to the state database.");
@@ -75,46 +58,38 @@ async fn main() {
                 .parse::<HeaderValue>()
                 .expect("Could not parse frontend url."),
         )
-        .allow_methods([Method::GET, Method::POST, Method::DELETE])
+        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PATCH])
         .allow_headers([CONTENT_TYPE]);
 
-    let app = Router::new()
-        // Directory routes.
+    let directory_routes = Router::new()
+        .route("/:parent_id/:name", post(api::directory::create::create))
+        .route("/:id", delete(api::directory::delete::delete))
+        // TODO: Make this endpoint accept rename too
+        .route("/:id", patch(api::directory::r#move::r#move));
+
+    let image_routes = Router::new()
+        .route("/:parent_id/:name", post(api::image::upload::upload))
+        .route("/:id", delete(api::image::delete::delete))
+        // TODO: Make this endpoint accept rename too
+        .route("/:id", patch(api::image::r#move::r#move))
+        .route("/:id/properties", get(api::image::properties::properties))
+        .route("/:id/thumbnail", get(api::image::thumbnail::thumbnail))
         .route(
-            directory_create_url,
-            put(api::directory::create::create).layer(middleware::from_fn(logging_middleware)),
-        )
-        // TODO: Reflect this in env file.
-        .route(
-            &format!("{directory_delete_url}/:id"),
-            delete(api::directory::delete::delete),
-        )
-        .route(directory_rename_url, post(api::directory::rename::rename))
-        .route(directory_move_url, post(api::directory::r#move::r#move))
-        // Image routes.
-        .route(image_upload_url, post(api::image::upload::upload))
-        .route(
-            &format!("{image_delete_url}/:id"),
-            delete(api::image::delete::delete),
-        )
-        .route(image_move_url, post(api::image::r#move::r#move))
-        .route(
-            &format!("{image_properties_url}/:id"),
-            get(api::image::properties::properties),
-        )
-        .route(
-            &format!("{image_thumbnail_url}/:id"),
-            get(api::image::thumbnail::thumbnail),
-        )
-        .route(
-            image_annotation_url,
+            "/:image_id/annotations/:annotation_layer_id",
             get(api::image::annotations::annotations),
-        )
-        .route(image_tiles_url, get(api::image::tiles::websocket))
-        // General routes.
-        .route(registry_url, get(api::registry::registry))
-        .route(generators_url, get(api::generators::generators))
+        );
+
+    let api_routes = Router::new()
+        .nest("/directory", directory_routes)
+        .nest("/image", image_routes)
+        .route("/registry", get(api::registry::registry))
+        .route("/generators", get(api::generators::generators))
+        .route("/websocket", get(api::image::tiles::websocket));
+
+    let app = Router::new()
+        .nest("/api", api_routes)
         .layer(cors)
+        .layer(middleware::from_fn(logging_middleware))
         .layer(DefaultBodyLimit::disable())
         .layer(Extension(Arc::new(Mutex::new(conn))));
 

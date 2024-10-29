@@ -1,20 +1,17 @@
-use crate::{
-    api::common::*,
-    log::{Check, Error, Logger},
-};
+use crate::api::common::*;
 
 #[derive(Deserialize)]
 pub struct Params {
+    pub parent_id: u32,
     pub name: String,
-    pub parent: u32,
 }
 
-pub async fn create(
-    Extension(mut logger): Extension<Logger>,
+pub async fn create<'a>(
+    Extension(mut logger): Extension<Logger<'a>>,
     Extension(conn): Extension<AppState>,
-    Query(Params { name, parent }): Query<Params>,
+    Path(Params { parent_id, name }): Path<Params>,
 ) -> Response {
-    if PRIVILEDGED.contains(&parent) {
+    if PRIVILEDGED.contains(&parent_id) {
         return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrityError,
@@ -22,15 +19,15 @@ pub async fn create(
             "Cannot create directory under priviledged directories.",
             None,
         );
-    } else {
-        logger.report(
-            Check::RequestIntegrityCheck,
-            "Specified parent directory is not a priviledged directory.",
-        );
     }
 
+    logger.report(
+        Check::RequestIntegrityCheck,
+        "Specified parent directory is not a priviledged directory.",
+    );
+
     // Check if a directory with the same name already exists under the parent directory.
-    let path = match crate::db::directory::exists(parent, &name, Arc::clone(&conn)) {
+    let path = match crate::db::directory::exists(parent_id, &name, Arc::clone(&conn)) {
         Ok(Some(path)) => {
             logger.report(
                 Check::ResourceConflictCheck,
@@ -54,7 +51,7 @@ pub async fn create(
                 Error::DatabaseQueryError,
                 "DC-E02",
                 "Failed to check if directory with name exists under parent.",
-                Some(e.to_string()),
+                Some(e),
             );
         }
     };
@@ -63,23 +60,23 @@ pub async fn create(
     let _ = crate::io::create(&path).await.map_err(|e| {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Error::DirectoryCreationError,
+            Error::ResourceCreationError,
             "DC-E03",
             "Failed to create directory.",
-            Some(e.to_string()),
+            Some(e),
         );
     });
 
     logger.log("Directory created in the filesystem.");
 
     // Insert the directory into the database.
-    let _ = crate::db::directory::insert(parent, &name, Arc::clone(&conn)).map_err(|e| {
+    let _ = crate::db::directory::insert(parent_id, &name, Arc::clone(&conn)).map_err(|e| {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseInsertionError,
             "DC-E04",
             "Failed to insert directory into the database.",
-            Some(e.to_string()),
+            Some(e),
         );
     });
 
@@ -97,7 +94,7 @@ pub async fn create(
                 Error::DatabaseQueryError,
                 "DC-E05",
                 "Failed to retrieve registry from the database.",
-                Some(e.to_string()),
+                Some(e),
             )
         }
     }

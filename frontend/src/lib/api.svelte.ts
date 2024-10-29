@@ -2,66 +2,34 @@ import {
 	PUBLIC_HTTP_SCHEME,
 	PUBLIC_WS_SCHEME,
 	PUBLIC_DOMAIN,
-	PUBLIC_BACKEND_PORT,
-	// Directory routes.
-	PUBLIC_DIRECTORY_CREATE_SUBDIR,
-	PUBLIC_DIRECTORY_DELETE_SUBDIR,
-	PUBLIC_DIRECTORY_RENAME_SUBDIR,
-	PUBLIC_DIRECTORY_MOVE_SUBDIR,
-	// Image routes.
-	PUBLIC_IMAGE_UPLOAD_SUBDIR,
-	PUBLIC_IMAGE_DELETE_SUBDIR,
-	PUBLIC_IMAGE_MOVE_SUBDIR,
-	PUBLIC_IMAGE_PROPERTIES_SUBDIR,
-	PUBLIC_IMAGE_THUMBNAIL_SUBDIR,
-	PUBLIC_IMAGE_ANNOTATIONS_SUBDIR,
-	PUBLIC_IMAGE_TILES_SUBDIR,
-	// General routes.
-	PUBLIC_REGISTRY_SUBDIR,
-	PUBLIC_GENERATORS_SUBDIR
+	PUBLIC_BACKEND_PORT
 } from '$env/static/public';
 import { image, repository } from '$states';
 import type { Properties, Directory, WebSocketRequest } from '$types';
 import { defined } from '$helpers';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
-const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL;
-const WS_URL = PUBLIC_WS_SCHEME + BASE_URL;
-
-// Directory routes.
-const DIRECTORY_CREATE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_CREATE_SUBDIR);
-const DIRECTORY_DELETE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_DELETE_SUBDIR);
-const DIRECTORY_RENAME_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_RENAME_SUBDIR);
-const DIRECTORY_MOVE_URL = new URL(HTTP_URL + PUBLIC_DIRECTORY_MOVE_SUBDIR);
-
-// Image routes.
-const IMAGE_UPLOAD_URL = new URL(HTTP_URL + PUBLIC_IMAGE_UPLOAD_SUBDIR);
-const IMAGE_DELETE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_DELETE_SUBDIR);
-const IMAGE_MOVE_URL = new URL(HTTP_URL + PUBLIC_IMAGE_MOVE_SUBDIR);
-const IMAGE_PROPERTIES_URL = new URL(HTTP_URL + PUBLIC_IMAGE_PROPERTIES_SUBDIR);
-const IMAGE_THUMBNAIL_URL = new URL(HTTP_URL + PUBLIC_IMAGE_THUMBNAIL_SUBDIR);
-export const IMAGE_ANNOTATIONS_URL = new URL(HTTP_URL + PUBLIC_IMAGE_ANNOTATIONS_SUBDIR);
-const WEBSOCKET_URL = new URL(WS_URL + PUBLIC_IMAGE_TILES_SUBDIR);
-
-// General routes.
-const REGISTRY_URL = new URL(HTTP_URL + PUBLIC_REGISTRY_SUBDIR);
-const GENERATORS_URL = new URL(HTTP_URL + PUBLIC_GENERATORS_SUBDIR);
+const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
+const WS_URL = PUBLIC_WS_SCHEME + BASE_URL + '/api';
+const DIRECTORY_URL = new URL(HTTP_URL + '/directory');
+export const IMAGE_URL = new URL(HTTP_URL + '/image');
+const WEBSOCKET_URL = new URL(WS_URL + '/websocket');
 
 export const http = (() => {
 	async function GetGenerators(): Promise<string[] | undefined> {
-		return await GET(GENERATORS_URL);
+		return await GET(`${HTTP_URL}/generators`);
 	}
 
 	async function GetRegistry(): Promise<Directory | undefined> {
-		return await GET(REGISTRY_URL);
+		return await GET(`${HTTP_URL}/registry`);
 	}
 
 	async function GetProperties(image_id: number): Promise<Properties | undefined> {
-		return await GET(IMAGE_PROPERTIES_URL, [image_id]);
+		return await GET(`${IMAGE_URL}/${image_id}/properties`);
 	}
 
 	async function GetThumbnail(image_id: number): Promise<HTMLImageElement | undefined> {
-		const blob: Blob | undefined = await GET(IMAGE_THUMBNAIL_URL, [image_id]);
+		const blob: Blob | undefined = await GET(`${IMAGE_URL}/${image_id}/thumbnail`);
 
 		if (blob === undefined) return;
 
@@ -70,44 +38,42 @@ export const http = (() => {
 		return image;
 	}
 
-	async function CreateDirectory(parent: number, name: string) {
-		const registry: Directory | undefined = await PUT(DIRECTORY_CREATE_URL, [], { name, parent });
+	async function CreateDirectory(parent_id: number, name: string) {
+		// Using POST here because even though this is idempotent,
+		// the client does not specify the created directory's id.
+		const registry: Directory | undefined = await POST(`${DIRECTORY_URL}/${parent_id}/${name}`);
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function DeleteDirectory(directory_id: number, mode: 'soft' | 'hard') {
-		const registry: Directory | undefined = await DELETE(DIRECTORY_DELETE_URL, [directory_id], {
-			mode
-		});
+	async function DeleteDirectory(id: number, mode: 'soft' | 'hard') {
+		const registry: Directory | undefined = await DELETE(`${DIRECTORY_URL}/${id}?mode=${mode}`);
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function DeleteImage(image_id: number, mode: 'soft' | 'hard') {
-		const registry: Directory | undefined = await DELETE(IMAGE_DELETE_URL, [image_id], {
-			mode
-		});
+	async function DeleteImage(id: number, mode: 'soft' | 'hard') {
+		const registry: Directory | undefined = await DELETE(`${IMAGE_URL}/${id}?mode=${mode}`);
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function MoveDirectory(target_id: number, dest_id: number) {
-		const registry: Directory | undefined = await POST(DIRECTORY_MOVE_URL, { target_id, dest_id });
+	async function MoveDirectory(id: number, parent_id: number) {
+		const registry: Directory | undefined = await PATCH(`${DIRECTORY_URL}/${id}`, { parent_id });
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function MoveImage(target_id: number, dest_id: number) {
-		const registry: Directory | undefined = await POST(IMAGE_MOVE_URL, { target_id, dest_id });
+	async function MoveImage(id: number, parent_id: number) {
+		const registry: Directory | undefined = await PATCH(`${IMAGE_URL}/${id}`, { parent_id });
 
 		if (registry === undefined) return;
 
@@ -115,36 +81,84 @@ export const http = (() => {
 	}
 
 	async function SendUploadAssets(
-		parent_directory_id: number,
+		parent_id: number,
 		image_file: File,
 		annotations_file: File | undefined,
 		generator: string
 	) {
+		// TODO
+		let name = '';
 		const formData = new FormData();
 
-		formData.append('parent_directory_id', parent_directory_id.toString());
 		formData.append('image_file', image_file);
 		if (annotations_file !== undefined) {
 			formData.append('annotations_file', annotations_file);
 		}
 		formData.append('generator_name', generator);
 
-		const registry: Directory | undefined = await POST(IMAGE_UPLOAD_URL, formData, 'multipart');
+		const registry: Directory | undefined = await POST(
+			`${IMAGE_URL}/${parent_id}/${name}`,
+			formData,
+			'multipart'
+		);
 
 		if (registry === undefined) return;
 
 		repository.registry = registry;
 	}
 
-	async function GET<Resp = any>(
-		_url: URL,
-		paths?: (string | number)[],
-		params?: Record<string, any>
+	async function GET<Resp = any>(_url: string): Promise<Resp | undefined> {
+		return await FETCH('GET', _url);
+	}
+
+	async function DELETE<Resp = any>(_url: string): Promise<Resp | undefined> {
+		return await FETCH('DELETE', _url);
+	}
+
+	async function PATCH<Resp = any>(
+		_url: string,
+		body?: Record<string, any>,
+		content_type: ContentType = 'application/json'
 	): Promise<Resp | undefined> {
-		const url = constructUrl(_url, paths, params);
+		return await FETCH('PATCH', _url, body, content_type);
+	}
+
+	async function POST<Resp = any>(
+		_url: string,
+		body?: Record<string, any> | FormData,
+		content_type: ContentType = 'application/json'
+	): Promise<Resp | undefined> {
+		return await FETCH('POST', _url, body, content_type);
+	}
+
+	type ContentType = 'application/json' | 'multipart';
+
+	async function FETCH<Resp = any>(
+		method: string,
+		_url: string,
+		_body?: Record<string, any> | FormData,
+		content_type?: ContentType
+	): Promise<Resp | undefined> {
+		const url = new URL(_url);
 
 		try {
-			const response = await fetch(url, { method: 'GET' });
+			let body: string | FormData | undefined;
+			let headers: Record<string, string> | undefined;
+
+			if (_body) {
+				switch (content_type) {
+					case 'application/json':
+						body = JSON.stringify(_body);
+						headers = { 'Content-Type': content_type };
+						break;
+					case 'multipart':
+						body = _body as FormData;
+						headers = { 'Content-Type': content_type };
+						break;
+				}
+			}
+
+			const response = await fetch(url, { method, headers, body });
 
 			if (response.ok) {
 				try {
@@ -155,107 +169,21 @@ export const http = (() => {
 					} else if (response.headers.get('Content-Type')?.includes('json')) {
 						const data: Resp = await response.json();
 						return data;
+					} else {
+						return undefined;
 					}
 				} catch (error) {
-					console.error(`Parse Error [${url.pathname}]:`, error);
-				}
-			} else {
-				console.error(`Response Error [${url.pathname}]:`, response.status, response.statusText);
-			}
-		} catch (error) {
-			console.error(`Fetch Error [${url.pathname}]:`, error);
-		}
-	}
-
-	async function PUT<Resp = any>(
-		_url: URL,
-		paths?: (string | number)[],
-		params?: Record<string, any>
-	): Promise<Resp | undefined> {
-		const url = constructUrl(_url, paths, params);
-
-		try {
-			const response = await fetch(url, { method: 'PUT' });
-
-			if (response.ok) {
-				try {
-					const data: Resp = await response.json();
-					return data;
-				} catch (error) {
-					console.error(`Parse Error [${url}]:`, error);
-				}
-			} else {
-				console.error(`Response Error [${url}]:`, response.status, response.statusText);
-			}
-		} catch (error) {
-			console.error(`Fetch Error [${url}]:`, error);
-		}
-	}
-
-	async function POST<Resp = any>(
-		url: URL,
-		body: any,
-		contentType: 'json' | 'multipart' = 'json'
-	): Promise<Resp | undefined> {
-		try {
-			let response: Response;
-
-			switch (contentType) {
-				case 'json':
-					response = await fetch(url, {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(body)
-					});
-					break;
-				case 'multipart':
-					response = await fetch(url, {
-						method: 'POST',
-						body: body as FormData
-					});
-			}
-
-			if (response.ok) {
-				try {
-					const data: Resp = await response.json();
-					return data;
-				} catch (error) {
-					console.error(`Parse Error [${url.pathname}: ${JSON.stringify(body)}]:`, error);
+					console.error(`Parse Error [${url.pathname + url.search}]:`, error);
 				}
 			} else {
 				console.error(
-					`Response Error [${url.pathname}: ${JSON.stringify(body)}]:`,
+					`Response Error [${url.pathname + url.search}]:`,
 					response.status,
 					response.statusText
 				);
 			}
 		} catch (error) {
-			console.error(`Fetch Error [${url.pathname}: ${JSON.stringify(body)}]:`, error);
-		}
-	}
-
-	async function DELETE<Resp = any>(
-		_url: URL,
-		paths?: (string | number)[],
-		params?: Record<string, any>
-	): Promise<Resp | undefined> {
-		const url = constructUrl(_url, paths, params);
-
-		try {
-			const response = await fetch(url, { method: 'DELETE' });
-
-			if (response.ok) {
-				try {
-					const data: Resp = await response.json();
-					return data;
-				} catch (error) {
-					console.error(`Parse Error [${url.pathname}]:`, error);
-				}
-			} else {
-				console.error(`Response Error [${url.pathname}]:`, response.status, response.statusText);
-			}
-		} catch (error) {
-			console.error(`Fetch Error [${url.pathname}]:`, error);
+			console.error(`Fetch Error [${url.pathname + url.search}]:`, error);
 		}
 	}
 

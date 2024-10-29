@@ -11,7 +11,7 @@
 	let mainPanelBounds: Bounds | undefined = $state();
 
 	$effect(() => {
-		if (mainPanelBounds || selectionBoxElement) {
+		if (mainPanelBounds && selectionBoxElement) {
 			selectionBoxState.parentBounds = mainPanelBounds;
 			selectionBoxState.element = selectionBoxElement;
 		}

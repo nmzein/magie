@@ -81,6 +81,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
         // If top element on the stack has a smaller right value than
         // the current directory, it means it is not a parent of the current directory.
         // Need to collapse the stack until the top element has a right value greater than the current directory.
+        // TODO: Fix unwrap.
         while registry.len() > 1 && directory.rgt > registry.last().unwrap().rgt {
             collapse_stack(&mut registry);
         }

@@ -81,6 +81,7 @@ impl Annotation {
 
         // Read geometry stored in well-known bytes format.
         let mut cursor = Cursor::new(wkb);
+        // TODO: Fix unwrap.
         let Polygon(polygon) = cursor.read_wkb().unwrap() else {
             return Err(anyhow::anyhow!("Failed to read wkb."));
         };

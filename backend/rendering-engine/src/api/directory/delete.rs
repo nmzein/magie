@@ -9,43 +9,53 @@ pub struct Params {
     mode: DeleteMode,
 }
 
-pub async fn delete(
+pub async fn delete<'a>(
+    Extension(mut logger): Extension<Logger<'a>>,
     Extension(conn): Extension<AppState>,
     Path(id): Path<u32>,
     Query(Params { mode }): Query<Params>,
 ) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!(
-            "[DD/M00]: Received request to delete directory with id `{id}` using mode `{mode:?}`."
-        ),
-        None,
-    );
-
     if PRIVILEDGED.contains(&id) {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!("[DD/E00]: Cannot delete priviledged directories."),
+        return logger.error(
+            StatusCode::FORBIDDEN,
+            Error::RequestIntegrityError,
+            "DD/E00",
+            "Cannot delete priviledged directories.",
             None,
         );
     }
 
+    logger.report(
+        Check::RequestIntegrityCheck,
+        "Specified directory is not a priviledged directory.",
+    );
+
     if STORES.contains(&id) {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!("[DD/E01]: Invalid way to delete stores."),
+        return logger.error(
+            StatusCode::FORBIDDEN,
+            Error::RequestIntegrityError,
+            "DD/E01",
+            "Invalid way to delete a store.",
             None,
         );
     }
 
     // Retrieve directory path.
     let directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
-        Ok(path) => path,
+        Ok(path) => {
+            logger.report(
+                Check::ResourceExistenceCheck,
+                "Directory exists in the database and its path was successfully retrieved.",
+            );
+
+            path
+        }
         Err(e) => {
-            return log(
+            return logger.error(
                 StatusCode::NOT_FOUND,
-                &format!("[DD/E02]: Directory with id `{id}` does not exist in the database."),
+                Error::DatabaseQueryError,
+                "DD/E02",
+                "Failed to retrieve directory path from the database. There is a chance that the directory does not exist.",
                 Some(e),
             );
         }

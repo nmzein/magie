@@ -2,22 +2,22 @@ use crate::api::common::*;
 
 #[derive(Deserialize)]
 pub struct Body {
-    pub target_id: u32,
-    pub dest_id: u32,
+    parent_id: u32,
 }
 
 pub async fn r#move(
     Extension(conn): Extension<AppState>,
-    Json(Body { target_id, dest_id }): Json<Body>,
+    Path(id): Path<u32>,
+    Json(Body { parent_id }): Json<Body>,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
-        &format!("[IM/M00]: Received request to move image with id `{target_id}` to directory with id `{dest_id}`."),
+        &format!("[IM/M00]: Received request to move image with id `{id}` to directory with id `{parent_id}`."),
         None,
     );
 
-    if dest_id == ROOT_ID {
+    if parent_id == ROOT_ID {
         return log::<()>(
             StatusCode::BAD_REQUEST,
             &format!("[IM/E00]: Cannot move images into the root directory."),
@@ -26,26 +26,24 @@ pub async fn r#move(
     }
 
     // Retrieve target image path.
-    let target_image_path = match crate::db::image::path(target_id, Arc::clone(&conn)) {
+    let target_image_path = match crate::db::image::path(id, Arc::clone(&conn)) {
         Ok(path) => path,
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!(
-                    "[IM/E01]: Target image with id `{target_id}` does not exist in the database."
-                ),
+                &format!("[IM/E01]: Target image with id `{id}` does not exist in the database."),
                 Some(e),
             );
         }
     };
 
     // Retrieve destination directory path.
-    let dest_directory_path = match crate::db::directory::path(dest_id, Arc::clone(&conn)) {
+    let dest_directory_path = match crate::db::directory::path(parent_id, Arc::clone(&conn)) {
         Ok(path) => path,
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[IM/E02]: Destination directory with id `{dest_id}` does not exist in the database."),
+                &format!("[IM/E02]: Destination directory with id `{parent_id}` does not exist in the database."),
                 Some(e),
             );
         }
@@ -57,17 +55,17 @@ pub async fn r#move(
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("[IM/E03]: Failed to move image with id `{target_id}` into directory with id `{dest_id}` in the filesystem."),
+                    &format!("[IM/E03]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the filesystem."),
                 Some(e),
             );
         });
 
     // Move the image in the database.
-    let _ = crate::db::image::r#move(target_id, dest_id, Arc::clone(&conn))
+    let _ = crate::db::image::r#move(id, parent_id, Arc::clone(&conn))
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IM/E04]: Failed to move image with id `{target_id}` into directory with id `{dest_id}` in the database."),
+                &format!("[IM/E04]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the database."),
 
                 Some(e),
             );
