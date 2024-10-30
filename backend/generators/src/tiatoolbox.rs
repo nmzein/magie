@@ -17,15 +17,13 @@ impl Generator for Module {
     fn translate(&self, annotations_path: &Path) -> Result<Vec<AnnotationLayer>> {
         let start = std::time::Instant::now();
 
-        // ! Might need to prepend "../".
         let conn = Connection::open(annotations_path)?;
 
         let mut stmt = conn.prepare(
             r#"
                 SELECT cx, cy, geometry, properties, CAST(area AS REAL) AS area
                 FROM annotations
-                ORDER BY area DESC
-                LIMIT 200000;
+                ORDER BY area DESC;
             "#,
         )?;
 
@@ -39,6 +37,7 @@ impl Generator for Module {
             })
         })?;
 
+        // TODO: Move colour logic inside of AnnotationLayer w/ option for user to provide colours.
         let mut colour_index = 0;
         let mut layers = HashMap::new();
 
@@ -81,8 +80,8 @@ impl Annotation {
 
         // Read geometry stored in well-known bytes format.
         let mut cursor = Cursor::new(wkb);
-        // TODO: Fix unwrap.
-        let Polygon(polygon) = cursor.read_wkb().unwrap() else {
+
+        let Ok(Polygon(polygon)) = cursor.read_wkb() else {
             return Err(anyhow::anyhow!("Failed to read wkb."));
         };
 
