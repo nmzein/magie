@@ -22,9 +22,12 @@
 	});
 
 	let itemBounds: Bounds | undefined = $state();
-	let intersected = $derived(
-		defined(itemBounds) && selectionBoxState.intersecting(itemBounds, value)
-	);
+	let intersected = $state(false);
+
+	$effect(() => {
+		intersected = defined(itemBounds) && selectionBoxState.intersecting(itemBounds, value);
+	});
+
 	let selected = $derived(explorer.isSelected(value));
 
 	function handlePointerDown(event: PointerEvent) {
