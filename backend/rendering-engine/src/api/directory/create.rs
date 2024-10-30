@@ -7,12 +7,12 @@ pub struct Params {
 }
 
 pub async fn create<'a>(
-    Extension(mut logger): Extension<Logger<'a>>,
+    Extension(logger): Extension<Arc<Mutex<Logger<'a>>>>,
     Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
 ) -> Response {
     if PRIVILEDGED.contains(&parent_id) {
-        return logger.error(
+        return logger.lock().unwrap().error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrityError,
             "DC-E00",
@@ -21,7 +21,7 @@ pub async fn create<'a>(
         );
     }
 
-    logger.report(
+    logger.lock().unwrap().report(
         Check::RequestIntegrityCheck,
         "Specified parent directory is not a priviledged directory.",
     );
@@ -29,7 +29,7 @@ pub async fn create<'a>(
     // Check if a directory with the same name already exists under the parent directory.
     let path = match crate::db::directory::exists(parent_id, &name, Arc::clone(&conn)) {
         Ok(Some(path)) => {
-            logger.report(
+            logger.lock().unwrap().report(
                 Check::ResourceConflictCheck,
                 "Directory name is unique under parent.",
             );
@@ -37,7 +37,7 @@ pub async fn create<'a>(
             path
         }
         Ok(None) => {
-            return logger.error(
+            return logger.lock().unwrap().error(
                 StatusCode::CONFLICT,
                 Error::ResourceConflictError,
                 "DC-E01",
@@ -46,7 +46,7 @@ pub async fn create<'a>(
             );
         }
         Err(e) => {
-            return logger.error(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQueryError,
                 "DC-E02",
@@ -58,7 +58,7 @@ pub async fn create<'a>(
 
     // Create the directory in the filesystem.
     let _ = crate::io::create(&path).await.map_err(|e| {
-        return logger.error(
+        return logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreationError,
             "DC-E03",
@@ -67,11 +67,14 @@ pub async fn create<'a>(
         );
     });
 
-    logger.log("Directory created in the filesystem.");
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory created in the filesystem.");
 
     // Insert the directory into the database.
     let _ = crate::db::directory::insert(parent_id, &name, Arc::clone(&conn)).map_err(|e| {
-        return logger.error(
+        return logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseInsertionError,
             "DC-E04",
@@ -80,16 +83,22 @@ pub async fn create<'a>(
         );
     });
 
-    logger.log("Directory inserted into the database.");
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory inserted into the database.");
 
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
+    let registry = match crate::db::general::get_registry(Arc::clone(&conn)) {
         Ok(registry) => {
-            logger.success(StatusCode::CREATED, "Directory created successfully.");
+            logger
+                .lock()
+                .unwrap()
+                .log("Registry retrieved from the database.");
 
-            return Json(registry).into_response();
+            registry
         }
         Err(e) => {
-            return logger.error(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQueryError,
                 "DC-E05",
@@ -97,5 +106,12 @@ pub async fn create<'a>(
                 Some(e),
             )
         }
-    }
+    };
+
+    logger
+        .lock()
+        .unwrap()
+        .success(StatusCode::CREATED, "Directory created successfully.");
+
+    return (StatusCode::CREATED, Json(registry)).into_response();
 }
