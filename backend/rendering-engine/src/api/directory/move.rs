@@ -19,7 +19,7 @@ pub async fn r#move(
 
     if PRIVILEDGED.contains(&id) {
         return log::<()>(
-            StatusCode::BAD_REQUEST,
+            StatusCode::FORBIDDEN,
             &format!("[DM/E00]: Cannot move priviledged directories."),
             None,
         );
@@ -27,7 +27,7 @@ pub async fn r#move(
 
     if STORES.contains(&id) {
         return log::<()>(
-            StatusCode::BAD_REQUEST,
+            StatusCode::FORBIDDEN,
             &format!("[DM/E01]: Cannot move stores."),
             None,
         );
@@ -35,16 +35,8 @@ pub async fn r#move(
 
     if parent_id == ROOT_ID {
         return log::<()>(
-            StatusCode::BAD_REQUEST,
+            StatusCode::FORBIDDEN,
             &format!("[DM/E02]: Cannot move directories into the root directory."),
-            None,
-        );
-    }
-
-    if id == parent_id {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!("[DM/E03]: Cannot move a directory into itself."),
             None,
         );
     }
@@ -56,7 +48,7 @@ pub async fn r#move(
             return log(
                 StatusCode::NOT_FOUND,
                 &format!(
-                    "[DM/E04]: Target directory with id `{id}` does not exist in the database."
+                    "[DM/E03]: Target directory with id `{id}` does not exist in the database."
                 ),
                 Some(e),
             );
@@ -69,11 +61,20 @@ pub async fn r#move(
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[DM/E05]: Destination directory with id `{parent_id}` does not exist in the database."),
+                &format!("[DM/E04]: Destination directory with id `{parent_id}` does not exist in the database."),
                 Some(e),
             );
         }
     };
+
+    // Check destination is not inside target.
+    if dest_directory_path.starts_with(&target_directory_path) {
+        return log::<()>(
+            StatusCode::FORBIDDEN,
+            &format!("[DM/E05]: Cannot move directory into itself."),
+            None,
+        );
+    }
 
     // Move the directory in the filesystem.
     let _ = crate::io::r#move(&target_directory_path, &dest_directory_path)
