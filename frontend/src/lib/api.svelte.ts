@@ -6,7 +6,6 @@ import {
 } from '$env/static/public';
 import { image, repository } from '$states';
 import type { Properties, Directory, WebSocketRequest } from '$types';
-import { defined } from '$helpers';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
@@ -225,25 +224,4 @@ export let websocket: WebSocketState;
 
 export function ConnectWebSocket() {
 	websocket = new WebSocketState();
-}
-
-function constructUrl(_url: URL, paths: (string | number)[] = [], params?: Record<string, any>) {
-	let url = new URL(_url);
-
-	if (paths.length > 0) {
-		const fullPath = paths.join('/');
-
-		// Create a new URL object using the base URL and the full path
-		url = new URL(`${_url}/${fullPath}`);
-	}
-
-	if (defined(params)) {
-		for (const [key, value] of Object.entries(params)) {
-			if (value !== undefined && value !== null) {
-				url.searchParams.append(key, value.toString());
-			}
-		}
-	}
-
-	return url;
 }

@@ -1,4 +1,4 @@
-import { applyDefaults, defined, type DeepRequired } from '$helpers';
+import { applyDefaults, type DeepRequired } from '$helpers';
 import { setContext, getContext } from 'svelte';
 
 export type Modes = 'buttons' | 'tab' | 'collapsible-tab' | 'toggle';

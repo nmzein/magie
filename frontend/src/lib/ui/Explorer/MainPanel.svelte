@@ -79,7 +79,6 @@
 <svelte:document {onkeydown} {onpointermove} {onpointerup} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	class="relative grid h-[400px] select-none grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px] {contextMenu.show
 		? 'overflow-hidden'
