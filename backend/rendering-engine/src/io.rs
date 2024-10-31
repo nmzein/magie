@@ -41,6 +41,13 @@ pub async fn r#move(source_path: &Path, destination_base: &Path) -> Result<()> {
 
     let destination_path = destination_base.join(last_segment);
 
+    // Check if the destination path already exists.
+    if destination_path.exists() {
+        return Err(anyhow::anyhow!(
+            "Directory with the same name already exists at the destination."
+        ));
+    }
+
     let _ = fs::rename(source_path, destination_path).await?;
 
     return Ok(());
