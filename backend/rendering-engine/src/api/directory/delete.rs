@@ -1,17 +1,12 @@
-use crate::{
-    api::common::*,
-    types::{DeleteMode, MoveMode},
-};
-use axum::body::Body;
-use std::path::PathBuf;
+use crate::api::common::*;
 
 #[derive(Deserialize)]
 pub struct Params {
     mode: DeleteMode,
 }
 
-pub async fn delete<'a>(
-    Extension(logger): Extension<Arc<Mutex<Logger<'a>>>>,
+pub async fn delete(
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
     Extension(conn): Extension<AppState>,
     Path(id): Path<u32>,
     Query(Params { mode }): Query<Params>,
@@ -36,10 +31,15 @@ pub async fn delete<'a>(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrityError,
             "DD-E01",
-            "Invalid way to delete a store.",
+            "Invalid way to delete a store, use DELETE /api/stores/:id instead.",
             None,
         );
     }
+
+    logger.lock().unwrap().report(
+        Check::RequestIntegrityCheck,
+        "Specified directory is not a store.",
+    );
 
     // Retrieve directory path.
     let directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
@@ -64,7 +64,14 @@ pub async fn delete<'a>(
 
     // Retrieve Bin path.
     let bin_path = match crate::db::directory::path(BIN_ID, Arc::clone(&conn)) {
-        Ok(path) => path,
+        Ok(path) => {
+            logger.lock().unwrap().report(
+                Check::ResourceExistenceCheck,
+                "Bin directory exists in the database and its path was successfully retrieved.",
+            );
+
+            path
+        }
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -133,39 +140,8 @@ pub async fn delete<'a>(
     return (StatusCode::OK, Json(registry)).into_response();
 }
 
-pub async fn hard_delete<'a>(
-    logger: Arc<Mutex<Logger<'a>>>,
-    id: u32,
-    directory_path: &PathBuf,
-    conn: AppState,
-) -> Result<(), Response<Body>> {
-    // Remove the directory from the filesystem.
-    let _ = crate::io::delete(&directory_path).await.map_err(|e| {
-        return Err::<(), Response<Body>>(logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceDeletionError,
-            "DDH-E00",
-            "Failed to hard delete directory from the filesystem.",
-            Some(e),
-        ));
-    });
-
-    // Remove the directory from the database.
-    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| {
-        return Err::<(), Response<Body>>(logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::DatabaseDeletionError,
-            "DDH-E01",
-            "Failed to hard delete directory from the database.",
-            Some(e),
-        ));
-    });
-
-    Ok(())
-}
-
-pub async fn soft_delete<'a>(
-    logger: Arc<Mutex<Logger<'a>>>,
+pub async fn soft_delete(
+    logger: Arc<Mutex<Logger<'_>>>,
     id: u32,
     directory_path: &PathBuf,
     bin_path: &PathBuf,
@@ -184,6 +160,11 @@ pub async fn soft_delete<'a>(
             );
         });
 
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory moved to the Bin in the filesystem.");
+
     // Move the directory to the "Bin" in the database.
     let _ = crate::db::directory::r#move(id, BIN_ID, MoveMode::SoftDelete, Arc::clone(&conn))
         .map_err(|e| {
@@ -195,6 +176,52 @@ pub async fn soft_delete<'a>(
                 Some(e),
             );
         });
+
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory moved to the Bin in the database.");
+
+    Ok(())
+}
+
+pub async fn hard_delete(
+    logger: Arc<Mutex<Logger<'_>>>,
+    id: u32,
+    directory_path: &PathBuf,
+    conn: AppState,
+) -> Result<(), Response<Body>> {
+    // Remove the directory from the filesystem.
+    let _ = crate::io::delete(&directory_path).await.map_err(|e| {
+        return Err::<(), Response<Body>>(logger.lock().unwrap().error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ResourceDeletionError,
+            "DDH-E00",
+            "Failed to hard delete directory from the filesystem.",
+            Some(e),
+        ));
+    });
+
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory deleted from the filesystem.");
+
+    // Remove the directory from the database.
+    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| {
+        return Err::<(), Response<Body>>(logger.lock().unwrap().error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::DatabaseDeletionError,
+            "DDH-E01",
+            "Failed to hard delete directory from the database.",
+            Some(e),
+        ));
+    });
+
+    logger
+        .lock()
+        .unwrap()
+        .log("Directory deleted from the database.");
 
     Ok(())
 }

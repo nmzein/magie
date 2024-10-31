@@ -6,8 +6,8 @@ pub struct Params {
     pub name: String,
 }
 
-pub async fn create<'a>(
-    Extension(logger): Extension<Arc<Mutex<Logger<'a>>>>,
+pub async fn create(
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
     Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
 ) -> Response {
