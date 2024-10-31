@@ -93,7 +93,7 @@ pub async fn delete(
         );
     }
 
-    let _ = (match mode {
+    let result = match mode {
         DeleteMode::Soft => {
             soft_delete(
                 Arc::clone(&logger),
@@ -107,10 +107,11 @@ pub async fn delete(
         DeleteMode::Hard => {
             hard_delete(Arc::clone(&logger), id, &directory_path, Arc::clone(&conn)).await
         }
-    })
-    .map_err(|error_response| {
-        return error_response;
-    });
+    };
+
+    if let Err(response) = result {
+        return response;
+    }
 
     let registry = match crate::db::general::get_registry(Arc::clone(&conn)) {
         Ok(registry) => {
@@ -158,7 +159,7 @@ pub async fn soft_delete(
                 "Failed to soft delete directory from the filesystem.",
                 Some(e),
             );
-        });
+        })?;
 
     logger
         .lock()
@@ -175,7 +176,7 @@ pub async fn soft_delete(
                 "Failed to soft delete directory from the database.",
                 Some(e),
             );
-        });
+        })?;
 
     logger
         .lock()
