@@ -3,11 +3,9 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev --port 4000",
-		"prod": "vite build && vite preview --port 4000",
-		"ci:dev": "vite dev --port 4000",
-		"ci:build": "vite build",
-		"ci:prev": "vite preview --port 4000",
+		"dev": "bunx --bun vite dev --port 4000",
+		"build": "bunx --bun vite build",
+		"preview": "bunx --bun vite preview --port 4000",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
@@ -26,7 +24,7 @@
 		"prettier": "3.3.3",
 		"prettier-plugin-svelte": "3.2.7",
 		"prettier-plugin-tailwindcss": "0.6.8",
-		"svelte": "5.1.6",
+		"svelte": "5.1.7",
 		"svelte-check": "4.0.5",
 		"typescript": "5.6.3",
 		"typescript-eslint": "8.12.2",
@@ -38,7 +36,7 @@
 		"canvas": "2.11.2",
 		"tailwind-merge": "2.5.4",
 		"tailwindcss": "4.0.0-alpha.31",
-		"three": "0.169.0",
+		"three": "0.170.0",
 		"unplugin-icons": "0.20.0",
 		"ws": "8.18.0"
 	}
