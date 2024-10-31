@@ -26,7 +26,7 @@
 		"prettier": "3.3.3",
 		"prettier-plugin-svelte": "3.2.7",
 		"prettier-plugin-tailwindcss": "0.6.8",
-		"svelte": "5.1.4",
+		"svelte": "5.1.6",
 		"svelte-check": "4.0.5",
 		"tslib": "2.8.0",
 		"typescript": "5.6.3",
@@ -35,13 +35,13 @@
 		"workbox-precaching": "7.3.0"
 	},
 	"dependencies": {
-		"@iconify/json": "2.2.265",
-		"@tailwindcss/vite": "4.0.0-alpha.30",
+		"@iconify/json": "2.2.266",
+		"@tailwindcss/vite": "4.0.0-alpha.31",
 		"canvas": "2.11.2",
 		"tailwind-merge": "2.5.4",
-		"tailwindcss": "4.0.0-alpha.30",
+		"tailwindcss": "4.0.0-alpha.31",
 		"three": "0.169.0",
-		"unplugin-icons": "0.19.3",
+		"unplugin-icons": "0.20.0",
 		"ws": "8.18.0"
 	},
 	"type": "module"

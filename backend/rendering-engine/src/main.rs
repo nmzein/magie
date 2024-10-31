@@ -29,7 +29,7 @@ use tower_http::cors::CorsLayer;
 async fn main() {
     // Override the temporary directory to get around issue
     // of crossing mount points on some Linux distros.
-    env::set_var("TMPDIR", "./temp");
+    env::set_var("TMPDIR", "./tmp");
 
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
