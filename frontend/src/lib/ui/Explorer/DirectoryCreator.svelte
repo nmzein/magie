@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { http } from '$api';
 	import { explorer } from '$states';
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
+	import { defined } from '$helpers';
 
 	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
@@ -20,18 +20,8 @@
 		};
 	});
 
-	async function create(name: string) {
-		if (explorer.currentDirectory === undefined) return;
-		await http.CreateDirectory(explorer.currentDirectory.data.id, name);
-		explorer.showDirectoryCreator = false;
-	}
-
-	function cancel() {
-		explorer.showDirectoryCreator = false;
-	}
-
 	function handleClick(event: MouseEvent) {
-		if (button === undefined) return;
+		if (!defined(button) || !defined(explorer.currentDirectory)) return;
 
 		let clickedInside = button.contains(event.target as Node);
 
@@ -40,16 +30,16 @@
 
 		if (!clickedInside && name == '') {
 			// Clicked outside and no name was set, cancel creation.
-			cancel();
+			explorer.directoryCreator.close();
 		} else {
 			// Clicked anywhere and a name was set, create directory.
-			create(name);
+			explorer.directoryCreator.create(explorer.currentDirectory.data.id, name);
 		}
 	}
 
-	function handleKeyPress(event: KeyboardEvent) {
-		if (event.key === 'Enter' && name !== '') {
-			create(name);
+	function onkeypress(event: KeyboardEvent) {
+		if (event.key === 'Enter' && name !== '' && defined(explorer.currentDirectory)) {
+			explorer.directoryCreator.create(explorer.currentDirectory.data.id, name);
 		}
 	}
 </script>
@@ -57,7 +47,7 @@
 <Button
 	bind:component={button}
 	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
-	onkeypress={(e) => handleKeyPress(e)}
+	{onkeypress}
 	onkeydown={(e) => e.stopPropagation()}
 >
 	<Icon name="directory" class="h-[90px] w-[90px]" />

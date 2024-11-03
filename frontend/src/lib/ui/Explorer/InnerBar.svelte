@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { explorer, uploader } from '$states';
+	import { explorer } from '$states';
 	import Icon from '$icon';
 	import * as Dropdown from '$components/dropdown/index.ts';
 	import { defined } from '$helpers';
@@ -23,16 +23,10 @@
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
-			<Dropdown.Item
-				onclick={() => {
-					if (!defined(explorer.currentDirectory)) return;
-					explorer.showUploader = true;
-					uploader.parentDirectoryId = explorer.currentDirectory.data.id;
-				}}
-			>
+			<Dropdown.Item onclick={() => explorer.uploader.open()}>
 				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
 			</Dropdown.Item>
-			<Dropdown.Item onclick={() => (explorer.showDirectoryCreator = true)}>
+			<Dropdown.Item onclick={() => explorer.directoryCreator.open()}>
 				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Directory
 			</Dropdown.Item>
 		</Dropdown.List>

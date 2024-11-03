@@ -18,7 +18,6 @@ select os in "${!deps[@]}"; do
 
     echo "  rustup"
     echo "  bun"
-    echo "  vite"
     echo ""
 
     # Check if the response is 'y' or 'n'

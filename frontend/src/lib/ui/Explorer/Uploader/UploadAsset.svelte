@@ -1,6 +1,8 @@
 <script lang="ts">
 	import Button from '$components/Button.svelte';
+	import { defined } from '$helpers';
 	import Icon from '$icon';
+	import { explorer } from '$states';
 
 	let {
 		asset = $bindable(),
@@ -12,29 +14,30 @@
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
-		setAsset(event.dataTransfer?.files);
+		setAsset(event.dataTransfer?.files?.[0]);
 	}
 
 	function handleBrowse(event: Event) {
-		setAsset((event.target as HTMLInputElement).files);
+		setAsset((event.target as HTMLInputElement).files?.[0]);
 	}
 
-	function setAsset(files: FileList | undefined | null) {
-		if (files && files.length > 0) {
-			asset = files[0];
-		}
+	function setAsset(file: File | undefined) {
+		if (!defined(file)) return;
+
+		asset = file;
+		explorer.uploader.options.name = file.name;
 	}
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	ondrop={(e) => handleDrop(e)}
+	ondrop={handleDrop}
 	ondragover={(e) => e.preventDefault()}
 	class="flex h-full w-full flex-1 flex-row items-center justify-center rounded-lg focus:outline-none"
 >
 	{#if asset}
 		<Button
-			class="bg-primary/10 flex h-full flex-1 flex-col items-center justify-center gap-2 rounded-[inherit]"
+			class="bg-primary/10 hover:bg-primary/15 flex h-full flex-1 flex-col items-center justify-center gap-2 rounded-[inherit] transition-colors"
 			onclick={() => (asset = undefined)}
 		>
 			<Icon name="image" class="h-20 w-20" />
@@ -45,21 +48,19 @@
 	{:else}
 		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<label
-			class="border-primary/70 flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-[inherit] border-2 border-dashed"
-			for={'browse-input-' + placeholder}
-			onclick={(e) => handleBrowse(e)}
+			class="border-tertiary hover:border-secondary flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-[inherit] border transition-colors"
+			for="browse-input-{placeholder}"
+			onclick={handleBrowse}
 			onkeydown={(e) => e.key === 'Enter' && handleBrowse(e)}
 		>
 			<Icon name="image" class="h-20 w-20" />
-			<span
-				class="text-secondary select-none overflow-hidden text-ellipsis whitespace-nowrap text-center text-sm"
-			>
+			<span class="text-secondary max-w-52 select-none text-center text-[13px]">
 				{placeholder}
 			</span>
 		</label>
 
 		<input
-			id={'browse-input-' + placeholder}
+			id="browse-input-{placeholder}"
 			type="file"
 			class="hidden"
 			onchange={(e) => handleBrowse(e)}

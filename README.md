@@ -10,6 +10,7 @@ MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and ba
 </div>
 
 ### Features
+
 - ⚡️ **Extremely performant** Rust backend and Svelte frontend, utilising WebGL to render hundreds of thousands of annotations in milliseconds.
 
 - 🖥️ **Sleek and modern** user interface.
@@ -54,7 +55,7 @@ Install dependencies:
 | OS     | Command               | Verified Supported Version(s) |
 | ------ | --------------------- | ----------------------------- |
 | Debian | `./install.sh debian` | 12                            |
-| Fedora | `./install.sh fedora` | 40                            |
+| Fedora | `./install.sh fedora` | 40, 41                        |
 | Ubuntu | `./install.sh ubuntu` | -                             |
 
 Build and run:

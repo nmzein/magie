@@ -1,4 +1,8 @@
 export type UploaderOptions = {
+	name: string;
+	encoder: string;
+	decoder: string;
+	generator: string;
 	annotations: 'none' | 'provide' | 'generate';
 };
 

@@ -4,8 +4,9 @@ import {
 	PUBLIC_DOMAIN,
 	PUBLIC_BACKEND_PORT
 } from '$env/static/public';
+import { defined } from '$helpers';
 import { image, repository } from '$states';
-import type { Properties, Directory, WebSocketRequest } from '$types';
+import type { Properties, Directory, WebSocketRequest, UploaderOptions } from '$types';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
@@ -83,22 +84,18 @@ export const http = (() => {
 		parent_id: number,
 		image_file: File,
 		annotations_file: File | undefined,
-		generator: string
+		options: UploaderOptions
 	) {
-		// TODO
-		let name = '';
 		const formData = new FormData();
-
+		formData.append('encoder', options.encoder);
+		if (defined(options.generator)) formData.append('generator', options.generator);
 		formData.append('image_file', image_file);
-		if (annotations_file !== undefined) {
-			formData.append('annotations_file', annotations_file);
-		}
-		formData.append('generator_name', generator);
+		if (defined(annotations_file)) formData.append('annotations_file', annotations_file);
 
 		const registry: Directory | undefined = await POST(
-			`${IMAGE_URL}/${parent_id}/${name}`,
+			`${IMAGE_URL}/${parent_id}/${options.name}`,
 			formData,
-			'multipart'
+			'multipart/form-data'
 		);
 
 		if (registry === undefined) return;
@@ -130,7 +127,7 @@ export const http = (() => {
 		return await FETCH('POST', _url, body, content_type);
 	}
 
-	type ContentType = 'application/json' | 'multipart';
+	type ContentType = 'application/json' | 'multipart/form-data';
 
 	async function FETCH<Resp = any>(
 		method: string,
@@ -150,9 +147,8 @@ export const http = (() => {
 						body = JSON.stringify(_body);
 						headers = { 'Content-Type': content_type };
 						break;
-					case 'multipart':
+					case 'multipart/form-data':
 						body = _body as FormData;
-						headers = { 'Content-Type': content_type };
 						break;
 				}
 			}

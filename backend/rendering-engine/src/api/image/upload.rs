@@ -21,9 +21,10 @@ pub async fn upload(
     Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
     TypedMultipart(UploadAssetRequest {
+        encoder,
+        generator,
         image_file,
         annotations_file,
-        generator_name,
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
     let name = &name;
@@ -107,8 +108,9 @@ pub async fn upload(
         Err(resp) => return resp,
     };
 
+    // TODO: Rework generators so they are not needed.
     let (annotations_ext, annotation_layers) =
-        match handle_annotations(&path, annotations_file, generator_name).await {
+        match handle_annotations(&path, annotations_file, generator.unwrap_or_default()).await {
             Ok((name, layers)) => (Some(name), layers),
             Err(resp) => return resp,
         };

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { explorer, uploader } from '$states';
+	import { explorer, repository } from '$states';
 	import { defined } from '$helpers';
 	import TopBar from './TopBar.svelte';
 	import UploadAsset from './UploadAsset.svelte';
@@ -7,27 +7,68 @@
 	import * as Tabs from '$components/tabs/index.ts';
 </script>
 
-{#if explorer.showUploader}
-	<div class="absolute z-10 m-10 h-[calc(100%-80px)] w-[calc(100%-80px)] rounded-xl">
+{#if explorer.uploader.show}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="absolute z-10 h-full w-full min-w-72 rounded-xl bg-black/50 p-6"
+		onkeydown={(e) => e.stopPropagation()}
+	>
 		<div
-			class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2"
+			class="panel border-tertiary flex h-full h-full w-full flex-col rounded-[inherit] rounded-xl border-2"
 			role="dialog"
 			aria-modal="true"
 		>
 			<TopBar />
 
-			<div class="m-5 flex flex-1 flex-col items-center justify-center gap-5">
-				<Pages.Root bind:currentPage={uploader.currentPage}>
-					<Pages.Page nextDisabled={!defined(uploader.image)}>
-						<UploadAsset bind:asset={uploader.image} placeholder="Image" />
+			<div class="flex flex-1 flex-col items-center justify-center gap-5 p-5">
+				<Pages.Root bind:currentPage={explorer.uploader.currentPage}>
+					<Pages.Page nextDisabled={!explorer.uploader.imageSatisfied}>
+						<div class="flex h-full gap-5">
+							<div class="flex-3 flex flex-col gap-1">
+								<span class="text-secondary text-sm">IMAGE</span>
+								<UploadAsset
+									bind:asset={explorer.uploader.image}
+									placeholder="Click to browse filesystem or drag a file here."
+								/>
+							</div>
+							<div class="flex flex-1 flex-col gap-4 text-sm">
+								<div class="flex flex-col gap-1">
+									<span class="text-secondary">NAME</span>
+									<input
+										type="text"
+										bind:value={explorer.uploader.options.name}
+										class="outline-tertiary hover:outline-secondary w-full rounded-md p-2 outline transition-all"
+									/>
+								</div>
+								<div class="flex flex-col gap-1">
+									<span class="text-secondary">DECODING FORMAT</span>
+									<select
+										bind:value={explorer.uploader.options.decoder}
+										class="outline-tertiary hover:outline-secondary w-full rounded-md p-2 outline transition-all"
+									>
+										{#each repository.decoders as decoder}
+											<option value={decoder}>{decoder}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="flex flex-col gap-1">
+									<span class="text-secondary">ENCODING FORMAT</span>
+									<select
+										bind:value={explorer.uploader.options.encoder}
+										class="outline-tertiary hover:outline-secondary w-full rounded-md p-2 outline transition-all"
+									>
+										{#each repository.encoders as encoder}
+											<option value={encoder}>{encoder}</option>
+										{/each}
+									</select>
+								</div>
+							</div>
+						</div>
 					</Pages.Page>
 
 					<Pages.Page
-						nextDisabled={!uploader.annotationsSatisfied}
-						done={async () => {
-							explorer.showUploader = false;
-							await uploader.upload();
-						}}
+						nextDisabled={!explorer.uploader.annotationsSatisfied}
+						done={async () => await explorer.uploader.upload(explorer.currentDirectory!.data.id)}
 					>
 						<div class="flex h-full select-none flex-col justify-between gap-5">
 							<Tabs.Root
@@ -39,7 +80,7 @@
 									},
 									content: 'h-full'
 								}}
-								bind:currentTab={uploader.options.annotations}
+								bind:currentTab={explorer.uploader.options.annotations}
 							>
 								<Tabs.TriggerList>
 									<Tabs.Trigger value="none">None</Tabs.Trigger>
@@ -55,8 +96,30 @@
 											tabs above.
 										</div>
 									</Tabs.Content>
+
 									<Tabs.Content value="provide">
-										<UploadAsset bind:asset={uploader.annotations} placeholder="Annotations" />
+										<div class="flex h-full gap-5">
+											<div class="flex-3 flex flex-col gap-1">
+												<span class="text-secondary text-sm">ANNOTATIONS</span>
+												<UploadAsset
+													bind:asset={explorer.uploader.annotations}
+													placeholder="Click to browse filesystem or drag a file here."
+												/>
+											</div>
+											<div class="flex flex-1 flex-col gap-4 text-sm">
+												<div class="flex flex-col gap-1">
+													<span class="text-secondary">GENERATOR</span>
+													<select
+														bind:value={explorer.uploader.options.generator}
+														class="outline-tertiary hover:outline-secondary w-full rounded-md p-2 outline transition-all"
+													>
+														{#each repository.generators as generator}
+															<option value={generator}>{generator}</option>
+														{/each}
+													</select>
+												</div>
+											</div>
+										</div>
 									</Tabs.Content>
 								</Tabs.ContentSpace>
 							</Tabs.Root>

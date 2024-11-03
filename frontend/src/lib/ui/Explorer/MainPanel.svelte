@@ -70,8 +70,8 @@
 		contextMenu.items = [
 			{ name: 'Select All', action: () => explorer.selectAll() },
 			{ name: 'Paste', action: () => explorer.paste(), disabled: explorer.emptyClipboard },
-			{ name: 'New Image', action: () => (explorer.showUploader = true) },
-			{ name: 'New Directory', action: () => (explorer.showDirectoryCreator = true) }
+			{ name: 'New Image', action: () => explorer.uploader.open() },
+			{ name: 'New Directory', action: () => explorer.directoryCreator.open() }
 		];
 	}
 </script>
@@ -88,7 +88,7 @@
 	{oncontextmenu}
 >
 	{#if defined(explorer.currentDirectory) && defined(selectionBoxState)}
-		{#if explorer.showDirectoryCreator}
+		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
 		{#each explorer.currentDirectory.data.subdirectories as subdirectory}

@@ -84,9 +84,10 @@ pub struct TileRequest {
 
 #[derive(TryFromMultipart)]
 pub struct UploadAssetRequest {
+    pub encoder: String,
+    pub generator: Option<String>,
     #[form_data(limit = "unlimited")]
     pub image_file: FieldData<NamedTempFile>,
     #[form_data(limit = "unlimited")]
     pub annotations_file: Option<FieldData<NamedTempFile>>,
-    pub generator_name: String,
 }

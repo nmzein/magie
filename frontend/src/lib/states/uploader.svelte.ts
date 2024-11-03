@@ -1,46 +1,62 @@
-import type { UploaderOptions } from '$types';
 import { http } from '$api';
-import { repository } from '$states';
+import { defined } from '$helpers';
+import { explorer, repository } from '$states';
+import type { UploaderOptions } from '$types';
 
 export class UploaderState {
-	public parentDirectoryId: number | undefined = $state();
-	public image: File | undefined = $state();
-	public annotations: File | undefined = $state();
-	public currentPage: number = $state(0);
-	public generator: string = $derived(repository.generators[0]);
-	public options: UploaderOptions = $state({
+	image: File | undefined = $state();
+	annotations: File | undefined = $state();
+	options: UploaderOptions = $state({
+		name: '',
+		encoder: repository.encoders[0],
+		decoder: repository.decoders[0],
+		generator: repository.generators[0],
 		annotations: 'none'
 	});
-	public annotationsSatisfied: boolean = $derived(
+	imageSatisfied: boolean = $derived(defined(this.image) && this.options.name !== '');
+	annotationsSatisfied: boolean = $derived(
 		this.options.annotations === 'none' ||
-			(this.options.annotations === 'provide' && this.annotations !== undefined)
+			(this.options.annotations === 'provide' && defined(this.annotations))
 	);
+	currentPage: number = $state(0);
+	#show = $state(false);
 
-	public async upload() {
+	get show() {
+		return this.#show;
+	}
+
+	open() {
+		if (!defined(explorer.currentDirectory)) return;
+		this.#show = true;
+	}
+
+	close() {
+		this.#show = false;
+	}
+
+	async upload(parentId: number) {
+		this.#show = false;
+
 		if (
-			this.parentDirectoryId === undefined ||
 			this.image === undefined ||
-			(['provide', 'generate'].includes(this.options.annotations) && this.generator === undefined)
+			(['provide', 'generate'].includes(this.options.annotations) &&
+				this.options.generator === undefined)
 		)
 			return;
 
 		if (this.options.annotations === 'provide') {
-			await http.SendUploadAssets(
-				this.parentDirectoryId,
-				this.image,
-				this.annotations,
-				this.generator
-			);
+			await http.SendUploadAssets(parentId, this.image, this.annotations, this.options);
 		} else {
-			await http.SendUploadAssets(this.parentDirectoryId, this.image, undefined, this.generator);
+			await http.SendUploadAssets(parentId, this.image, undefined, this.options);
 		}
 
 		this.reset();
 	}
 
-	public reset() {
-		this.parentDirectoryId = undefined;
+	reset() {
 		this.image = undefined;
 		this.annotations = undefined;
+		this.currentPage = 0;
+		this.options.name = '';
 	}
 }
