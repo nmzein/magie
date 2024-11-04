@@ -8,6 +8,8 @@ pub fn insert(
     parent_id: u32,
     name: &str,
     upl_img_ext: &str,
+    upl_img_fmt: &str,
+    enc_img_fmt: &str,
     annotations_ext: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
     annotation_layers: Vec<InAnnotationLayer>,
@@ -19,10 +21,10 @@ pub fn insert(
     // TODO: Remove hardcoding.
     transaction.execute(
         r#"
-            INSERT INTO images (parent_id, name, upl_img_ext, enc_img_ext, upl_img_fmt, enc_img_fmt, upl_anno_ext)
+            INSERT INTO images (parent_id, name, upl_img_ext, upl_img_fmt, enc_img_ext, enc_img_fmt, upl_anno_ext)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
         "#,
-        (parent_id, name, upl_img_ext, "zarr", upl_img_ext, "omezarr", annotations_ext),
+        (parent_id, name, upl_img_ext,  upl_img_fmt, "zarr", enc_img_fmt, annotations_ext),
     )?;
 
     let image_id = transaction.last_insert_rowid();

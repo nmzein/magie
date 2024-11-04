@@ -36,6 +36,24 @@ pub async fn upload(
         None,
     );
 
+    if !encoders::export::names().contains(&encoder.as_str()) {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("Encoder with name `{encoder}` could not be found."),
+            None,
+        );
+    }
+
+    if let Some(generator) = &generator {
+        if !generators::export::names().contains(&generator.as_str()) {
+            return log::<()>(
+                StatusCode::BAD_REQUEST,
+                &format!("Generator with name `{generator}` could not be found."),
+                None,
+            );
+        }
+    }
+
     let image_metadata = image_file.metadata.clone();
     // Extract image extension from metadata request body.
     let upl_img_ext = match image_metadata.file_name.as_ref().map(std::path::Path::new) {
@@ -103,23 +121,29 @@ pub async fn upload(
         );
     });
 
-    let metadata_layers = match handle_image(image_file, &path, &name, &upl_img_ext).await {
+    let metadata_layers = match handle_image(image_file, &path, &name, &upl_img_ext, &encoder).await
+    {
         Ok(layers) => layers,
         Err(resp) => return resp,
     };
 
-    // TODO: Rework generators so they are not needed.
-    let (annotations_ext, annotation_layers) =
-        match handle_annotations(&path, annotations_file, generator.unwrap_or_default()).await {
-            Ok((name, layers)) => (Some(name), layers),
-            Err(resp) => return resp,
-        };
+    let mut annotations_ext = None;
+    let mut annotation_layers = Vec::new();
+    if let Some(generator) = generator {
+        (annotations_ext, annotation_layers) =
+            match handle_annotations(&path, annotations_file, generator).await {
+                Ok((name, layers)) => (Some(name), layers),
+                Err(resp) => return resp,
+            };
+    }
 
     // Insert into database.
     match crate::db::image::insert(
         parent_id,
         &name,
         &upl_img_ext,
+        &upl_img_ext,
+        &encoder,
         annotations_ext.as_deref(),
         metadata_layers,
         annotation_layers,
@@ -166,6 +190,7 @@ async fn handle_image(
     path: &PathBuf,
     name: &str,
     upl_img_ext: &str,
+    encoder: &str,
 ) -> Result<Vec<MetadataLayer>, Response> {
     // Path where the uploaded image will be stored.
     let upl_img_path = path.join(&format!("{UPLOADED_IMAGE_NAME}.{upl_img_ext}"));
@@ -197,7 +222,7 @@ async fn handle_image(
     }
 
     // Encode image to Zarr derivative format.
-    match crate::io::convert(&upl_img_path, &enc_img_path, &thumbnail_path).await {
+    match crate::io::convert(&upl_img_path, &enc_img_path, &thumbnail_path, encoder).await {
         Ok(metadata) => {
             #[cfg(feature = "log.success")]
             log::<()>(

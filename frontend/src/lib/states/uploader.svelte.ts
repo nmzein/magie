@@ -38,9 +38,9 @@ export class UploaderState {
 		this.#show = false;
 
 		if (
-			this.image === undefined ||
+			!defined(this.image) ||
 			(['provide', 'generate'].includes(this.options.annotations) &&
-				this.options.generator === undefined)
+				!defined(this.options.generator))
 		)
 			return;
 

@@ -98,6 +98,7 @@ pub async fn convert(
     upl_img_path: &Path,
     enc_img_path: &Path,
     thumbnail_path: &Path,
+    encoder: &str,
 ) -> Result<Vec<MetadataLayer>> {
     let Some(extension) = upl_img_path.extension().and_then(|ext| ext.to_str()) else {
         return Err(anyhow::anyhow!("Image has no extension."));
@@ -119,7 +120,7 @@ pub async fn convert(
         )?;
 
         // If successful, return early, otherwise log error and continue.
-        match encoders::export::convert("OMEZarr", &upl_img_path, &enc_img_path, decoder) {
+        match encoders::export::convert(encoder, &upl_img_path, &enc_img_path, decoder) {
             Ok(metadata) => {
                 // Convert thumbnail buffer to JPEG.
                 let thumbnail_jpeg =

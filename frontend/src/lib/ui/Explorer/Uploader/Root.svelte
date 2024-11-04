@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { explorer, repository } from '$states';
-	import { defined } from '$helpers';
 	import TopBar from './TopBar.svelte';
 	import UploadAsset from './UploadAsset.svelte';
 	import * as Pages from '$components/pages/index.ts';
