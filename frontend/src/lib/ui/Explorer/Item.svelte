@@ -130,6 +130,8 @@
 		{:else}
 			<Icon name={value.type} class="my-[-13px] h-[90px] w-[90px]" />
 		{/if}
-		{value.name}
+		<span class="line-clamp-2 break-all">
+			{value.name}
+		</span>
 	</button>
 </div>
