@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "dependencies": {
-    "three": "0.168.0",
-    "@gltf-transform/core": "4.0.8"
+    "three": "0.170.0",
+    "@gltf-transform/core": "4.0.10"
   }
 }

@@ -33,6 +33,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
     )?;
     let files = stmt.query_map([], |row| {
         Ok(File {
+            r#type: "image".into(),
             id: row.get(0)?,
             name: row.get(1)?,
             parent_id: row.get(2)?,
@@ -63,6 +64,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
     )?;
     let directories = stmt.query_map([], |row| {
         Ok(Directory {
+            r#type: "directory".into(),
             id: row.get(0)?,
             name: row.get(1)?,
             lft: row.get(2)?,
@@ -79,6 +81,7 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
         // If top element on the stack has a smaller right value than
         // the current directory, it means it is not a parent of the current directory.
         // Need to collapse the stack until the top element has a right value greater than the current directory.
+        // TODO: Fix unwrap.
         while registry.len() > 1 && directory.rgt > registry.last().unwrap().rgt {
             collapse_stack(&mut registry);
         }
@@ -96,8 +99,6 @@ pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
     while registry.len() > 1 {
         collapse_stack(&mut registry);
     }
-
-    println!("{:#?}", registry[0]);
 
     Ok(registry[0].clone())
 }

@@ -10,6 +10,8 @@ pub type AppState = Arc<Mutex<Connection>>;
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct Directory {
+    #[serde(rename = "type")]
+    pub r#type: String,
     pub id: u32,
     pub name: String,
     #[serde(skip)]
@@ -22,6 +24,8 @@ pub struct Directory {
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct File {
+    #[serde(rename = "type")]
+    pub r#type: String,
     pub id: u32,
     pub name: String,
     #[serde(skip)]
@@ -31,6 +35,14 @@ pub struct File {
 pub enum MoveMode {
     Regular,
     SoftDelete,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub enum DeleteMode {
+    #[serde(alias = "hard")]
+    Hard,
+    #[serde(alias = "soft")]
+    Soft,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -72,10 +84,10 @@ pub struct TileRequest {
 
 #[derive(TryFromMultipart)]
 pub struct UploadAssetRequest {
-    pub parent_directory_id: u32,
+    pub encoder: String,
+    pub generator: Option<String>,
     #[form_data(limit = "unlimited")]
     pub image_file: FieldData<NamedTempFile>,
     #[form_data(limit = "unlimited")]
     pub annotations_file: Option<FieldData<NamedTempFile>>,
-    pub generator_name: String,
 }

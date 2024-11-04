@@ -60,7 +60,7 @@
 {#if defined(image.properties)}
 	<div
 		id="image-layer-{layerIndex}"
-		class="absolute grid h-full w-full"
+		class="absolute grid w-full"
 		style:grid-template-columns={`repeat(${image.properties.metadata[layerIndex].cols}, 1fr)`}
 		style:grid-template-rows={`repeat(${image.properties.metadata[layerIndex].rows}, 1fr)`}
 		style:z-index={image.levels - layerIndex}

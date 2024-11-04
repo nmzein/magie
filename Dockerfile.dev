@@ -1,39 +1,29 @@
-FROM node:21.6.2-bookworm-slim AS node
+FROM oven/bun:1.1.33 AS bun
 FROM rust:1.80.0-slim-bookworm AS rust
 FROM debian:bookworm-slim AS debian
 
 # =======================================
 
-FROM node AS frontend
+FROM bun AS frontend
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update
+# Install frontend.
+WORKDIR /frontend
 
-RUN --mount=type=cache,target=/var/cache/npm \
-    npm install -g vite
+COPY ./frontend/package.json ./
+COPY ./frontend/bun.lockb ./
+COPY ./frontend/tsconfig.json ./
+COPY ./frontend/svelte.config.js ./
+COPY ./frontend/vite.config.ts ./
 
-WORKDIR /app/frontend
+RUN bun install --frozen-lockfile --ignore-scripts
 
-# Copy only necessary files to minimise rebuild.
-COPY ./frontend/package*.json /app/frontend
-COPY ./frontend/tsconfig.json /app/frontend
-COPY ./frontend/svelte.config.js /app/frontend
-COPY ./frontend/vite.config.ts /app/frontend
+# Install geometry-computer.
+WORKDIR /backend
 
-RUN --mount=type=cache,target=/var/cache/app/npm \
-    npm ci --legacy-peer-deps
+COPY ./backend/geometry-computer/package.json ./
+COPY ./backend/geometry-computer/bun.lockb ./
 
-# Copy rest of files.
-COPY ./frontend /app/frontend
-
-WORKDIR /app
-COPY .env /app
-# Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
-RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' /app/.env
-
-WORKDIR /app/backend/geometry-computer
-COPY /backend/geometry-computer /app/backend/geometry-computer
-RUN npm install
+RUN bun install --frozen-lockfile
 
 # =======================================
 
@@ -48,42 +38,46 @@ RUN --mount=type=cache,target=/var/cache/apt \
                        libclang-dev \
                        libopenslide-dev \
                        libssl-dev
-                       
-WORKDIR /app/backend
 
-COPY --from=frontend /app/.env /app
+COPY .env ./
+# Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
+RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' ./.env
 
-COPY ./backend /app/backend
+WORKDIR /backend
+COPY ./backend ./
 RUN cargo build
 
 # =======================================
 
 FROM debian AS final
 
-COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
-COPY --from=frontend /usr/local/include/node /usr/local/include/node
-COPY --from=frontend /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
+COPY --from=frontend /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=frontend /usr/local/bin/bunx /usr/local/bin/bunx
 COPY --from=backend /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
+COPY --from=backend .env ./app/.env
 
 WORKDIR /app/frontend
 
-COPY --from=frontend /app/.env /app
-COPY --from=frontend /app/frontend /app/frontend
+# Copy node_modules from the frontend build.
+COPY --from=frontend /frontend/node_modules ./node_modules
+# Copy frontend source files.
+COPY ./frontend ./
+
+WORKDIR /app/backend/geometry-computer
+COPY --from=frontend ./backend/node_modules ./
+COPY ./backend/geometry-computer ./
 
 WORKDIR /app/backend
-
-COPY --from=backend /app/backend/target/debug/rendering_engine /app/backend
-COPY --from=frontend /app/backend/geometry-computer /app/backend/geometry-computer
-
+COPY --from=backend /backend/target/debug/rendering_engine ./
 RUN mkdir -p ./state
-RUN mkdir -p ./stores
-RUN mkdir -p ./stores/Local Storage
-RUN mkdir -p ./stores/Bin
 
 WORKDIR /app
+RUN mkdir -p ./stores
+# TODO: This should be handled by the app.
+RUN mkdir -p ./stores/Local Storage
+RUN mkdir -p ./stores/Bin
 
 EXPOSE 4000
 EXPOSE 3000
 
-CMD /bin/bash -c "cd backend && ./rendering_engine & cd frontend && npm run ci:dev -- --host"
+CMD /bin/bash -c "cd backend && ./rendering_engine & cd frontend && bun dev -- --host"

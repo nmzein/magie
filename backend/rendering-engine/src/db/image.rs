@@ -8,6 +8,8 @@ pub fn insert(
     parent_id: u32,
     name: &str,
     upl_img_ext: &str,
+    upl_img_fmt: &str,
+    enc_img_fmt: &str,
     annotations_ext: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
     annotation_layers: Vec<InAnnotationLayer>,
@@ -19,10 +21,10 @@ pub fn insert(
     // TODO: Remove hardcoding.
     transaction.execute(
         r#"
-            INSERT INTO images (parent_id, name, upl_img_ext, enc_img_ext, upl_img_fmt, enc_img_fmt, upl_anno_ext)
+            INSERT INTO images (parent_id, name, upl_img_ext, upl_img_fmt, enc_img_ext, enc_img_fmt, upl_anno_ext)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
         "#,
-        (parent_id, name, upl_img_ext, "zarr", upl_img_ext, "omezarr", annotations_ext),
+        (parent_id, name, upl_img_ext,  upl_img_fmt, "zarr", enc_img_fmt, annotations_ext),
     )?;
 
     let image_id = transaction.last_insert_rowid();
@@ -204,6 +206,51 @@ pub fn get_annotation_layer_path(
         &format!("GET <Annotation Layer Path: {image_id}:{path}>"),
         Some(&layer),
     );
+
+    Ok(path)
+}
+
+pub fn r#move(id: u32, destination_id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
+    let conn = conn.lock().unwrap();
+    let mut stmt = conn.prepare(
+        r#"
+            UPDATE images
+            SET parent_id = ?1
+            WHERE id = ?2;
+        "#,
+    )?;
+
+    stmt.execute([destination_id, id])?;
+
+    #[cfg(feature = "log.database")]
+    log(
+        &format!("MOVE <Image: {id}> to <Directory: {destination_id}>"),
+        None,
+    );
+
+    Ok(())
+}
+
+pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
+    let (parent_id, name): (u32, String);
+    {
+        let conn = conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT parent_id, name
+            FROM images
+            WHERE id = ?1;
+            "#,
+        )?;
+
+        (parent_id, name) = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+    }
+
+    let parent_directory_path = crate::db::directory::path(parent_id, Arc::clone(&conn))?;
+    let path = parent_directory_path.join(name);
+
+    #[cfg(feature = "log.database")]
+    log(&format!("GET <Image Path: {id}>"), Some(&path));
 
     Ok(path)
 }

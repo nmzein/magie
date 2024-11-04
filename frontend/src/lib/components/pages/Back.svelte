@@ -8,6 +8,11 @@
 	let pState = getPagesState();
 </script>
 
-<Button variant="primary" invisible={pState.firstPage} onclick={() => pState.back()}>
+<Button
+	variant="primary"
+	class="text-sm"
+	invisible={pState.firstPage}
+	onclick={() => pState.back()}
+>
 	{@render children()}
 </Button>

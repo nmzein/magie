@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { IMAGE_ANNOTATIONS_URL } from '$api';
+	import { IMAGE_URL } from '$api';
 	import { defined } from '$helpers';
 	import type { AnnotationLayer } from '$types';
 	import { onMount } from 'svelte';
@@ -29,9 +29,7 @@
 	);
 
 	onMount(async () => {
-		const data = await loader.loadAsync(
-			`${IMAGE_ANNOTATIONS_URL}?image_id=${imageId}&annotation_layer_id=${layer.id}`
-		);
+		const data = await loader.loadAsync(`${IMAGE_URL}/${imageId}/annotations/${layer.id}`);
 
 		const node = data.scene.children[0];
 

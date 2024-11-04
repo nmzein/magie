@@ -12,7 +12,7 @@
 			{#if item.id !== 1}
 				<Button
 					onclick={() => explorer.routeTo([item.id])}
-					class="hover:bg-primary/15 flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7.5px]"
+					class="flex w-full items-center gap-[10px] rounded-lg py-2 text-left hover:underline"
 				>
 					{item.name}
 				</Button>

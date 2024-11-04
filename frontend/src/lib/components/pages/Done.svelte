@@ -9,6 +9,12 @@
 	let pState = getPagesState();
 </script>
 
-<Button variant="primary" hidden={!pState.lastPage} disabled={!enabled} onclick={done}>
+<Button
+	variant="primary"
+	class="text-sm"
+	hidden={!pState.lastPage}
+	disabled={!enabled}
+	onclick={done}
+>
 	{@render children()}
 </Button>

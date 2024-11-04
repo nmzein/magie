@@ -1,10 +1,29 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
-	import { setDropdownState, type DropdownClasses } from './context.svelte';
+	import { untrack, type Snippet } from 'svelte';
+	import { getDropdownState, setDropdownState, type DropdownClasses } from './context.svelte';
 
-	let { classes, children }: { classes: DropdownClasses; children: Snippet } = $props();
+	let {
+		show = $bindable(false),
+		classes,
+		children
+	}: { show?: boolean; classes: DropdownClasses; children: Snippet } = $props();
 
 	setDropdownState(classes);
+	let dState = getDropdownState();
+
+	$effect(() => {
+		show;
+		untrack(() => {
+			dState.show = show;
+		});
+	});
+
+	$effect(() => {
+		dState.show;
+		untrack(() => {
+			show = dState.show;
+		});
+	});
 </script>
 
 <div>

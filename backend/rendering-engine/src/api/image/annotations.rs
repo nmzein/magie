@@ -9,10 +9,10 @@ pub struct Params {
 
 pub async fn annotations(
     Extension(conn): Extension<AppState>,
-    Query(Params {
+    Path(Params {
         image_id,
         annotation_layer_id,
-    }): Query<Params>,
+    }): Path<Params>,
 ) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(

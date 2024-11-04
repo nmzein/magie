@@ -3,7 +3,7 @@ import { http, websocket } from '$api';
 import { transformer } from '$states';
 import { defined } from '$helpers';
 
-export class ImageViewer {
+export class ImageState {
 	public info: Image | undefined = $state();
 	public properties: Properties | undefined = $state();
 	// TODO: Figure out why this scaling is needed.

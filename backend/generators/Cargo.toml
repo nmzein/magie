@@ -11,11 +11,11 @@ shared = { version = "0.1.0", path = "../shared" }
 anyhow = { workspace = true }
 
 # Optional Dependencies
-flate2 = { version = "1.0.33", optional = true }
+flate2 = { version = "1.0.34", optional = true }
 geo-types = { version = "0.7.13", optional = true }
-rusqlite = { version = "0.31.0", features = ["bundled"], optional = true }
-serde = { version = "1.0.209", features = ["derive"], optional = true }
-serde_json = { version = "1.0.127", optional = true }
+rusqlite = { version = "0.32.1", features = ["bundled"], optional = true }
+serde = { version = "1.0.214", features = ["derive"], optional = true }
+serde_json = { version = "1.0.132", optional = true }
 wkb = { version = "0.7.1", optional = true }
 
 [features]

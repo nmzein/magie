@@ -1,14 +1,14 @@
-import { Explorer } from './explorer.svelte';
-import { Repository } from './repository.svelte';
-import { SelectionBox } from './selection-box.svelte';
-import { Uploader } from './uploader.svelte';
-import { ImageViewer } from './image.svelte';
+import { ExplorerState } from './explorer.svelte';
+import { RepositoryState } from './repository.svelte';
+import { SelectionBoxState } from './selection-box.svelte';
+import { ImageState } from './image.svelte';
 import { Transformer } from './transformer.svelte';
+import { ContextMenuState } from './context-menu.svelte';
 
-export { SelectionBox };
+export { SelectionBoxState };
 
-export const repository = new Repository();
-export const explorer = new Explorer();
-export const uploader = new Uploader();
-export const image = new ImageViewer();
+export const repository = new RepositoryState();
+export const explorer = new ExplorerState();
+export const image = new ImageState();
 export const transformer = Transformer();
+export const contextMenu = new ContextMenuState();
