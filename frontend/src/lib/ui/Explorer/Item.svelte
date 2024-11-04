@@ -30,7 +30,7 @@
 
 	let selected = $derived(explorer.isSelected(value));
 
-	function handlePointerDown(event: PointerEvent) {
+	function onpointerdown(event: PointerEvent) {
 		// Stop the mousedown event from
 		// propagating to main panel which would
 		// trigger a deselectAll()
@@ -57,7 +57,7 @@
 		}
 	}
 
-	function handleKeypress(event: KeyboardEvent) {
+	function onkeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			handleOpen();
 		}
@@ -80,13 +80,14 @@
 		class={twMerge(
 			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
 		)}
-		onpointerdown={(e) => handlePointerDown(e)}
-		ondblclick={() => handleOpen()}
-		onkeypress={(e) => handleKeypress(e)}
+		{onpointerdown}
+		ondblclick={handleOpen}
+		{onkeypress}
 		oncontextmenu={(e) => {
 			e.stopPropagation();
 			e.preventDefault();
 			if (!selected) {
+				explorer.deselectAll();
 				explorer.select(value);
 			}
 			contextMenu.show = true;
