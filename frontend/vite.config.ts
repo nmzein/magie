@@ -4,8 +4,5 @@ import Icons from 'unplugin-icons/vite';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-	plugins: [sveltekit(), tailwindcss(), Icons({ compiler: 'svelte' })],
-	define: {
-		'process.env.NODE_ENV': '"production"'
-	}
+	plugins: [sveltekit(), tailwindcss(), Icons({ compiler: 'svelte' })]
 });

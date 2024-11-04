@@ -5,6 +5,6 @@
   "type": "module",
   "dependencies": {
     "three": "0.170.0",
-    "@gltf-transform/core": "4.0.10"
+    "@gltf-transform/core": "4.1.0"
   }
 }
