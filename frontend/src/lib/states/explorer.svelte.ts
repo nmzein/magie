@@ -17,6 +17,9 @@ export class ExplorerState {
 	emptyClipboard = $derived(this.clipboard.items.length === 0);
 	// Pinned directories (in side panel).
 	#pinned: Navigable[] = $state([]);
+	get pinned() {
+		return this.#pinned;
+	}
 	// Stack of directories to keep track of navigation.
 	// TODO: Default to directory last opened by the user.
 	#stack: Route[] = $state([[2]]);
