@@ -26,7 +26,7 @@
 </script>
 
 <div
-	class="panel flex max-w-[800px] origin-center origin-center flex-col !border-none"
+	class="panel flex min-w-48 max-w-[800px] origin-center origin-center flex-col !border-none"
 	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
 	use:resizeobserver={(v) => (explorerBounds = v)}
 	onwheel={(e) => e.stopPropagation()}

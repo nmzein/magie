@@ -10,21 +10,18 @@
 }
 
 @theme {
-	--animate-*: initial;
+	/* --animate-*: initial;
 	--blur-*: initial;
 	--breakpoint-*: initial;
 	--color-*: initial;
+	--font-family-*: initial;
 	--inset-shadow-*: initial;
 	--letter-spacing-*: initial;
 	--line-height-*: initial;
 	--perspective-*: initial;
 	--shadow-*: initial;
 	--transition-timing-function-*: initial;
-	--width-*: initial;
-
-	--font-family-sans: 'JetBrains Mono', monospace;
-	--font-family-serif: 'JetBrains Mono', monospace;
-	--font-family-mono: 'JetBrains Mono', monospace;
+	--width-*: initial; */
 
 	--color-black: rgb(0, 0, 0);
 	--color-white: rgb(255, 255, 255);
@@ -43,7 +40,7 @@ body {
 	margin: 0;
 	background-color: #292929;
 	overflow: invisible;
-	color: white;
+	color: var(--color-primary);
 }
 
 input {
@@ -53,7 +50,6 @@ input {
 select {
 	border: none;
 	cursor: pointer;
-
 	font-weight: 500;
 }
 

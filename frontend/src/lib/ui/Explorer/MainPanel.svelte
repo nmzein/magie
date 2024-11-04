@@ -80,24 +80,26 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="relative grid h-[400px] select-none grid-cols-[repeat(4,calc(25%-7.5px))] grid-rows-[repeat(4,1fr)] gap-[10px] px-5 py-[10px] {contextMenu.show
+	class="@container relative h-[400px] select-none p-3 {contextMenu.show
 		? 'overflow-hidden'
 		: 'overflow-auto'}"
 	use:boundingclientrect={(v) => (mainPanelBounds = v)}
 	{onpointerdown}
 	{oncontextmenu}
 >
-	{#if defined(explorer.currentDirectory) && defined(selectionBoxState)}
-		{#if explorer.directoryCreator.show}
-			<DirectoryCreator />
+	<div class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 grid grid-cols-1 gap-3">
+		{#if defined(explorer.currentDirectory) && defined(selectionBoxState)}
+			{#if explorer.directoryCreator.show}
+				<DirectoryCreator />
+			{/if}
+			{#each explorer.currentDirectory.data.subdirectories as subdirectory}
+				<Item value={subdirectory} {selectionBoxState} />
+			{/each}
+			{#each explorer.currentDirectory.data.files as file}
+				<Item value={file} {selectionBoxState} />
+			{/each}
 		{/if}
-		{#each explorer.currentDirectory.data.subdirectories as subdirectory}
-			<Item value={subdirectory} {selectionBoxState} />
-		{/each}
-		{#each explorer.currentDirectory.data.files as file}
-			<Item value={file} {selectionBoxState} />
-		{/each}
-	{/if}
+	</div>
 
 	<div
 		bind:this={selectionBoxElement}
