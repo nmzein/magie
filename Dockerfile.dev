@@ -1,5 +1,5 @@
 FROM oven/bun:1.1.33 AS bun
-FROM rust:1.80.0-slim-bookworm AS rust
+FROM rust:1.83.0-slim-bookworm AS rust
 FROM debian:bookworm-slim AS debian
 
 # =======================================
