@@ -86,18 +86,21 @@ async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
                 }
             };
 
-            let _ = sender.send(Message::Binary(tile)).await.map_err(|e| {
-                log(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!(
-                        "Failed to send tile for image with id: {}.",
-                        tile_request.id
-                    ),
-                    Some(e),
-                );
+            let _ = sender
+                .send(Message::Binary(tile.into()))
+                .await
+                .map_err(|e| {
+                    log(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        &format!(
+                            "Failed to send tile for image with id: {}.",
+                            tile_request.id
+                        ),
+                        Some(e),
+                    );
 
-                return;
-            });
+                    return;
+                });
         });
     }
 }

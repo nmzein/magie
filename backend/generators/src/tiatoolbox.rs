@@ -1,13 +1,11 @@
 use crate::common::*;
 use flate2::read::ZlibDecoder;
-use geo_types::Geometry::Polygon;
+use geo_traits::to_geo::ToGeoGeometry;
+use geo_types::Geometry;
 use rusqlite::Connection;
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    io::{Cursor, Read},
-};
-use wkb::WKBReadExt;
+use std::{collections::HashMap, io::Read};
+use wkb::reader;
 
 pub const NAME: &str = "TIAToolbox";
 
@@ -75,19 +73,23 @@ impl Annotation {
     fn parse_geometry(&self) -> Result<Vec<[f64; 2]>> {
         // Decompress zlib compressed geometry.
         let mut decoder = ZlibDecoder::new(&*self.geometry);
-        let mut wkb = Vec::new();
-        decoder.read_to_end(&mut wkb)?;
+        let mut buf = Vec::new();
+        decoder.read_to_end(&mut buf)?;
 
         // Read geometry stored in well-known bytes format.
-        let mut cursor = Cursor::new(wkb);
-
-        let Ok(Polygon(polygon)) = cursor.read_wkb() else {
+        let Ok(Some(polygon)) = reader::read_wkb(&mut buf).and_then(|g| Ok(g.try_to_geometry()))
+        else {
             return Err(anyhow::anyhow!("Failed to read wkb."));
         };
 
-        let (exterior, _) = polygon.into_inner();
+        match polygon {
+            Geometry::Polygon(polygon) => {
+                let (exterior, _) = polygon.into_inner();
 
-        Ok(exterior.0.iter().map(|coord| [coord.x, coord.y]).collect())
+                Ok(exterior.0.iter().map(|coord| [coord.x, coord.y]).collect())
+            }
+            _ => Err(anyhow::anyhow!("Failed to retrieve polygon.")),
+        }
     }
 
     fn parse_properties(&self) -> Result<Properties> {

@@ -12,13 +12,14 @@ anyhow = { workspace = true }
 
 # Optional Dependencies
 flate2 = { version = "1.0.35", optional = true }
+geo-traits = { version = "0.2.0", optional = true}
 geo-types = { version = "0.7.14", optional = true }
 rusqlite = { version = "0.32.1", features = ["bundled"], optional = true }
-serde = { version = "1.0.216", features = ["derive"], optional = true }
-serde_json = { version = "1.0.134", optional = true }
-wkb = { version = "0.7.1", optional = true }
+serde = { version = "1.0.217", features = ["derive"], optional = true }
+serde_json = { version = "1.0.135", optional = true }
+wkb = { version = "0.8.0", optional = true }
 
 [features]
 default = ["tiatoolbox"]
 
-tiatoolbox = ["dep:flate2", "dep:geo-types", "dep:rusqlite", "dep:serde", "dep:serde_json", "dep:wkb"]
+tiatoolbox = ["dep:flate2", "dep:geo-traits", "dep:geo-types", "dep:rusqlite", "dep:serde", "dep:serde_json", "dep:wkb"]

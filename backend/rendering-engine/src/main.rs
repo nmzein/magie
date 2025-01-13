@@ -62,20 +62,20 @@ async fn main() {
         .allow_headers([CONTENT_TYPE]);
 
     let directory_routes = Router::new()
-        .route("/:parent_id/:name", post(api::directory::create::create))
-        .route("/:id", delete(api::directory::delete::delete))
+        .route("/{parent_id}/{name}", post(api::directory::create::create))
+        .route("/{id}", delete(api::directory::delete::delete))
         // TODO: Make this endpoint accept rename too
-        .route("/:id", patch(api::directory::r#move::r#move));
+        .route("/{id}", patch(api::directory::r#move::r#move));
 
     let image_routes = Router::new()
-        .route("/:parent_id/:name", post(api::image::upload::upload))
-        .route("/:id", delete(api::image::delete::delete))
+        .route("/{parent_id}/{name}", post(api::image::upload::upload))
+        .route("/{id}", delete(api::image::delete::delete))
         // TODO: Make this endpoint accept rename too
-        .route("/:id", patch(api::image::r#move::r#move))
-        .route("/:id/properties", get(api::image::properties::properties))
-        .route("/:id/thumbnail", get(api::image::thumbnail::thumbnail))
+        .route("/{id}", patch(api::image::r#move::r#move))
+        .route("/{id}/properties", get(api::image::properties::properties))
+        .route("/{id}/thumbnail", get(api::image::thumbnail::thumbnail))
         .route(
-            "/:image_id/annotations/:annotation_layer_id",
+            "/{image_id}/annotations/{annotation_layer_id}",
             get(api::image::annotations::annotations),
         );
 
