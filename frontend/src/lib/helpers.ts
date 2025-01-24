@@ -1,51 +1,109 @@
-import {
-	type ClientRequest,
-	type ServerResponse,
-	requestHandler,
-	responseHandler
-} from './api.helpers';
+import { type ServerResponse, responseHandler } from './api.helpers';
 
-export async function request<
-	M extends ClientRequest['method'],
-	D extends ServerResponse['data_type']
->(request: Extract<ClientRequest, { method: M }>): Promise<D | undefined> {
-	const { url, method, headers, body } = requestHandler[request.method](request);
+type RawRequest = {
+	method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+	url: string;
+	query?: Record<string, any>;
+	body?: Record<string, any>;
+	content_type?: 'json' | 'form';
+};
 
-	return await attempt(fetch(url, { method, headers, body })).then(([error, response]) => {
-		if (error) {
-			console.error(`Fetch Error [${url.pathname}${url.search}]:`, error);
-			return;
+class FetchHandler {
+	private url(req: RawRequest): URL {
+		const url = new URL(req.url);
+		url.search = new URLSearchParams(req.query).toString();
+		return url;
+	}
+
+	private content(req: RawRequest) {
+		if (!req.body) return;
+		if (!req.content_type) req.content_type = 'json';
+
+		const headers = new Headers();
+		let body: string | FormData | undefined;
+
+		switch (req.content_type) {
+			case 'json': {
+				headers.set('Content-Type', 'application/json');
+				body = JSON.stringify(req.body);
+				break;
+			}
+			case 'form': {
+				headers.set('Content-Type', 'multipart/form-data');
+				body = new FormData();
+				for (const [key, value] of Object.entries(req.body)) {
+					if (defined(value)) body.append(key, value);
+				}
+				break;
+			}
 		}
 
-		if (!response.ok) {
-			console.error(
-				`Response Error [${url.pathname}${url.search}]:`,
-				response.status,
-				response.statusText
-			);
-			return;
-		}
+		return { headers, body };
+	}
 
-		const contentType = response.headers.get('Content-Type') as ServerResponse['content_type'];
-		const handler = responseHandler[contentType];
+	async request<T>(req: RawRequest): Promise<T | undefined> {
+		const url = this.url(req);
+		const content = this.content(req);
 
-		if (!contentType || !handler) {
-			console.error(
-				`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${contentType}`
-			);
-			return;
-		}
-
-		return attempt(handler(response) as Promise<D>).then(([error, result]) => {
+		return await attempt(
+			fetch(url, { method: req.method, headers: content?.headers, body: content?.body })
+		).then(([error, response]) => {
 			if (error) {
-				console.error(`Parse Error [${url.pathname}${url.search}]:`, error);
+				console.error(`Fetch Error [${url.pathname}${url.search}]:`, error);
 				return;
 			}
 
-			return result;
+			if (!response.ok) {
+				console.error(
+					`Response Error [${url.pathname}${url.search}]:`,
+					response.status,
+					response.statusText
+				);
+				return;
+			}
+
+			const contentType = response.headers.get('Content-Type') as ServerResponse['content_type'];
+			const handler = responseHandler[contentType];
+
+			if (!contentType || !handler) {
+				console.error(
+					`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${contentType}`
+				);
+				return;
+			}
+
+			return attempt(handler(response)).then(([error, result]) => {
+				if (error) {
+					console.error(`Parse Error [${url.pathname}${url.search}]:`, error);
+					return;
+				}
+
+				return result as T;
+			});
 		});
-	});
+	}
+
+	get<T>({
+		url,
+		query
+	}: Omit<RawRequest, 'method' | 'body' | 'content_type'>): Promise<T | undefined> {
+		return this.request({ method: 'GET', url, query });
+	}
+
+	post<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'POST', url, query, body });
+	}
+
+	patch<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'PATCH', url, query, body });
+	}
+
+	delete<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'DELETE', url, query, body });
+	}
 }
+
+export const request = new FetchHandler();
 
 export function appendPx<T extends Record<string, number>>(values: T): T {
 	const result = {} as T;

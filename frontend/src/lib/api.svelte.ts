@@ -16,32 +16,20 @@ const WEBSOCKET_URL = new URL(PUBLIC_WS_SCHEME + BASE_URL + '/api/websocket');
 
 export const http = (() => {
 	async function registry(): Promise<Directory | undefined> {
-		return await request({
-			method: 'GET',
-			url: `${HTTP_URL}/registry`
-		});
+		return await request.get({ url: `${HTTP_URL}/registry` });
 	}
 
 	async function generators(): Promise<string[] | undefined> {
-		return await request({
-			method: 'GET',
-			url: `${HTTP_URL}/generators`
-		});
+		return await request.get({ url: `${HTTP_URL}/generators` });
 	}
 
 	const image = (() => {
 		async function properties(id: number): Promise<Properties | undefined> {
-			return await request({
-				method: 'GET',
-				url: `${IMAGE_URL}/${id}/properties`
-			});
+			return await request.get({ url: `${IMAGE_URL}/${id}/properties` });
 		}
 
 		async function thumbnail(id: number): Promise<HTMLImageElement | undefined> {
-			const blob: Blob | undefined = await request({
-				method: 'GET',
-				url: `${IMAGE_URL}/${id}/thumbnail`
-			});
+			const blob: Blob | undefined = await request.get({ url: `${IMAGE_URL}/${id}/thumbnail` });
 
 			if (!defined(blob)) return;
 
@@ -51,8 +39,7 @@ export const http = (() => {
 		}
 
 		async function remove(id: number, mode: 'soft' | 'hard') {
-			const registry: Directory | undefined = await request({
-				method: 'DELETE',
+			const registry: Directory | undefined = await request.delete({
 				url: `${IMAGE_URL}/${id}`,
 				query: { mode }
 			});
@@ -63,11 +50,10 @@ export const http = (() => {
 		}
 
 		async function move(id: number, parent_id: number) {
-			const registry: Directory | undefined = await request({
-				method: 'PATCH',
+			const registry: Directory | undefined = await request.patch({
 				url: `${IMAGE_URL}/${id}`,
 				body: { parent_id },
-				content_type: 'application/json'
+				content_type: 'json'
 			});
 
 			if (!defined(registry)) return;
@@ -81,8 +67,7 @@ export const http = (() => {
 			annotations_file: File | undefined,
 			options: UploaderOptions
 		) {
-			const registry: Directory | undefined = await request({
-				method: 'POST',
+			const registry: Directory | undefined = await request.post({
 				url: `${IMAGE_URL}/${parent_id}/${options.name}`,
 				body: {
 					encoder: options.encoder,
@@ -90,7 +75,7 @@ export const http = (() => {
 					image_file,
 					annotations_file
 				},
-				content_type: 'multipart/form-data'
+				content_type: 'form'
 			});
 
 			if (!defined(registry)) return;
@@ -105,8 +90,7 @@ export const http = (() => {
 		async function create(parent_id: number, name: string) {
 			// Using POST here because even though this is idempotent,
 			// the client does not specify the created directory's id.
-			const registry: Directory | undefined = await request({
-				method: 'POST',
+			const registry: Directory | undefined = await request.post({
 				url: `${DIRECTORY_URL}/${parent_id}/${name}`
 			});
 
@@ -116,8 +100,7 @@ export const http = (() => {
 		}
 
 		async function remove(id: number, mode: 'soft' | 'hard') {
-			const registry: Directory | undefined = await request({
-				method: 'DELETE',
+			const registry: Directory | undefined = await request.delete({
 				url: `${DIRECTORY_URL}/${id}`,
 				query: { mode }
 			});
@@ -128,11 +111,10 @@ export const http = (() => {
 		}
 
 		async function move(id: number, parent_id: number) {
-			const registry: Directory | undefined = await request({
-				method: 'PATCH',
+			const registry: Directory | undefined = await request.patch({
 				url: `${DIRECTORY_URL}/${id}`,
 				body: { parent_id },
-				content_type: 'application/json'
+				content_type: 'json'
 			});
 
 			if (!defined(registry)) return;

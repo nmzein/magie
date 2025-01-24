@@ -25,7 +25,7 @@ export class ImageState {
 	public async load(info: Image) {
 		this.reset();
 
-		const properties = await http.GetProperties(info.id);
+		const properties = await http.image.properties(info.id);
 
 		if (!defined(properties) || properties.metadata.length === 0) return;
 

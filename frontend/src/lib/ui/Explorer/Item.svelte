@@ -17,7 +17,7 @@
 
 	onMount(async () => {
 		if (value.type === 'image' && value.id !== 1) {
-			thumbnail = await http.GetThumbnail(value.id);
+			thumbnail = await http.image.thumbnail(value.id);
 		}
 	});
 

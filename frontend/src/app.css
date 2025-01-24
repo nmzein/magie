@@ -2,7 +2,7 @@
 
 @font-face {
 	font-family: 'JetBrains Mono';
-	src: local('JetBrains Mono'), url('/JetBrainsMono[wght].ttf');
+	src: url('/JetBrainsMono[wght].ttf');
 	font-weight: 500 600 700;
 	font-style: normal;
 	/* Latin glyphs */

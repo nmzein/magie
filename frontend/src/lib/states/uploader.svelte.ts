@@ -45,9 +45,9 @@ export class UploaderState {
 			return;
 
 		if (this.options.annotations === 'provide') {
-			await http.SendUploadAssets(parentId, this.image, this.annotations, this.options);
+			await http.image.upload(parentId, this.image, this.annotations, this.options);
 		} else {
-			await http.SendUploadAssets(parentId, this.image, undefined, this.options);
+			await http.image.upload(parentId, this.image, undefined, this.options);
 		}
 
 		this.reset();

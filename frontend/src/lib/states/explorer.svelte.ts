@@ -183,10 +183,10 @@ export class ExplorerState {
 		this.selected.forEach((item) => {
 			switch (item.type) {
 				case 'directory':
-					http.DeleteDirectory(item.id, mode);
+					http.directory.remove(item.id, mode);
 					break;
 				case 'image':
-					http.DeleteImage(item.id, mode);
+					http.image.remove(item.id, mode);
 					break;
 			}
 		});
@@ -221,10 +221,10 @@ export class ExplorerState {
 
 				switch (item.type) {
 					case 'directory':
-						http.MoveDirectory(item.id, this.currentDirectory?.data.id);
+						http.directory.move(item.id, this.currentDirectory?.data.id);
 						break;
 					case 'image':
-						http.MoveImage(item.id, this.currentDirectory?.data.id);
+						http.image.move(item.id, this.currentDirectory?.data.id);
 						break;
 				}
 			});
@@ -250,7 +250,7 @@ class DirectoryCreator {
 
 	async create(parentId: number, name: string) {
 		this.#show = false;
-		await http.CreateDirectory(parentId, name);
+		await http.directory.create(parentId, name);
 	}
 
 	close() {
