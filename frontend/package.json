@@ -13,8 +13,8 @@
 	},
 	"devDependencies": {
 		"@eslint/compat": "1.2.5",
-		"@sveltejs/adapter-auto": "3.3.1",
-		"@sveltejs/kit": "2.15.2",
+		"@sveltejs/adapter-auto": "4.0.0",
+		"@sveltejs/kit": "2.16.1",
 		"@sveltejs/vite-plugin-svelte": "5.0.3",
 		"@types/eslint": "9.6.1",
 		"@types/three": "0.172.0",
@@ -24,19 +24,19 @@
 		"globals": "15.14.0",
 		"prettier": "3.4.2",
 		"prettier-plugin-svelte": "3.3.3",
-		"prettier-plugin-tailwindcss": "0.6.9",
-		"svelte": "5.17.3",
+		"prettier-plugin-tailwindcss": "0.6.11",
+		"svelte": "5.19.2",
 		"svelte-check": "4.1.4",
 		"typescript": "5.7.3",
-		"typescript-eslint": "8.20.0",
-		"vite": "6.0.7"
+		"typescript-eslint": "8.21.0",
+		"vite": "6.0.11"
 	},
 	"dependencies": {
-		"@iconify/json": "2.2.294",
-		"@tailwindcss/vite": "4.0.0-beta.9",
-		"canvas": "3.0.1",
+		"@iconify/json": "2.2.299",
+		"@tailwindcss/vite": "4.0.0",
+		"canvas": "3.1.0",
 		"tailwind-merge": "2.6.0",
-		"tailwindcss": "4.0.0-beta.9",
+		"tailwindcss": "4.0.0",
 		"three": "0.172.0",
 		"unplugin-icons": "22.0.0",
 		"ws": "8.18.0"
