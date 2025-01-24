@@ -1,9 +1,67 @@
+import {
+	type ClientRequest,
+	type ServerResponse,
+	requestHandler,
+	responseHandler
+} from './api.helpers';
+
+export async function request<
+	M extends ClientRequest['method'],
+	D extends ServerResponse['data_type']
+>(request: Extract<ClientRequest, { method: M }>): Promise<D | undefined> {
+	const { url, method, headers, body } = requestHandler[request.method](request);
+
+	return await attempt(fetch(url, { method, headers, body })).then(([error, response]) => {
+		if (error) {
+			console.error(`Fetch Error [${url.pathname}${url.search}]:`, error);
+			return;
+		}
+
+		if (!response.ok) {
+			console.error(
+				`Response Error [${url.pathname}${url.search}]:`,
+				response.status,
+				response.statusText
+			);
+			return;
+		}
+
+		const contentType = response.headers.get('Content-Type') as ServerResponse['content_type'];
+		const handler = responseHandler[contentType];
+
+		if (!contentType || !handler) {
+			console.error(
+				`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${contentType}`
+			);
+			return;
+		}
+
+		return attempt(handler(response) as Promise<D>).then(([error, result]) => {
+			if (error) {
+				console.error(`Parse Error [${url.pathname}${url.search}]:`, error);
+				return;
+			}
+
+			return result;
+		});
+	});
+}
+
 export function appendPx<T extends Record<string, number>>(values: T): T {
 	const result = {} as T;
 	Object.entries(values).forEach(([key, value]) => {
 		result[key as keyof T] = `${value}px` as any;
 	});
 	return result;
+}
+
+export function attempt<T>(fn: Promise<T>): Promise<[Error | null, T]> {
+	return fn
+		.then((data) => [null, data] as [null, T])
+		.catch((error) => [
+			error instanceof Error ? error : new Error('Unknown error'),
+			null as unknown as T
+		]);
 }
 
 export function defined<T>(value: T | undefined | null): value is T {
