@@ -1,6 +1,6 @@
 import { http } from '$api';
 import { defined } from '$helpers';
-import { explorer, repository } from '$states';
+import { repository } from '$states';
 import type { UploaderOptions } from '$types';
 
 export class UploaderState {
@@ -26,7 +26,6 @@ export class UploaderState {
 	}
 
 	open() {
-		if (!defined(explorer.currentDirectory)) return;
 		this.#show = true;
 	}
 

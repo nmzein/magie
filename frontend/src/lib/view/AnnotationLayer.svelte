@@ -20,7 +20,7 @@
 	const loader = new GLTFLoader();
 
 	// Materials for this annotation layer.
-	let fillMaterial = $derived(
+	const fillMaterial = $derived(
 		new MeshBasicMaterial({
 			color: layer.fill,
 			opacity: layer.opacity,
@@ -42,12 +42,6 @@
 	$effect(() => {
 		if (defined(mesh)) {
 			mesh.material = fillMaterial;
-			render(layer.tag, mesh);
-		}
-	});
-
-	$effect(() => {
-		if (defined(mesh)) {
 			mesh.visible = layer.visible;
 			render(layer.tag, mesh);
 		}

@@ -12,27 +12,19 @@
 	let y = $state(0);
 
 	let camera: OrthographicCamera | undefined = $derived.by(() => {
-		if (image.width === undefined || image.height === undefined) return;
-		const camera = new OrthographicCamera(0, image.width, 0, -1 * image.height, 0.1, 10);
+		if (!image.initialised) return;
+		const camera = new OrthographicCamera(0, image.width!, 0, -1 * image.height!, 0.1, 10);
 		camera.position.z = 1;
 
 		return camera;
 	});
 
-	// TODO: FIX
+	// TODO: Move this effect inside Transformer.
 	$effect(() => {
-		if (!image.initialised || image.properties === undefined) return;
+		if (!image.initialised) return;
 
-		for (let i = 0; i < image.levels; i++) {
-			if (image.properties.metadata[i].cols <= 4 || image.properties.metadata[i].rows <= 4) {
-				transformer.maxLevel = i - 1;
-				transformer.currentLevel = i - 1;
-				break;
-			}
-		}
-
-		// transformer.maxLevel = image.properties.metadata.length - 1;
-		// transformer.currentLevel = image.properties.metadata.length - 1;
+		transformer.maxLevel = image.properties!.metadata.length - 1;
+		transformer.currentLevel = image.properties!.metadata.length - 1;
 	});
 
 	function onmousedown(event: MouseEvent) {
@@ -118,7 +110,7 @@
 	let canvas: HTMLCanvasElement | undefined = $state();
 
 	const CANVAS_HEIGHT = 8000;
-	let CANVAS_WIDTH = $derived.by(() => {
+	const CANVAS_WIDTH = $derived.by(() => {
 		if (!image.initialised || !defined(image.width) || !defined(image.height)) return;
 		return CANVAS_HEIGHT * (image.width / image.height);
 	});
@@ -181,26 +173,28 @@
 		style="transform: translate({transformer.offsetX}px, {transformer.offsetY}px) scale({transformer.scale});
 			   {isDragging ? '' : 'transition: transform 0.2s;'}"
 	>
-		{#if image.initialised && defined(image.properties) && image.properties.annotations.length > 0}
-			<div id="annotation-layers" class="absolute z-20 h-full w-full">
-				{#if defined(CANVAS_WIDTH)}
-					<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
-					></canvas>
-				{/if}
-				{#if defined(image.info) && defined(camera) && defined(renderer) && defined(scene)}
-					{#each image.properties.annotations as layer}
-						<AnnotationLayer imageId={image.info.id} {layer} {render} />
+		{#if image.initialised}
+			{#if image.properties!.annotations.length > 0}
+				<div id="annotation-layers" class="absolute z-20 h-full w-full">
+					{#if defined(CANVAS_WIDTH)}
+						<canvas bind:this={canvas} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} class="w-full"
+						></canvas>
+					{/if}
+					{#if defined(camera) && defined(renderer) && defined(scene)}
+						{#each image.properties!.annotations as layer}
+							<AnnotationLayer imageId={image.info!.id} {layer} {render} />
+						{/each}
+					{/if}
+				</div>
+			{/if}
+			<div id="image-layers" class="absolute z-10 h-full w-full">
+				{#if defined(transformer.currentLevel)}
+					{#each image.tiles as layer, layerIndex}
+						<ImageLayer {layer} {layerIndex} display={layerIndex === transformer.currentLevel} />
 					{/each}
 				{/if}
 			</div>
 		{/if}
-		<div id="image-layers" class="absolute z-10 h-full w-full">
-			{#if defined(transformer.currentLevel)}
-				{#each image.tiles as layer, layerIndex}
-					<ImageLayer {layer} {layerIndex} display={layerIndex === transformer.currentLevel} />
-				{/each}
-			{/if}
-		</div>
 	</div>
 	{#if image.initialised}
 		<div

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import Button from '$components/Button.svelte';
-	import { defined } from '$helpers';
 	import Icon from '$icon';
-	import { explorer } from '$states';
 
 	let {
 		asset = $bindable(),
@@ -14,18 +12,11 @@
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
-		setAsset(event.dataTransfer?.files?.[0]);
+		asset = event.dataTransfer?.files?.[0];
 	}
 
 	function handleBrowse(event: Event) {
-		setAsset((event.target as HTMLInputElement).files?.[0]);
-	}
-
-	function setAsset(file: File | undefined) {
-		if (!defined(file)) return;
-
-		asset = file;
-		explorer.uploader.options.name = file.name;
+		asset = (event.target as HTMLInputElement).files?.[0];
 	}
 </script>
 

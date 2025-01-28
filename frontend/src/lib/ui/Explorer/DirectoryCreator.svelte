@@ -8,7 +8,7 @@
 	let name = $state('');
 
 	$effect(() => {
-		explorer.deselectAll();
+		explorer!.deselectAll();
 
 		let timeout = setTimeout(() => {
 			document.addEventListener('click', handleClick);
@@ -21,7 +21,7 @@
 	});
 
 	function handleClick(event: MouseEvent) {
-		if (!defined(button) || !defined(explorer.currentDirectory)) return;
+		if (!defined(button) || !defined(explorer!.directory)) return;
 
 		let clickedInside = button.contains(event.target as Node);
 
@@ -30,16 +30,16 @@
 
 		if (!clickedInside && name == '') {
 			// Clicked outside and no name was set, cancel creation.
-			explorer.directoryCreator.close();
+			explorer!.directoryCreator.close();
 		} else {
 			// Clicked anywhere and a name was set, create directory.
-			explorer.directoryCreator.create(explorer.currentDirectory.data.id, name);
+			explorer!.directoryCreator.create(explorer!.directory.data.id, name);
 		}
 	}
 
 	function onkeypress(event: KeyboardEvent) {
-		if (event.key === 'Enter' && name !== '' && defined(explorer.currentDirectory)) {
-			explorer.directoryCreator.create(explorer.currentDirectory.data.id, name);
+		if (event.key === 'Enter' && name !== '' && defined(explorer!.directory)) {
+			explorer!.directoryCreator.create(explorer!.directory.data.id, name);
 		}
 	}
 </script>

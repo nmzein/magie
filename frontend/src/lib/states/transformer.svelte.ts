@@ -1,5 +1,6 @@
 import { image } from '$states';
 
+// TODO: Make this into a class and move inside ImageViewer.
 /// Handles zoom and offset calculations.
 export const Transformer = () => {
 	const MIN_SCALE = 0.1;

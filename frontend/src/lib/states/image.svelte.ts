@@ -3,31 +3,29 @@ import { http, websocket } from '$api';
 import { transformer } from '$states';
 import { defined } from '$helpers';
 
-export class ImageState {
-	public info: Image | undefined = $state();
-	public properties: Properties | undefined = $state();
+export class ImageViewer {
+	info: Image | undefined = $state();
+	properties: Properties | undefined = $state();
 	// TODO: Figure out why this scaling is needed.
-	public width = $derived.by(() => {
+	width = $derived.by(() => {
 		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
 		return this.properties.metadata[0].width * 1.003;
 	});
-
-	public height = $derived.by(() => {
+	height = $derived.by(() => {
 		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
 		return this.properties.metadata[0].height * 1.003;
 	});
-	public levels: number = $derived(this.properties?.metadata.length ?? 0);
-	public tiles: ImageLayer[] = $state([]);
-	public initialised: boolean = $state(false);
+	levels: number = $derived(this.properties?.metadata.length ?? 0);
+	tiles: ImageLayer[] = $state([]);
+	initialised: boolean = $state(false);
 
 	// TODO: Move into constructor and create new image by invoking new ImageViewer()
-	// Run as soon as metadata is parsed and loaded in GetProperties.
-	public async load(info: Image) {
-		this.reset();
-
+	async load(info: Image) {
 		const properties = await http.image.properties(info.id);
 
 		if (!defined(properties) || properties.metadata.length === 0) return;
+
+		this.#reset();
 
 		this.info = info;
 		this.properties = properties;
@@ -43,15 +41,11 @@ export class ImageState {
 		this.initialised = true;
 	}
 
-	public async getTile(data: TileRequest): Promise<boolean> {
-		if (!this.initialised) {
-			return false;
-		}
-
+	async getTile(data: TileRequest): Promise<boolean> {
 		return websocket.send(data);
 	}
 
-	public async insertTile(event: MessageEvent) {
+	async insertTile(event: MessageEvent) {
 		if (!this.initialised) return;
 
 		const data: Blob = event.data;
@@ -68,7 +62,7 @@ export class ImageState {
 		this.tiles[level][y][x] = newTile;
 	}
 
-	reset() {
+	#reset() {
 		this.initialised = false;
 		this.info = undefined;
 		this.properties = undefined;

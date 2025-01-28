@@ -4,7 +4,7 @@
 </script>
 
 <div class="flex select-none flex-row">
-	<Icon name="back" class="h-10 w-10" onclick={() => explorer.backward()} />
-	<Icon name="forward" class="h-10 w-10" onclick={() => explorer.forward()} />
-	<Icon name="up" class="h-10 w-10" onclick={() => explorer.up()} />
+	<Icon name="back" class="h-10 w-10" onclick={() => explorer!.undo()} />
+	<Icon name="forward" class="h-10 w-10" onclick={() => explorer!.redo()} />
+	<Icon name="up" class="h-10 w-10" onclick={() => explorer!.up()} />
 </div>

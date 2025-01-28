@@ -1,5 +1,6 @@
 import type { Directory } from '$types';
 import { http } from '$api';
+import { InitExplorerState } from '$states';
 
 export class RepositoryState {
 	public registry: Directory | undefined = $state();
@@ -11,6 +12,7 @@ export class RepositoryState {
 		http.registry().then((registry) => {
 			if (registry === undefined) return;
 			this.registry = registry;
+			InitExplorerState();
 		});
 
 		http.generators().then((generators) => {

@@ -1,4 +1,4 @@
-export function boundingclientrect(element: HTMLElement, callback: (value: DOMRect) => void) {
+export function BoundingClientRect(element: HTMLElement, callback: (value: DOMRect) => void) {
 	// Use requestAnimationFrame to continuously poll for changes.
 	function loop() {
 		callback(element.getBoundingClientRect());
@@ -8,12 +8,12 @@ export function boundingclientrect(element: HTMLElement, callback: (value: DOMRe
 	loop();
 }
 
-export function resizeobserver(element: HTMLElement, callback: (bounds: DOMRect) => void) {
+export function ResizeObserver(element: HTMLElement, callback: (bounds: DOMRect) => void) {
 	function update() {
 		callback(element.getBoundingClientRect());
 	}
 
-	const observer = new ResizeObserver(update);
+	const observer = new globalThis.ResizeObserver(update);
 	observer.observe(element);
 
 	update();

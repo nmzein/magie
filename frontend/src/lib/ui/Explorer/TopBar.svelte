@@ -21,23 +21,13 @@
 	let startX: number | undefined = $state();
 	let startY: number | undefined = $state();
 
-	$effect(() => {
-		window.addEventListener('mousemove', handleMouseMove);
-		window.addEventListener('mouseup', handleMouseUp);
-
-		return () => {
-			window.removeEventListener('mousemove', handleMouseMove);
-			window.removeEventListener('mouseup', handleMouseUp);
-		};
-	});
-
-	function handleMouseDown(event: MouseEvent) {
+	function onmousedown(event: MouseEvent) {
 		isDragging = true;
 		startX = event.clientX - offsetX;
 		startY = event.clientY - offsetY;
 	}
 
-	function handleMouseMove(event: MouseEvent) {
+	function onmousemove(event: MouseEvent) {
 		if (
 			!isDragging ||
 			!defined(startX) ||
@@ -65,15 +55,17 @@
 		offsetY = newOffsetY;
 	}
 
-	function handleMouseUp() {
+	function onmouseup() {
 		isDragging = false;
 	}
 </script>
 
+<svelte:window {onmousemove} {onmouseup} />
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="border-b-secondary/20 bg-primary/15 flex flex-row items-center gap-[10px] rounded-t-[inherit] border-b p-[10px] active:cursor-grabbing"
-	onmousedown={handleMouseDown}
+	{onmousedown}
 >
 	<NavigationButtons />
 	<AddressBar />
