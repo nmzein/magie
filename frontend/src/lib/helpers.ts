@@ -5,7 +5,7 @@ type RawRequest = {
 	url: string;
 	query?: Record<string, any>;
 	body?: Record<string, any>;
-	content_type?: 'json' | 'form';
+	type?: 'json' | 'form';
 };
 
 class FetchHandler {
@@ -17,28 +17,22 @@ class FetchHandler {
 
 	private content(req: RawRequest) {
 		if (!req.body) return;
-		if (!req.content_type) req.content_type = 'json';
+		if (!req.type) req.type = 'json';
 
-		const headers = new Headers();
-		let body: string | FormData | undefined;
-
-		switch (req.content_type) {
+		switch (req.type) {
 			case 'json': {
-				headers.set('Content-Type', 'application/json');
-				body = JSON.stringify(req.body);
-				break;
+				const headers = { 'Content-Type': 'application/json' };
+				const body = JSON.stringify(req.body);
+				return { headers, body };
 			}
 			case 'form': {
-				headers.set('Content-Type', 'multipart/form-data');
-				body = new FormData();
+				const body = new FormData();
 				for (const [key, value] of Object.entries(req.body)) {
 					if (defined(value)) body.append(key, value);
 				}
-				break;
+				return { body };
 			}
 		}
-
-		return { headers, body };
 	}
 
 	async request<T>(req: RawRequest): Promise<T | undefined> {
@@ -90,16 +84,16 @@ class FetchHandler {
 		return this.request({ method: 'GET', url, query });
 	}
 
-	post<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'POST', url, query, body });
+	post<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'POST', url, query, body, type });
 	}
 
-	patch<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'PATCH', url, query, body });
+	patch<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'PATCH', url, query, body, type });
 	}
 
-	delete<T>({ url, query, body }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'DELETE', url, query, body });
+	delete<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+		return this.request({ method: 'DELETE', url, query, body, type });
 	}
 }
 

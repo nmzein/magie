@@ -53,7 +53,7 @@ export const http = (() => {
 			const registry: Directory | undefined = await request.patch({
 				url: `${IMAGE_URL}/${id}`,
 				body: { parent_id },
-				content_type: 'json'
+				type: 'json'
 			});
 
 			if (!defined(registry)) return;
@@ -70,12 +70,13 @@ export const http = (() => {
 			const registry: Directory | undefined = await request.post({
 				url: `${IMAGE_URL}/${parent_id}/${options.name}`,
 				body: {
+					decoder: options.decoder,
 					encoder: options.encoder,
 					generator: options.generator,
 					image_file,
 					annotations_file
 				},
-				content_type: 'form'
+				type: 'form'
 			});
 
 			if (!defined(registry)) return;
@@ -114,7 +115,7 @@ export const http = (() => {
 			const registry: Directory | undefined = await request.patch({
 				url: `${DIRECTORY_URL}/${id}`,
 				body: { parent_id },
-				content_type: 'json'
+				type: 'json'
 			});
 
 			if (!defined(registry)) return;

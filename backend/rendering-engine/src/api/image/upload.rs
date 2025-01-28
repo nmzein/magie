@@ -21,6 +21,7 @@ pub async fn upload(
     Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
     TypedMultipart(UploadAssetRequest {
+        decoder,
         encoder,
         generator,
         image_file,
