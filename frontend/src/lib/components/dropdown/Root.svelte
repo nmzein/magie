@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
-	import { getDropdownState, setDropdownState, type DropdownClasses } from './context.svelte';
+	import { context, type DropdownClasses, DropdownState } from './context.svelte';
 
 	let {
 		show = $bindable(false),
@@ -8,20 +8,19 @@
 		children
 	}: { show?: boolean; classes: DropdownClasses; children: Snippet } = $props();
 
-	setDropdownState(classes);
-	let dState = getDropdownState();
+	const ctx = context.set(new DropdownState(classes));
 
 	$effect(() => {
 		show;
 		untrack(() => {
-			dState.show = show;
+			ctx.show = show;
 		});
 	});
 
 	$effect(() => {
-		dState.show;
+		ctx.show;
 		untrack(() => {
-			show = dState.show;
+			show = ctx.show;
 		});
 	});
 </script>

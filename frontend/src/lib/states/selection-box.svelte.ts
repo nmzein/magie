@@ -12,7 +12,7 @@ export class SelectionBoxState<T = any> {
 	element: HTMLElement | undefined;
 	parentBounds: DOMRect | Bounds | undefined = $state();
 	parentScroll = $state({ top: 0, left: 0 });
-	show: boolean = $derived(this.#dragging && (this.#bounds.width > 10 || this.#bounds.height > 10));
+	show: boolean = $derived(this.#dragging && (this.#bounds.width > 5 || this.#bounds.height > 5));
 
 	get dragging() {
 		return this.#dragging;
@@ -76,7 +76,7 @@ export class SelectionBoxState<T = any> {
 		Object.assign(this.element.style, appendPx(this.#bounds));
 	}
 
-	stop(): T[] {
+	finish(): T[] {
 		if (!this.#dragging) return [];
 
 		const intersected = Array.from(this.#intersected);

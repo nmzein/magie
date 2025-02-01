@@ -1,36 +1,28 @@
 import { applyDefaults } from '$helpers';
-import { setContext, getContext } from 'svelte';
+import { Context } from 'runed';
 
-const DROPDOWN_KEY = Symbol('DROPDOWN');
+export const context = new Context<DropdownState>('');
 
-export type DropdownClasses = { trigger?: string; list?: string; item?: string };
 const DEFAULT_CLASSES: DropdownClasses = { trigger: '', list: '', item: '' };
 
-export function setDropdownState(classes?: DropdownClasses) {
-	return setContext(DROPDOWN_KEY, new DropdownState(classes));
-}
-
-export function getDropdownState() {
-	return getContext<ReturnType<typeof setDropdownState>>(DROPDOWN_KEY);
-}
-
-class DropdownState {
-	public show: boolean = $state(false);
-	private _classes: DropdownClasses;
+export type DropdownClasses = { trigger?: string; list?: string; item?: string };
+export class DropdownState {
+	show: boolean = $state(false);
+	#classes: DropdownClasses;
 
 	constructor(classes?: DropdownClasses) {
-		this._classes = applyDefaults(classes, DEFAULT_CLASSES);
+		this.#classes = applyDefaults(classes, DEFAULT_CLASSES);
 	}
 
 	get classes() {
-		return this._classes;
+		return this.#classes;
 	}
 
-	public toggle() {
+	toggle() {
 		this.show = !this.show;
 	}
 
-	public close() {
+	close() {
 		this.show = false;
 	}
 }

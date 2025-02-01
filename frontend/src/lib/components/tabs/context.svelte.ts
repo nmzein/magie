@@ -22,26 +22,26 @@ export function getTabState(id: string) {
 }
 
 class TabState {
-	private _mode: Modes;
+	#mode: Modes;
+	#classes: DeepRequired<TabClasses> = $state(DEFAULT_CLASSES);
 	public currentTab: string | undefined = $state();
-	private _classes: DeepRequired<TabClasses> = $state(DEFAULT_CLASSES);
 
 	constructor(mode?: Modes, currentTab?: string, classes?: Partial<TabClasses>) {
-		this._mode = mode ?? 'tab';
+		this.#mode = mode ?? 'tab';
 		this.currentTab = currentTab ?? '';
-		this._classes = applyDefaults(classes, DEFAULT_CLASSES);
+		this.#classes = applyDefaults(classes, DEFAULT_CLASSES);
 	}
 
 	get mode() {
-		return this._mode;
+		return this.#mode;
 	}
 
 	get classes() {
-		return this._classes;
+		return this.#classes;
 	}
 
 	set classes(classes: Partial<TabClasses> | undefined) {
-		this._classes = applyDefaults(classes, this._classes);
+		this.#classes = applyDefaults(classes, this.#classes);
 	}
 }
 

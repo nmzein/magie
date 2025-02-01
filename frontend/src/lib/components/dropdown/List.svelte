@@ -1,35 +1,22 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getDropdownState } from './context.svelte';
+	import { context } from './context.svelte';
 	import { twMerge } from 'tailwind-merge';
+	import { onClickOutside } from 'runed';
 
 	let { children }: { children: Snippet } = $props();
 
 	let dropdown: HTMLDivElement | undefined = $state();
-	let dState = getDropdownState();
+	const ctx = context.get();
 
-	function addEventListener() {
-		$effect(() => {
-			setTimeout(() => {
-				document.addEventListener('mousedown', handleClickOutside);
-			}, 10);
-
-			return () => {
-				document.removeEventListener('mousedown', handleClickOutside);
-			};
-		});
-	}
-
-	function handleClickOutside(event: MouseEvent) {
-		if (dropdown && !dropdown.contains(event.target as Node)) {
-			dState.close();
-		}
-	}
+	onClickOutside(
+		() => dropdown,
+		() => ctx.close()
+	);
 </script>
 
-{#if dState.show}
-	{addEventListener()}
-	<div class={twMerge('select-none', dState.classes.list)} bind:this={dropdown}>
+{#if ctx.show}
+	<div class={twMerge('select-none', ctx.classes.list)} bind:this={dropdown}>
 		{@render children()}
 	</div>
 {/if}

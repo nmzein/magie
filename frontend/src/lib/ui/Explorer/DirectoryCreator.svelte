@@ -3,39 +3,25 @@
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
 	import { defined } from '$helpers';
+	import { onClickOutside } from 'runed';
 
 	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
 
-	$effect(() => {
-		explorer!.deselectAll();
+	explorer!.deselectAll();
 
-		let timeout = setTimeout(() => {
-			document.addEventListener('click', handleClick);
-		}, 10);
-
-		return () => {
-			document.removeEventListener('click', handleClick);
-			clearTimeout(timeout);
-		};
-	});
-
-	function handleClick(event: MouseEvent) {
-		if (!defined(button) || !defined(explorer!.directory)) return;
-
-		let clickedInside = button.contains(event.target as Node);
-
-		// Clicked inside, do nothing.
-		if (clickedInside) return;
-
-		if (!clickedInside && name == '') {
-			// Clicked outside and no name was set, cancel creation.
-			explorer!.directoryCreator.close();
-		} else {
-			// Clicked anywhere and a name was set, create directory.
-			explorer!.directoryCreator.create(explorer!.directory.data.id, name);
+	onClickOutside(
+		() => button,
+		() => {
+			if (name == '') {
+				// Clicked outside and no name was set, cancel creation.
+				explorer!.directoryCreator.close();
+			} else {
+				// Clicked anywhere and a name was set, create directory.
+				explorer!.directoryCreator.create(explorer!.directory.data.id, name);
+			}
 		}
-	}
+	);
 
 	function onkeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter' && name !== '' && defined(explorer!.directory)) {

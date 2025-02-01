@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getDropdownState } from './context.svelte';
+	import { context } from './context.svelte.ts';
 	import Button from '$components/Button.svelte';
 
 	let {
@@ -10,15 +10,15 @@
 		children
 	}: { onclick?: () => void; disabled?: boolean; hidden?: boolean; children: Snippet } = $props();
 
-	let dState = getDropdownState();
+	const ctx = context.get();
 </script>
 
 <Button
 	onclick={() => {
-		dState.close();
+		ctx.close();
 		onclick?.();
 	}}
-	class={dState.classes.item}
+	class={ctx.classes.item}
 	{disabled}
 	{hidden}
 >

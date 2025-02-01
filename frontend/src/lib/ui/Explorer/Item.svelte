@@ -8,10 +8,7 @@
 	import { twMerge } from 'tailwind-merge';
 	import { BoundingClientRect } from '$actions';
 
-	let {
-		value,
-		selectionBoxState
-	}: { value: Directory | Image; selectionBoxState: SelectionBoxState } = $props();
+	let { value, selection }: { value: Directory | Image; selection: SelectionBoxState } = $props();
 
 	let thumbnail: HTMLImageElement | undefined = $state();
 
@@ -25,23 +22,15 @@
 	let intersected = $state(false);
 
 	$effect(() => {
-		intersected = defined(itemBounds) && selectionBoxState.intersecting(itemBounds, value);
+		intersected = defined(itemBounds) && selection.intersecting(itemBounds, value);
 	});
 
 	const selected = $derived(explorer!.isSelected(value));
 
-	function onpointerdown(event: PointerEvent) {
-		// Stop the mousedown event from
-		// propagating to main panel which would
-		// trigger a deselectAll()
-		event.stopPropagation();
-
-		// Do not deselect if right click using touchpad.
-		if (event.buttons === 2) return;
-
-		if (event.ctrlKey) {
-			// If ctrl key is pressed, the user wants
-			// to select more than one item.
+	function onpointerdown(e: PointerEvent) {
+		// If control key is pressed, the user wants
+		// to select more than one item.
+		if (e.ctrlKey) {
 			// Toggle selection based on current value.
 			if (explorer!.isSelected(value)) {
 				explorer!.deselect(value);
@@ -49,6 +38,8 @@
 				explorer!.select(value);
 			}
 		} else {
+			// Only select if left click.
+			if (e.button !== 0) return;
 			// Else the user only wants to select this item
 			// we deselect all other items and then only select
 			// the one we want.
@@ -57,8 +48,8 @@
 		}
 	}
 
-	function onkeypress(event: KeyboardEvent) {
-		if (event.key === 'Enter') {
+	function onkeypress(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
 			handleOpen();
 		}
 	}
@@ -84,12 +75,13 @@
 		ondblclick={handleOpen}
 		{onkeypress}
 		oncontextmenu={(e) => {
-			e.stopPropagation();
 			e.preventDefault();
+
 			if (!selected) {
 				explorer!.deselectAll();
 				explorer!.select(value);
 			}
+
 			contextMenu.show = true;
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [

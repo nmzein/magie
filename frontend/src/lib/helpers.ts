@@ -1,6 +1,6 @@
 import { type ServerResponse, responseHandler } from './api.helpers';
 
-type RawRequest = {
+type Req = {
 	method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
 	url: string;
 	query?: Record<string, any>;
@@ -9,13 +9,13 @@ type RawRequest = {
 };
 
 class FetchHandler {
-	private url(req: RawRequest): URL {
+	private url(req: Req): URL {
 		const url = new URL(req.url);
 		url.search = new URLSearchParams(req.query).toString();
 		return url;
 	}
 
-	private content(req: RawRequest) {
+	private content(req: Req) {
 		if (!req.body) return;
 		if (!req.type) req.type = 'json';
 
@@ -35,7 +35,7 @@ class FetchHandler {
 		}
 	}
 
-	async request<T>(req: RawRequest): Promise<T | undefined> {
+	async request<T>(req: Req): Promise<T | undefined> {
 		const url = this.url(req);
 		const content = this.content(req);
 
@@ -77,22 +77,19 @@ class FetchHandler {
 		});
 	}
 
-	get<T>({
-		url,
-		query
-	}: Omit<RawRequest, 'method' | 'body' | 'content_type'>): Promise<T | undefined> {
+	get<T>({ url, query }: Omit<Req, 'method' | 'body' | 'content_type'>): Promise<T | undefined> {
 		return this.request({ method: 'GET', url, query });
 	}
 
-	post<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+	post<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
 		return this.request({ method: 'POST', url, query, body, type });
 	}
 
-	patch<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+	patch<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
 		return this.request({ method: 'PATCH', url, query, body, type });
 	}
 
-	delete<T>({ url, query, body, type }: Omit<RawRequest, 'method'>): Promise<T | undefined> {
+	delete<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
 		return this.request({ method: 'DELETE', url, query, body, type });
 	}
 }

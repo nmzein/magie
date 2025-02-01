@@ -1,56 +1,48 @@
-import { setContext, getContext } from 'svelte';
+import { Context } from 'runed';
 
-const PAGES_KEY = Symbol('PAGES');
+export const context = new Context<PagesState>('');
 
 export type PagesClasses = { page: string; nav: string };
 
-export function setPagesState(initialPage?: number, classes?: PagesClasses) {
-	return setContext(PAGES_KEY, new PagesState(initialPage, classes));
-}
-
-export function getPagesState() {
-	return getContext<ReturnType<typeof setPagesState>>(PAGES_KEY);
-}
-
-class PagesState {
-	private _currentPage: number = $state(0);
-	private _numberOfPages: number = $state(0);
-	private _firstPage: boolean = $derived(this._currentPage === 0);
-	private _lastPage: boolean = $derived(this._currentPage === this._numberOfPages - 1);
-	public classes: PagesClasses;
+export class PagesState {
+	#currentPage: number = $state(0);
+	#numberOfPages: number = $state(0);
+	#firstPage: boolean = $derived(this.#currentPage === 0);
+	#lastPage: boolean = $derived(this.#currentPage === this.#numberOfPages - 1);
+	classes: PagesClasses;
 
 	constructor(initialPage?: number, classes?: PagesClasses) {
-		this._currentPage = initialPage ?? 0;
+		this.#currentPage = initialPage ?? 0;
 		this.classes = classes ?? { page: '', nav: '' };
 	}
 
-	public back() {
-		if (this._firstPage) return;
+	back() {
+		if (this.#firstPage) return;
 
-		this._currentPage -= 1;
+		this.#currentPage -= 1;
 	}
 
-	public next() {
-		if (this._lastPage) return;
+	next() {
+		if (this.#lastPage) return;
 
-		this._currentPage += 1;
+		this.#currentPage += 1;
 	}
 
-	public registerPage(): number {
-		const id = this._numberOfPages;
-		this._numberOfPages += 1;
+	registerPage(): number {
+		const id = this.#numberOfPages;
+		this.#numberOfPages += 1;
 		return id;
 	}
 
 	get currentPage() {
-		return this._currentPage;
+		return this.#currentPage;
 	}
 
 	get firstPage() {
-		return this._firstPage;
+		return this.#firstPage;
 	}
 
 	get lastPage() {
-		return this._lastPage;
+		return this.#lastPage;
 	}
 }

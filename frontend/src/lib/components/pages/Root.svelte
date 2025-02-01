@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
-	import { getPagesState, setPagesState, type PagesClasses } from './context.svelte.ts';
+	import { type Snippet } from 'svelte';
+	import { PagesState, type PagesClasses } from './context.svelte.ts';
+	import { context } from './context.svelte.ts';
 
 	let {
 		currentPage = $bindable(0),
@@ -8,16 +9,7 @@
 		children
 	}: { currentPage?: number; classes?: PagesClasses; children: Snippet } = $props();
 
-	setPagesState(currentPage, classes);
-
-	let pState = getPagesState();
-
-	$effect(() => {
-		pState.currentPage; // Triggers the effect when pState.currentPage changes.
-		untrack(() => {
-			currentPage = pState.currentPage;
-		});
-	});
+	context.set(new PagesState(currentPage, classes));
 </script>
 
 <div class="flex h-full w-full flex-col gap-5">

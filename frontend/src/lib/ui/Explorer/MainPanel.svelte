@@ -5,25 +5,28 @@
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { BoundingClientRect } from '$actions';
 
-	let selectionBoxState: SelectionBoxState<Directory | Image> = new SelectionBoxState();
+	const selection: SelectionBoxState<Directory | Image> = new SelectionBoxState();
 
 	function onpointerdown(e: PointerEvent) {
+		// If main panel not clicked directly, return.
+		if ((e.target as HTMLElement)?.id !== 'main') return;
+
 		explorer!.deselectAll();
 
 		// Return if not left click.
 		if (e.button !== 0) return;
 
-		selectionBoxState.start({ x: e.clientX, y: e.clientY });
+		selection.start({ x: e.clientX, y: e.clientY });
 	}
 
 	function onpointermove(e: PointerEvent) {
-		selectionBoxState.update({ x: e.clientX, y: e.clientY });
+		selection.update({ x: e.clientX, y: e.clientY });
 	}
 
 	function onpointerup() {
-		if (!selectionBoxState.dragging) return;
+		if (!selection.dragging) return;
 
-		const selected = selectionBoxState.stop();
+		const selected = selection.finish();
 		explorer!.selectGroup(selected);
 	}
 
@@ -83,36 +86,36 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	onscroll={(e) => {
-		selectionBoxState.parentScroll = {
+		selection.parentScroll = {
 			// @ts-ignore
 			top: e.target?.scrollTop,
 			// @ts-ignore
 			left: e.target?.scrollLeft
 		};
-		selectionBoxState.update();
+		selection.update();
 	}}
-	use:BoundingClientRect={(v) => (selectionBoxState.parentBounds = v)}
+	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
 	class="@container relative h-[400px] select-none p-3 {contextMenu.show
 		? 'overflow-hidden'
 		: 'overflow-auto'}"
 	{onpointerdown}
 	{oncontextmenu}
 >
-	<div class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 grid grid-cols-1 gap-3">
+	<div id="main" class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 grid grid-cols-1 gap-3">
 		{#if explorer!.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
 		{#each explorer!.directory.data.subdirectories as subdirectory}
-			<Item value={subdirectory} {selectionBoxState} />
+			<Item value={subdirectory} {selection} />
 		{/each}
 		{#each explorer!.directory.data.files as file}
-			<Item value={file} {selectionBoxState} />
+			<Item value={file} {selection} />
 		{/each}
 	</div>
 
 	<div
-		bind:this={selectionBoxState.element}
+		bind:this={selection.element}
 		class="border-accent bg-accent/20 absolute rounded-md border"
-		class:invisible={!selectionBoxState.show}
+		class:invisible={!selection.show}
 	></div>
 </div>

@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { getDropdownState } from './context.svelte';
+	import { context } from './context.svelte';
 	import Button from '$components/Button.svelte';
 
 	let { children }: { children: Snippet } = $props();
 
-	let dState = getDropdownState();
+	const ctx = context.get();
 </script>
 
-<Button class={dState.classes.trigger} onclick={() => dState.toggle()}>
+<Button class={ctx.classes.trigger} onclick={() => ctx.toggle()}>
 	{@render children()}
 </Button>
