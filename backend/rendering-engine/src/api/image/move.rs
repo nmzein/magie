@@ -5,11 +5,7 @@ pub struct Body {
     parent_id: u32,
 }
 
-pub async fn r#move(
-    Extension(conn): Extension<AppState>,
-    Path(id): Path<u32>,
-    Json(Body { parent_id }): Json<Body>,
-) -> Response {
+pub async fn r#move(Path(id): Path<u32>, Json(Body { parent_id }): Json<Body>) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -26,7 +22,7 @@ pub async fn r#move(
     }
 
     // Retrieve target image path.
-    let target_image_path = match crate::db::image::path(id, Arc::clone(&conn)) {
+    let target_image_path = match crate::db::image::path(id) {
         Ok(path) => path,
         Err(e) => {
             return log(
@@ -38,7 +34,7 @@ pub async fn r#move(
     };
 
     // Retrieve destination directory path.
-    let dest_directory_path = match crate::db::directory::path(parent_id, Arc::clone(&conn)) {
+    let dest_directory_path = match crate::db::directory::path(parent_id) {
         Ok(path) => path,
         Err(e) => {
             return log(
@@ -61,7 +57,7 @@ pub async fn r#move(
         });
 
     // Move the image in the database.
-    let _ = crate::db::image::r#move(id, parent_id, Arc::clone(&conn))
+    let _ = crate::db::image::r#move(id, parent_id)
         .map_err(|e| {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -71,7 +67,7 @@ pub async fn r#move(
             );
         });
 
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
+    match crate::db::general::get_registry() {
         Ok(registry) => {
             #[cfg(feature = "log.success")]
             log::<()>(

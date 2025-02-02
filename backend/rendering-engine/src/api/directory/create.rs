@@ -8,7 +8,6 @@ pub struct Params {
 
 pub async fn create(
     Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
-    Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
 ) -> Response {
     if PRIVILEDGED.contains(&parent_id) {
@@ -27,7 +26,7 @@ pub async fn create(
     );
 
     // Check if a directory with the same name already exists under the parent directory.
-    let path = match crate::db::directory::exists(parent_id, &name, Arc::clone(&conn)) {
+    let path = match crate::db::directory::exists(parent_id, &name) {
         Ok(Some(path)) => {
             logger.lock().unwrap().report(
                 Check::ResourceConflictCheck,
@@ -73,7 +72,7 @@ pub async fn create(
         .log("Directory created in the filesystem.");
 
     // Insert the directory into the database.
-    let _ = crate::db::directory::insert(parent_id, &name, Arc::clone(&conn)).map_err(|e| {
+    let _ = crate::db::directory::insert(parent_id, &name).map_err(|e| {
         return logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseInsertionError,
@@ -88,7 +87,7 @@ pub async fn create(
         .unwrap()
         .log("Directory inserted into the database.");
 
-    let registry = match crate::db::general::get_registry(Arc::clone(&conn)) {
+    let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
             logger
                 .lock()

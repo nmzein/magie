@@ -1,6 +1,6 @@
 use crate::api::common::*;
 
-pub async fn properties(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -> Response {
+pub async fn properties( Path(id): Path<u32>) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -9,7 +9,7 @@ pub async fn properties(Extension(conn): Extension<AppState>, Path(id): Path<u32
     );
 
     // Get image properties from the database.
-    let properties = match crate::db::image::properties(id, Arc::clone(&conn)) {
+    let properties = match crate::db::image::properties(id) {
         Ok(properties) => {
             #[cfg(feature = "log.success")]
             log::<()>(

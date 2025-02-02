@@ -1,21 +1,12 @@
 use crate::api::common::*;
 
-pub async fn generators() -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        "Received request for annotation generators.",
-        None,
-    );
-
+pub async fn generators(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) -> Response {
     let generators = generators::export::names();
 
-    #[cfg(feature = "log.success")]
-    log(
-        StatusCode::OK,
-        "Successfully retrieved annotation generators.",
-        Some(&generators),
-    );
+    logger
+        .lock()
+        .unwrap()
+        .success(StatusCode::OK, "Retrieved annotation generators.");
 
-    Json(generators).into_response()
+    return Json(generators).into_response();
 }

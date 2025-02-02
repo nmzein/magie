@@ -1,25 +1,23 @@
 use crate::api::common::*;
 
-// TODO: Retrieve cloud stores.
-pub async fn registry(Extension(conn): Extension<AppState>) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(StatusCode::ACCEPTED, "Received request for registry.", None);
-
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
+pub async fn registry(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) -> Response {
+    match crate::db::general::get_registry() {
         Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "Successfully retrieved registry from the state database.",
-                None,
-            );
+            logger
+                .lock()
+                .unwrap()
+                .success(StatusCode::OK, "Retrieved registry.");
 
-            Json(registry).into_response()
+            return Json(registry).into_response();
         }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to retrieve registry from the state database.",
-            Some(e),
-        ),
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseQueryError,
+                "RG-E00",
+                "Failed to retrieve registry.",
+                Some(e),
+            );
+        }
     }
 }

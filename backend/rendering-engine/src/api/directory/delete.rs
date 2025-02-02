@@ -7,7 +7,6 @@ pub struct Params {
 
 pub async fn delete(
     Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
-    Extension(conn): Extension<AppState>,
     Path(id): Path<u32>,
     Query(Params { mode }): Query<Params>,
 ) -> Response {
@@ -42,7 +41,7 @@ pub async fn delete(
     );
 
     // Retrieve directory path.
-    let directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
+    let directory_path = match crate::db::directory::path(id) {
         Ok(path) => {
             logger.lock().unwrap().report(
                 Check::ResourceExistenceCheck,
@@ -63,7 +62,7 @@ pub async fn delete(
     };
 
     // Retrieve Bin path.
-    let bin_path = match crate::db::directory::path(BIN_ID, Arc::clone(&conn)) {
+    let bin_path = match crate::db::directory::path(BIN_ID) {
         Ok(path) => {
             logger.lock().unwrap().report(
                 Check::ResourceExistenceCheck,
@@ -94,26 +93,15 @@ pub async fn delete(
     }
 
     let result = match mode {
-        DeleteMode::Soft => {
-            soft_delete(
-                Arc::clone(&logger),
-                id,
-                &directory_path,
-                &bin_path,
-                Arc::clone(&conn),
-            )
-            .await
-        }
-        DeleteMode::Hard => {
-            hard_delete(Arc::clone(&logger), id, &directory_path, Arc::clone(&conn)).await
-        }
+        DeleteMode::Soft => soft_delete(Arc::clone(&logger), id, &directory_path, &bin_path).await,
+        DeleteMode::Hard => hard_delete(Arc::clone(&logger), id, &directory_path).await,
     };
 
     if let Err(response) = result {
         return response;
     }
 
-    let registry = match crate::db::general::get_registry(Arc::clone(&conn)) {
+    let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
             logger
                 .lock()
@@ -146,7 +134,6 @@ pub async fn soft_delete(
     id: u32,
     directory_path: &PathBuf,
     bin_path: &PathBuf,
-    conn: AppState,
 ) -> Result<(), Response> {
     // Move the directory to the "Bin" in the filesystem.
     let _ = crate::io::r#move(&directory_path, &bin_path)
@@ -167,16 +154,15 @@ pub async fn soft_delete(
         .log("Directory moved to the Bin in the filesystem.");
 
     // Move the directory to the "Bin" in the database.
-    let _ = crate::db::directory::r#move(id, BIN_ID, MoveMode::SoftDelete, Arc::clone(&conn))
-        .map_err(|e| {
-            return logger.lock().unwrap().error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseDeletionError,
-                "DDS-E01",
-                "Failed to soft delete directory from the database.",
-                Some(e),
-            );
-        })?;
+    let _ = crate::db::directory::r#move(id, BIN_ID, MoveMode::SoftDelete).map_err(|e| {
+        return logger.lock().unwrap().error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::DatabaseDeletionError,
+            "DDS-E01",
+            "Failed to soft delete directory from the database.",
+            Some(e),
+        );
+    })?;
 
     logger
         .lock()
@@ -190,7 +176,6 @@ pub async fn hard_delete(
     logger: Arc<Mutex<Logger<'_>>>,
     id: u32,
     directory_path: &PathBuf,
-    conn: AppState,
 ) -> Result<(), Response<Body>> {
     // Remove the directory from the filesystem.
     let _ = crate::io::delete(&directory_path).await.map_err(|e| {
@@ -209,7 +194,7 @@ pub async fn hard_delete(
         .log("Directory deleted from the filesystem.");
 
     // Remove the directory from the database.
-    let _ = crate::db::directory::delete(id, Arc::clone(&conn)).map_err(|e| {
+    let _ = crate::db::directory::delete(id).map_err(|e| {
         return Err::<(), Response<Body>>(logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletionError,

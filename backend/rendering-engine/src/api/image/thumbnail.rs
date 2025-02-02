@@ -2,7 +2,7 @@ use crate::api::common::*;
 use axum::{body::Bytes, http::header::CONTENT_TYPE};
 use tokio::{fs::File, io::AsyncReadExt};
 
-pub async fn thumbnail(Extension(conn): Extension<AppState>, Path(id): Path<u32>) -> Response {
+pub async fn thumbnail(Path(id): Path<u32>) -> Response {
     #[cfg(feature = "log.request")]
     log::<()>(
         StatusCode::ACCEPTED,
@@ -10,7 +10,7 @@ pub async fn thumbnail(Extension(conn): Extension<AppState>, Path(id): Path<u32>
         None,
     );
 
-    let mut path = match crate::db::image::get(id, Arc::clone(&conn)) {
+    let mut path = match crate::db::image::get(id) {
         Ok((_, path)) => path,
         Err(e) => {
             return log(

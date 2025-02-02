@@ -8,53 +8,60 @@ pub struct Params {
 }
 
 pub async fn annotations(
-    Extension(conn): Extension<AppState>,
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
     Path(Params {
         image_id,
         annotation_layer_id,
     }): Path<Params>,
 ) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[IA/M00]: Received request for annotation layer with id `{annotation_layer_id}` of image with id: `{image_id}`."),
-        None,
-    );
-
-    let path = match crate::db::image::get_annotation_layer_path(
-        image_id,
-        annotation_layer_id,
-        Arc::clone(&conn),
-    ) {
+    let path = match crate::db::image::get_annotation_layer_path(image_id, annotation_layer_id) {
         Ok(layers) => layers,
         Err(e) => {
-            return log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IA/E00]: Failed to retrieve path of annotation layer with id `{annotation_layer_id}` of image with id: `{image_id}`."),
+                Error::DatabaseQueryError,
+                "IA-E00",
+                "Failed to retrieve path of annotation layer from registry database.",
                 Some(e),
             );
         }
     };
 
     // Read the binary content of the GLB file
-    match std::fs::read(&path) {
-        Ok(file_data) => (
-            axum::response::AppendHeaders([
-                (header::CONTENT_TYPE, "model/gltf-binary"),
-                (
-                    header::CONTENT_DISPOSITION,
-                    "attachment; filename=\"file.glb\"",
-                ),
-            ]),
-            Bytes::from(file_data),
-        )
-            .into_response(),
-        Err(e) => {
-            return log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IA/E01]: Failed to read GLB file for annotation layer with id `{annotation_layer_id}` at path: `{path:?}`."),
-                Some(e),
-            );
+    let response = match std::fs::read(&path) {
+        Ok(file_data) => {
+            logger
+                .lock()
+                .unwrap()
+                .log("GLB annotation layer file retrieved from filesystem.");
+
+            (
+                axum::response::AppendHeaders([
+                    (header::CONTENT_TYPE, "model/gltf-binary"),
+                    (
+                        header::CONTENT_DISPOSITION,
+                        "attachment; filename=\"file.glb\"",
+                    ),
+                ]),
+                Bytes::from(file_data),
+            )
+                .into_response()
         }
-    }
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceExistenceError,
+                "IA-E01",
+                "Failed to retrieve GLB annotation layer file.",
+                Some(e.into()),
+            )
+        }
+    };
+
+    logger
+        .lock()
+        .unwrap()
+        .success(StatusCode::OK, "Annotation layer retrieved successfully.");
+
+    return response;
 }

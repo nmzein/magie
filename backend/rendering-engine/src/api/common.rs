@@ -1,6 +1,6 @@
 pub use crate::{
     log::{Check, Error, Logger},
-    types::{AppState, DeleteMode, MoveMode},
+    types::{DeleteMode, MoveMode},
 };
 pub use axum::{
     body::Body,

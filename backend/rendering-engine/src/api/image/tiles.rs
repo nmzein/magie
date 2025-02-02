@@ -7,18 +7,15 @@ use axum::extract::{
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
 
-pub async fn websocket(
-    ws: WebSocketUpgrade,
-    Extension(state): Extension<AppState>,
-) -> impl IntoResponse {
+pub async fn websocket(ws: WebSocketUpgrade) -> impl IntoResponse {
     ws.on_upgrade(|socket| async {
-        tiles(socket, Extension(state)).await;
+        tiles(socket).await;
     })
 }
 
 // TODO: Send error messages to frontend.
 // TODO: Capture large rectangles of selections rather than individual tiles.
-async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
+async fn tiles(socket: WebSocket) {
     let (mut sink, mut stream) = socket.split();
     // Credit: https://gist.github.com/hexcowboy/8ebcf13a5d3b681aa6c684ad51dd6e0c
     // Create an mpsc channel so we can send messages to the sink from multiple threads.
@@ -35,7 +32,6 @@ async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
 
     while let Some(Ok(Message::Text(message))) = stream.next().await {
         let sender = sender.clone();
-        let conn = Arc::clone(&conn);
 
         tokio::spawn(async move {
             let tile_request = match serde_json::from_str::<TileRequest>(&message) {
@@ -52,7 +48,7 @@ async fn tiles(socket: WebSocket, Extension(conn): Extension<AppState>) {
             };
 
             // TODO: Cache in an in-memory HashMap.
-            let (_, path) = match crate::db::image::get(tile_request.id, Arc::clone(&conn)) {
+            let (_, path) = match crate::db::image::get(tile_request.id) {
                 Ok(paths) => paths,
                 Err(e) => {
                     log(

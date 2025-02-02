@@ -1,30 +1,40 @@
 use crate::db::common::*;
 use crate::types::{Directory, File};
+use rusqlite::Connection;
 use rusqlite_migration::{Migrations, M};
-use std::{collections::HashMap, fs, path::Path};
+use std::{
+    collections::HashMap,
+    fs,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
-pub fn connect(database_path: &str, database_url: &str) -> Result<Connection> {
-    // Create the database file if it does not exist.
-    if !Path::new(database_path).exists() {
-        fs::File::create(database_path)?;
+pub struct Database {
+    pub conn: Arc<Mutex<Connection>>,
+}
+
+impl Database {
+    pub fn init(path: &str, url: &str) -> Self {
+        // Create the database file if it does not exist.
+        if !Path::new(path).exists() {
+            fs::File::create(path).unwrap();
+        }
+
+        let mut conn = Connection::open(url).unwrap();
+
+        let migrations = Migrations::new(vec![M::up(include_str!("../../../state/schema.sql"))]);
+        // Update the database schema atomically.
+        migrations.to_latest(&mut conn).unwrap();
+
+        Self {
+            conn: Arc::new(Mutex::new(conn)),
+        }
     }
-
-    let mut conn = Connection::open(database_url)?;
-
-    let migrations = Migrations::new(vec![M::up(include_str!("../../../state/schema.sql"))]);
-    // Update the database schema atomically.
-    migrations.to_latest(&mut conn)?;
-
-    if cfg!(debug_assertions) {
-        conn.execute_batch(include_str!("../../../state/dev.sql"))?;
-    }
-
-    Ok(conn)
 }
 
 /// Fetches all directories and subdirectories using a recursive CTE
-pub fn get_registry(conn: Arc<Mutex<Connection>>) -> Result<Directory> {
-    let conn = conn.lock().unwrap();
+pub fn get_registry() -> Result<Directory> {
+    let conn = RDB.conn.lock().unwrap();
 
     let mut stmt = conn.prepare(
         r#"

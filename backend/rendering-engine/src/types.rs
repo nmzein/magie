@@ -1,12 +1,8 @@
 use anyhow::Result;
 use axum_typed_multipart::{FieldData, TryFromMultipart};
-use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use shared::structs::MetadataLayer;
-use std::sync::{Arc, Mutex};
 use tempfile::NamedTempFile;
-
-pub type AppState = Arc<Mutex<Connection>>;
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct Directory {

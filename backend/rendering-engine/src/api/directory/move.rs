@@ -7,7 +7,6 @@ pub struct Body {
 
 pub async fn r#move(
     Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
-    Extension(conn): Extension<AppState>,
     Path(id): Path<u32>,
     Json(Body { parent_id }): Json<Body>,
 ) -> Response {
@@ -57,7 +56,7 @@ pub async fn r#move(
     );
 
     // Retrieve target directory path.
-    let target_directory_path = match crate::db::directory::path(id, Arc::clone(&conn)) {
+    let target_directory_path = match crate::db::directory::path(id) {
         Ok(path) => {
             logger.lock().unwrap().report(
                 Check::ResourceExistenceCheck,
@@ -78,7 +77,7 @@ pub async fn r#move(
     };
 
     // Retrieve destination directory path.
-    let dest_directory_path = match crate::db::directory::path(parent_id, Arc::clone(&conn)) {
+    let dest_directory_path = match crate::db::directory::path(parent_id) {
         Ok(path) => {
             logger.lock().unwrap().report(
                 Check::ResourceExistenceCheck,
@@ -133,23 +132,22 @@ pub async fn r#move(
         .log("Directory moved in the filesystem.");
 
     // Move the directory in the database.
-    let _ = crate::db::directory::r#move(id, parent_id, MoveMode::Regular, Arc::clone(&conn))
-        .map_err(|e| {
-            return logger.lock().unwrap().error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceMoveError,
-                "DM-E07",
-                "Failed to move directory in the database.",
-                Some(e),
-            );
-        });
+    let _ = crate::db::directory::r#move(id, parent_id, MoveMode::Regular).map_err(|e| {
+        return logger.lock().unwrap().error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ResourceMoveError,
+            "DM-E07",
+            "Failed to move directory in the database.",
+            Some(e),
+        );
+    });
 
     logger
         .lock()
         .unwrap()
         .log("Directory moved in the database.");
 
-    let registry = match crate::db::general::get_registry(Arc::clone(&conn)) {
+    let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
             logger
                 .lock()

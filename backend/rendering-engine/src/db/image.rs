@@ -13,9 +13,8 @@ pub fn insert(
     annotations_ext: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
     annotation_layers: Vec<InAnnotationLayer>,
-    conn: Arc<Mutex<Connection>>,
 ) -> Result<()> {
-    let mut conn = conn.lock().unwrap();
+    let mut conn = RDB.conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
     // TODO: Remove hardcoding.
@@ -69,8 +68,8 @@ pub fn insert(
     Ok(())
 }
 
-pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
+pub fn delete(id: u32) -> Result<()> {
+    let conn = RDB.conn.lock().unwrap();
     conn.execute(
         r#"
             DELETE FROM images WHERE id = ?1;
@@ -85,8 +84,8 @@ pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
 }
 
 /// Returns true if an image with the given name is a child of directory with given id.
-pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<bool> {
-    let conn: std::sync::MutexGuard<'_, Connection> = conn.lock().unwrap();
+pub fn exists(parent_id: u32, name: &str) -> Result<bool> {
+    let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
         r#"
             SELECT 1 FROM images WHERE name = ?1 AND parent_id = ?2;
@@ -105,11 +104,11 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
 }
 
 /// Returns the name and path of an image given its id.
-pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
+pub fn get(id: u32) -> Result<(String, PathBuf)> {
     let returned: (String, u32);
 
     {
-        let conn = conn.lock().unwrap();
+        let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             r#"
             SELECT name, parent_id
@@ -122,7 +121,7 @@ pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
     }
 
     let (name, parent_id) = returned;
-    let path = crate::db::directory::path(parent_id, Arc::clone(&conn))?.join(&name);
+    let path = crate::db::directory::path(parent_id)?.join(&name);
 
     #[cfg(feature = "log.database")]
     log(&format!("GET <Image: {path:?}>"), Some(&path));
@@ -130,8 +129,8 @@ pub fn get(id: u32, conn: Arc<Mutex<Connection>>) -> Result<(String, PathBuf)> {
     Ok((name, path))
 }
 
-pub fn properties(id: u32, conn: Arc<Mutex<Connection>>) -> Result<ImageProperties> {
-    let conn = conn.lock().unwrap();
+pub fn properties(id: u32) -> Result<ImageProperties> {
+    let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
         r#"
             SELECT level, cols, rows, width, height
@@ -176,13 +175,9 @@ pub fn properties(id: u32, conn: Arc<Mutex<Connection>>) -> Result<ImageProperti
     })
 }
 
-pub fn get_annotation_layer_path(
-    image_id: u32,
-    annotation_layer_id: u32,
-    conn: Arc<Mutex<Connection>>,
-) -> Result<PathBuf> {
-    let parent_directory_path = get(image_id, Arc::clone(&conn))?.1;
-    let conn = conn.lock().unwrap();
+pub fn get_annotation_layer_path(image_id: u32, annotation_layer_id: u32) -> Result<PathBuf> {
+    let parent_directory_path = get(image_id)?.1;
+    let conn = RDB.conn.lock().unwrap();
 
     let mut stmt = conn.prepare(
         r#"
@@ -210,8 +205,8 @@ pub fn get_annotation_layer_path(
     Ok(path)
 }
 
-pub fn r#move(id: u32, destination_id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let conn = conn.lock().unwrap();
+pub fn r#move(id: u32, destination_id: u32) -> Result<()> {
+    let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
         r#"
             UPDATE images
@@ -231,10 +226,10 @@ pub fn r#move(id: u32, destination_id: u32, conn: Arc<Mutex<Connection>>) -> Res
     Ok(())
 }
 
-pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
+pub fn path(id: u32) -> Result<PathBuf> {
     let (parent_id, name): (u32, String);
     {
-        let conn = conn.lock().unwrap();
+        let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             r#"
             SELECT parent_id, name
@@ -246,7 +241,7 @@ pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
         (parent_id, name) = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
     }
 
-    let parent_directory_path = crate::db::directory::path(parent_id, Arc::clone(&conn))?;
+    let parent_directory_path = crate::db::directory::path(parent_id)?;
     let path = parent_directory_path.join(name);
 
     #[cfg(feature = "log.database")]

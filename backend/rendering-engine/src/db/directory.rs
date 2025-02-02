@@ -63,8 +63,8 @@ fn shrink_space(width: u32, threshold: u32, transaction: &Transaction) -> Result
     return Ok(());
 }
 
-pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let mut conn = conn.lock().unwrap();
+pub fn insert(parent_id: u32, name: &str) -> Result<()> {
+    let mut conn = RDB.conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
     // Get the rgt value of the parent.
@@ -87,8 +87,8 @@ pub fn insert(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
     Ok(())
 }
 
-pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
-    let mut conn = conn.lock().unwrap();
+pub fn delete(id: u32) -> Result<()> {
+    let mut conn = RDB.conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
     // Get the rgt value of the directory.
@@ -122,13 +122,8 @@ pub fn delete(id: u32, conn: Arc<Mutex<Connection>>) -> Result<()> {
     Ok(())
 }
 
-pub fn r#move(
-    id: u32,
-    destination_id: u32,
-    mode: MoveMode,
-    conn: Arc<Mutex<Connection>>,
-) -> Result<()> {
-    let mut conn = conn.lock().unwrap();
+pub fn r#move(id: u32, destination_id: u32, mode: MoveMode) -> Result<()> {
+    let mut conn = RDB.conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
     let width: u32 = transaction.query_row(
@@ -223,10 +218,10 @@ pub fn r#move(
 }
 
 /// Returns true if an directory with the given name is a child of directory with given id.
-pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Result<Option<PathBuf>> {
+pub fn exists(parent_id: u32, name: &str) -> Result<Option<PathBuf>> {
     let exists: bool;
     {
-        let conn = conn.lock().unwrap();
+        let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             r#"
                 SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
@@ -244,14 +239,14 @@ pub fn exists(parent_id: u32, name: &str, conn: Arc<Mutex<Connection>>) -> Resul
 
     if !exists {
         // Return the would-be path for the new directory.
-        Ok(Some(path(parent_id, Arc::clone(&conn))?.join(name)))
+        Ok(Some(path(parent_id)?.join(name)))
     } else {
         Ok(None)
     }
 }
 
-pub fn path(id: u32, conn: Arc<Mutex<Connection>>) -> Result<PathBuf> {
-    let conn = conn.lock().unwrap();
+pub fn path(id: u32) -> Result<PathBuf> {
+    let conn = RDB.conn.lock().unwrap();
 
     // Combine the two queries into one
     let mut stmt = conn.prepare(

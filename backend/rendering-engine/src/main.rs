@@ -15,15 +15,18 @@ use axum::{
     http::{header::CONTENT_TYPE, HeaderValue, Method},
     middleware::{self},
     routing::{delete, get, patch, post},
-    Extension, Router,
+    Router,
 };
+use db::general::Database;
 use log::logging_middleware;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::{env, sync::LazyLock};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
+
+static DATABASE_PATH: &str = "./state/registry.sqlite";
+static DATABASE_URL: &str = "sqlite://../state/registry.sqlite";
+
+pub static RDB: LazyLock<Database> = LazyLock::new(|| Database::init(DATABASE_PATH, DATABASE_URL));
 
 #[tokio::main]
 async fn main() {
@@ -34,17 +37,10 @@ async fn main() {
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
-    // TODO: Store in a STORES db.
-    let database_path = "./state/db.sqlite";
-    let database_url = "sqlite://../state/db.sqlite";
-
     let domain = &fetch_env_var("PUBLIC_DOMAIN");
     let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
     let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
-
-    let conn = db::general::connect(database_path, database_url)
-        .expect("Could not establish a connection to the state database.");
 
     let backend_url = format!("{domain}:{backend_port}");
     let listener = TcpListener::bind(backend_url)
@@ -90,8 +86,7 @@ async fn main() {
         .nest("/api", api_routes)
         .layer(cors)
         .layer(middleware::from_fn(logging_middleware))
-        .layer(DefaultBodyLimit::disable())
-        .layer(Extension(Arc::new(Mutex::new(conn))));
+        .layer(DefaultBodyLimit::disable());
 
     axum::serve(listener, app)
         .await

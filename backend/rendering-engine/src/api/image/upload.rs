@@ -18,7 +18,6 @@ const TRANSLATED_ANNOTATIONS_NAME: &str = "translated_annotations.json";
 
 // TODO: Perform checks on files before saving them to avoid malware.
 pub async fn upload(
-    Extension(conn): Extension<AppState>,
     Path(Params { parent_id, name }): Path<Params>,
     TypedMultipart(UploadAssetRequest {
         decoder,
@@ -40,34 +39,31 @@ pub async fn upload(
     if !encoders::export::names().contains(&encoder.as_str()) {
         return log::<()>(
             StatusCode::BAD_REQUEST,
-            &format!("Encoder with name `{encoder}` could not be found."),
+            &format!("Encoder could not be found."),
             None,
         );
     }
 
-    if let Some(generator) = &generator {
-        if !generators::export::names().contains(&generator.as_str()) {
-            return log::<()>(
-                StatusCode::BAD_REQUEST,
-                &format!("Generator with name `{generator}` could not be found."),
-                None,
-            );
-        }
+    if let Some(false) = generator
+        .clone()
+        .map(|g| generators::export::names().contains(&g.as_str()))
+    {
+        return log::<()>(
+            StatusCode::BAD_REQUEST,
+            &format!("Generator could not be found."),
+            None,
+        );
     }
 
-    let image_metadata = image_file.metadata.clone();
     // Extract image extension from metadata request body.
-    let upl_img_ext = match image_metadata.file_name.as_ref().map(std::path::Path::new) {
-        Some(name) => match name.extension().and_then(|ext| ext.to_str()) {
-            Some(ext) => ext,
-            None => {
-                return log::<()>(
-                    StatusCode::BAD_REQUEST,
-                    "Failed to retrieve image extension from file metadata.",
-                    None,
-                );
-            }
-        },
+    let image_filename = image_file.metadata.file_name.clone();
+    let upl_img_ext = match image_filename
+        .as_ref()
+        .map(std::path::Path::new)
+        .and_then(|name| name.extension())
+        .and_then(|ext| ext.to_str())
+    {
+        Some(ext) => ext,
         None => {
             return log::<()>(
                 StatusCode::BAD_REQUEST,
@@ -78,7 +74,8 @@ pub async fn upload(
     };
 
     // Check if image already exists in database.
-    match crate::db::image::exists(parent_id, &name, Arc::clone(&conn)) {
+    match crate::db::image::exists(parent_id, &name) {
+        Ok(false) => { /* Image does not exist in database, continue. */ }
         Ok(true) => {
             return log::<()>(
                 StatusCode::BAD_REQUEST,
@@ -88,7 +85,6 @@ pub async fn upload(
                 None,
             );
         }
-        Ok(false) => { /* Image does not exist in database, continue. */ }
         Err(e) => {
             return log(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -102,7 +98,7 @@ pub async fn upload(
 
     // The image's directory path consists of the concatenation of
     // its parent directory's path and its name without extension.
-    let path = match crate::db::directory::path(parent_id, Arc::clone(&conn)) {
+    let path = match crate::db::directory::path(parent_id) {
         Ok(path) => path.join(name),
         Err(e) => {
             return log(
@@ -125,7 +121,7 @@ pub async fn upload(
     let metadata_layers = match handle_image(image_file, &path, &name, &upl_img_ext, &encoder).await
     {
         Ok(layers) => layers,
-        Err(resp) => return resp,
+        Err(response) => return response,
     };
 
     let mut annotations_ext = None;
@@ -134,7 +130,7 @@ pub async fn upload(
         (annotations_ext, annotation_layers) =
             match handle_annotations(&path, annotations_file, generator).await {
                 Ok((name, layers)) => (Some(name), layers),
-                Err(resp) => return resp,
+                Err(response) => return response,
             };
     }
 
@@ -148,7 +144,6 @@ pub async fn upload(
         annotations_ext.as_deref(),
         metadata_layers,
         annotation_layers,
-        Arc::clone(&conn),
     ) {
         Ok(_) => {
             #[cfg(feature = "log.success")]
@@ -167,7 +162,7 @@ pub async fn upload(
         }
     };
 
-    match crate::db::general::get_registry(Arc::clone(&conn)) {
+    match crate::db::general::get_registry() {
         Ok(registry) => {
             #[cfg(feature = "log.success")]
             log::<()>(
