@@ -77,6 +77,7 @@ pub enum Error {
     ResourceDeletionError,
     ResourceExistenceError,
     ResourceMoveError,
+    ResourceReadError,
     DatabaseQueryError,
     DatabaseInsertionError,
     DatabaseDeletionError,

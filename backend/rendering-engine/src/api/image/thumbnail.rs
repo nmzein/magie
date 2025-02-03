@@ -2,67 +2,62 @@ use crate::api::common::*;
 use axum::{body::Bytes, http::header::CONTENT_TYPE};
 use tokio::{fs::File, io::AsyncReadExt};
 
-pub async fn thumbnail(Path(id): Path<u32>) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[IT/M00]: Received request for thumbnail of image with id `{id}`."),
-        None,
-    );
-
-    let mut path = match crate::db::image::get(id) {
-        Ok((_, path)) => path,
+pub async fn thumbnail(
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Path(id): Path<u32>,
+) -> Response {
+    let path = match crate::db::image::get(id) {
+        Ok((_, path)) => path.join("thumbnail.jpeg"),
         Err(e) => {
-            return log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IT/E00]: Failed to retrieve thumbnail of image with id `{id}`."),
+                Error::DatabaseQueryError,
+                "IT-E00",
+                "Failed to retrieve asset thumbnail path.",
                 Some(e),
             );
         }
     };
 
-    path = path.join("thumbnail.jpeg");
-
-    // Try to open and read the thumbnail image
+    // Try to open and read the thumbnail image.
     match File::open(&path).await {
         Ok(mut file) => {
             let mut buffer = Vec::new();
-            // Read the file content into a buffer
+            // Read the file content into a buffer.
             match file.read_to_end(&mut buffer).await {
                 Ok(_) => {
-                    log::<()>(
-                        StatusCode::OK,
-                        &format!(
-                            "[IT/M01]: Successfully read the thumbnail of image with id `{id}`."
-                        ),
-                        None,
-                    );
+                    logger
+                        .lock()
+                        .unwrap()
+                        .success(StatusCode::OK, "Retrieved asset thumbnail successfully.");
 
-                    // Create a response with the binary content of the image
-                    (
+                    // Create a response with the binary content of the image.
+                    return (
                         StatusCode::OK,
                         [(CONTENT_TYPE, "image/jpeg")],
                         Bytes::from(buffer),
                     )
-                        .into_response()
+                        .into_response();
                 }
                 Err(e) => {
-                    // Error reading the file
-                    log(
+                    return logger.lock().unwrap().error(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        &format!("[IT/E01]: Failed to read the thumbnail of image with id `{id}`."),
-                        Some(e),
-                    )
+                        Error::ResourceReadError,
+                        "IT-E01",
+                        "Failed to read asset thumbnail.",
+                        Some(e.into()),
+                    );
                 }
             }
         }
         Err(e) => {
-            // Error opening the file
-            log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IT/E02]: Failed to open the thumbnail of image with id `{id}`."),
-                Some(e),
-            )
+                Error::ResourceReadError,
+                "IT-E01",
+                "Failed to open asset thumbnail.",
+                Some(e.into()),
+            );
         }
     }
 }
