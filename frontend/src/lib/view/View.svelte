@@ -5,9 +5,36 @@
 	import ImageLayer from '$view/ImageLayer.svelte';
 	import { Mesh, OrthographicCamera, Scene, WebGLRenderer } from 'three';
 
-	// TODO: FIX
 	let x = $state(0);
 	let y = $state(0);
+	let canvas: HTMLCanvasElement | undefined = $state();
+
+	const CANVAS_HEIGHT = 8000;
+	const CANVAS_WIDTH = $derived.by(() => {
+		if (!images[0]?.initialised) return;
+
+		return CANVAS_HEIGHT * (images[0].width / images[0].height);
+	});
+
+	// Create a renderer with a transparent canvas.
+	const renderer = $derived.by(() => {
+		if (!defined(canvas)) return;
+
+		return new WebGLRenderer({
+			canvas,
+			alpha: true,
+			precision: 'highp',
+			powerPreference: 'high-performance'
+		});
+	});
+
+	let scene: Scene | undefined = $state();
+
+	$effect(() => {
+		if (defined(canvas)) {
+			scene = new Scene();
+		}
+	});
 
 	const camera: OrthographicCamera | undefined = $derived.by(() => {
 		if (!images[0]?.initialised) return;
@@ -45,23 +72,16 @@
 		event.preventDefault();
 
 		// Logic for calculating the coordinates of the mouse pointer.
-		if (
-			!images[0].transformer.isDragging &&
-			defined(images[0].width) &&
-			defined(images[0].height)
-		) {
-			// TODO: Don't do this on every mouse move.
-			const currentLayer = document
-				.getElementById('images[0]-layer-' + images[0].transformer.currentLevel)
-				?.getBoundingClientRect();
+		if (!images[0].transformer.isDragging) {
+			const imageDOMRect = canvas?.getBoundingClientRect();
 
-			if (!currentLayer) return;
+			if (!defined(imageDOMRect)) return;
 
 			const xTemp = Math.floor(
-				(event.clientX - images[0].transformer.offsetX) * (images[0].width / currentLayer.width)
+				(event.clientX - images[0].transformer.offsetX) * (images[0].width / imageDOMRect.width)
 			);
 			const yTemp = Math.floor(
-				(event.clientY - images[0].transformer.offsetY) * (images[0].height / currentLayer.height)
+				(event.clientY - images[0].transformer.offsetY) * (images[0].height / imageDOMRect.height)
 			);
 
 			if (Number.isFinite(xTemp) && !isNaN(xTemp)) x = xTemp;
@@ -100,35 +120,6 @@
 
 		images[0].transformer.zoom(event.deltaY, event.clientX, event.clientY);
 	}
-
-	let canvas: HTMLCanvasElement | undefined = $state();
-
-	const CANVAS_HEIGHT = 8000;
-	const CANVAS_WIDTH = $derived.by(() => {
-		if (!images[0]?.initialised) return;
-
-		return CANVAS_HEIGHT * (images[0].width / images[0].height);
-	});
-
-	// Create a renderer with a transparent canvas.
-	const renderer = $derived.by(() => {
-		if (!defined(canvas)) return;
-
-		return new WebGLRenderer({
-			canvas,
-			alpha: true,
-			precision: 'highp',
-			powerPreference: 'high-performance'
-		});
-	});
-
-	let scene: Scene | undefined = $state();
-
-	$effect(() => {
-		if (defined(canvas)) {
-			scene = new Scene();
-		}
-	});
 
 	function render(tag: string, mesh: Mesh) {
 		if (!defined(camera) || !defined(renderer) || !defined(scene)) return;
