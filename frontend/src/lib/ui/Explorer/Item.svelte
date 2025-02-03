@@ -66,7 +66,7 @@
 	}
 </script>
 
-<div use:BoundingClientRect={(v) => (itemBounds = v)}>
+<div use:BoundingClientRect={(v) => (itemBounds = v)} class="h-fit">
 	<button
 		class={twMerge(
 			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`

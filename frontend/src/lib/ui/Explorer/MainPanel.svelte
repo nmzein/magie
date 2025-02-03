@@ -95,13 +95,15 @@
 		selection.update();
 	}}
 	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
-	class="@container relative h-[400px] select-none p-3 {contextMenu.show
-		? 'overflow-hidden'
-		: 'overflow-auto'}"
+	class="@container h-[408px] select-none rounded-br-[10px]
+		   {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}
 	{oncontextmenu}
 >
-	<div id="main" class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 grid grid-cols-1 gap-3">
+	<div
+		id="main"
+		class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 relative grid min-h-full grid-cols-1 gap-3 p-3"
+	>
 		{#if explorer!.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
@@ -111,11 +113,13 @@
 		{#each explorer!.directory.data.files as file}
 			<Item value={file} {selection} />
 		{/each}
-	</div>
 
-	<div
-		bind:this={selection.element}
-		class="border-accent bg-accent/20 absolute rounded-md border"
-		class:invisible={!selection.show}
-	></div>
+		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
+			<div
+				bind:this={selection.element}
+				class="border-accent bg-accent/20 absolute rounded-md border"
+				class:invisible={!selection.show}
+			></div>
+		</div>
+	</div>
 </div>

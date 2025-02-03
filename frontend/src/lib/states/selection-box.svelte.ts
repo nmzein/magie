@@ -7,7 +7,7 @@ export class SelectionBoxState<T = any> {
 	#startPosition: Point = DEFAULT_POINT;
 	#lastPosition: Point = DEFAULT_POINT;
 	#intersected: SvelteSet<T> = new SvelteSet();
-	#scrollOnDragStart = { top: 0, left: 0 };
+	#startScroll = { top: 0, left: 0 };
 	#bounds: Bounds = $state(DEFAULT_BOUND);
 	element: HTMLElement | undefined;
 	parentBounds: DOMRect | Bounds | undefined = $state();
@@ -28,7 +28,7 @@ export class SelectionBoxState<T = any> {
 			y: cursor.y - this.parentBounds.top
 		};
 
-		this.#scrollOnDragStart = {
+		this.#startScroll = {
 			top: this.parentScroll.top,
 			left: this.parentScroll.left
 		};
@@ -51,26 +51,17 @@ export class SelectionBoxState<T = any> {
 			y: cursor.y
 		};
 
-		// Clamp current mouse position between 0 and parent's width/height.
-		const currentX = Math.max(
-			0,
-			Math.min(cursor.x - this.parentBounds.left, this.parentBounds.width)
-		);
-		const currentY = Math.max(
-			0,
-			Math.min(cursor.y - this.parentBounds.top, this.parentBounds.height)
-		);
+		const currentX = cursor.x - this.parentBounds.left + this.parentScroll.left;
+		const currentY = cursor.y - this.parentBounds.top + this.parentScroll.top;
 
-		const width =
-			currentX - this.#startPosition.x + (this.parentScroll.left - this.#scrollOnDragStart.left);
-		const height =
-			currentY - this.#startPosition.y + (this.parentScroll.top - this.#scrollOnDragStart.top);
+		const width = currentX - this.#startPosition.x - this.#startScroll.left;
+		const height = currentY - this.#startPosition.y - this.#startScroll.top;
 
 		this.#bounds = {
 			width: Math.abs(width),
 			height: Math.abs(height),
-			left: width < 0 ? currentX + this.parentScroll.left : this.#bounds.left,
-			top: height < 0 ? currentY + this.parentScroll.top : this.#bounds.top
+			left: width < 0 ? currentX : this.#bounds.left,
+			top: height < 0 ? currentY : this.#bounds.top
 		};
 
 		Object.assign(this.element.style, appendPx(this.#bounds));
