@@ -42,7 +42,7 @@ fn handle_no_decoders(export: &mut File) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
 
-pub fn get(_extension: &str) -> Vec<Box<dyn Decoder>> {{
+pub fn get(_extension: &str) -> Vec<impl Decoder> {{
     vec![]
 }}"#
     )?;
@@ -56,7 +56,7 @@ fn handle_decoders(export: &mut File, decoders: Vec<String>) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
         
-pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {{
+pub fn get(extension: &str) -> Vec<impl Decoder> {{
     match extension {{"#
     )?;
 
@@ -71,11 +71,7 @@ pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {{
     for (extension, decoders) in extension_map {
         writeln!(export, r#"        "{}" => vec!["#, extension)?;
         for decoder in decoders {
-            writeln!(
-                export,
-                r#"            Box::new(crate::{}::Module),"#,
-                decoder
-            )?;
+            writeln!(export, r#"            crate::{decoder}::Module,"#)?;
         }
         writeln!(export, r#"        ],"#)?;
     }
@@ -84,9 +80,30 @@ pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {{
         export,
         r#"        _ => vec![],
     }}
-}}"#
+}}
+"#
     )?;
 
+    writeln!(
+        export,
+        r#"pub fn names(name: &str) -> Option<impl Decoder> {{
+    match name {{"#
+    )?;
+
+    // Loop over decoders.
+    for decoder in decoders {
+        writeln!(
+            export,
+            r#"        crate::{decoder}::NAME => Some(crate::{decoder}::Module),"#,
+        )?;
+    }
+
+    writeln!(
+        export,
+        r#"        _ => None,
+    }}
+}}"#
+    )?;
     Ok(())
 }
 

@@ -65,7 +65,7 @@ async fn tiles(socket: WebSocket) {
             };
 
             // TODO: Remove hardcoding, import from consts.
-            let encoded_img_path = path.join("encoded_image.zarr");
+            let encoded_img_path = path.join("image.zarr");
             let tile = match crate::io::retrieve(&encoded_img_path, &tile_request).await {
                 Ok(tile) => tile,
                 Err(e) => {

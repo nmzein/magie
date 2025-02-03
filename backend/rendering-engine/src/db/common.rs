@@ -1,6 +1,5 @@
 pub use crate::RDB;
 pub use anyhow::Result;
-pub use rusqlite::Connection;
 #[cfg(feature = "log.database")]
 use std::fmt::Debug;
 

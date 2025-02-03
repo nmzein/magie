@@ -64,18 +64,7 @@ fn handle_no_encoders(export: &mut File) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
 
-pub fn convert(
-    _name: &str,
-    _input_path: &Path,
-    _output_path: &Path,
-    _decoder: Box<dyn Decoder>,
-) -> Result<Vec<MetadataLayer>> {{
-    Err(anyhow::anyhow!("No encoders available."))
-}}
-
-pub fn retrieve(_name: &str, _image_path: &Path, _level: u32, _x: u32, _y: u32) -> Result<Vec<u8>> {{
-    Err(anyhow::anyhow!("No encoders available."))
-}}
+pub fn get(_name: &str) -> Option<impl Encoder> {{ None }}
 
 pub const NAMES: [&str; 0] = [];"#
     )?;
@@ -89,47 +78,21 @@ fn handle_encoders(export: &mut File, encoders: Vec<String>) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
 
-pub fn convert(
-    name: &str,
-    input_path: &Path,
-    output_path: &Path,
-    decoder: Box<dyn Decoder>,
-) -> Result<Vec<MetadataLayer>> {{
+pub fn get(name: &str) -> Option<impl Encoder> {{
     match name {{"#
     )?;
 
     for encoder in encoders.clone() {
         writeln!(
             export,
-            r#"        crate::{}::NAME => crate::{}::Module::convert(input_path, output_path, decoder),"#,
+            r#"        crate::{}::NAME => Some(crate::{}::Module),"#,
             encoder, encoder
         )?;
     }
 
     writeln!(
         export,
-        r#"        _ => Err(anyhow::anyhow!("Encoder not found.")),
-    }}
-}}"#
-    )?;
-
-    writeln!(
-        export,
-        r#"pub fn retrieve(name: &str, image_path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {{
-    match name {{"#
-    )?;
-
-    for encoder in encoders.clone() {
-        writeln!(
-            export,
-            r#"        crate::{}::NAME => crate::{}::Module::retrieve(image_path, level, x, y),"#,
-            encoder, encoder
-        )?;
-    }
-
-    writeln!(
-        export,
-        r#"        _ => Err(anyhow::anyhow!("Encoder not found.")),
+        r#"        _ => None,
     }}
 }}
 "#

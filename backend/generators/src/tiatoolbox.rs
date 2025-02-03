@@ -12,6 +12,10 @@ pub const NAME: &str = "TIAToolbox";
 pub struct Module;
 
 impl Generator for Module {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
     fn translate(&self, annotations_path: &Path) -> Result<Vec<AnnotationLayer>> {
         let start = std::time::Instant::now();
 
@@ -21,7 +25,7 @@ impl Generator for Module {
             r#"
                 SELECT cx, cy, geometry, properties, CAST(area AS REAL) AS area
                 FROM annotations
-                ORDER BY area DESC;
+                ORDER BY area ASC;
             "#,
         )?;
 

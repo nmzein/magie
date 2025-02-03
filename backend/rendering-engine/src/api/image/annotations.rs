@@ -27,15 +27,15 @@ pub async fn annotations(
         }
     };
 
-    // Read the binary content of the GLB file
-    let response = match std::fs::read(&path) {
+    // Read the binary content of the GLB file.
+    match std::fs::read(&path) {
         Ok(file_data) => {
             logger
                 .lock()
                 .unwrap()
-                .log("GLB annotation layer file retrieved from filesystem.");
+                .success(StatusCode::OK, "Annotation layer retrieved successfully.");
 
-            (
+            return (
                 axum::response::AppendHeaders([
                     (header::CONTENT_TYPE, "model/gltf-binary"),
                     (
@@ -45,7 +45,7 @@ pub async fn annotations(
                 ]),
                 Bytes::from(file_data),
             )
-                .into_response()
+                .into_response();
         }
         Err(e) => {
             return logger.lock().unwrap().error(
@@ -56,12 +56,5 @@ pub async fn annotations(
                 Some(e.into()),
             )
         }
-    };
-
-    logger
-        .lock()
-        .unwrap()
-        .success(StatusCode::OK, "Annotation layer retrieved successfully.");
-
-    return response;
+    }
 }

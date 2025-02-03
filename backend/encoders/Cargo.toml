@@ -9,6 +9,7 @@ shared = { version = "0.1.0", path = "../shared" }
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
 anyhow = { workspace = true }
+rayon = { workspace = true }
 zarrs = { workspace = true }
 
 [features]

@@ -1,41 +1,48 @@
 /// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
         
-pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {
+pub fn get(extension: &str) -> Vec<impl Decoder> {
     match extension {
         "bif" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "dcm" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "mrxs" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "ndpi" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "scn" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "svs" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "svslide" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "tif" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "tiff" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "vms" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         "vmu" => vec![
-            Box::new(crate::openslide::Module),
+            crate::openslide::Module,
         ],
         _ => vec![],
+    }
+}
+
+pub fn names(name: &str) -> Option<impl Decoder> {
+    match name {
+        crate::openslide::NAME => Some(crate::openslide::Module),
+        _ => None,
     }
 }

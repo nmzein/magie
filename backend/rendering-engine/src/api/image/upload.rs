@@ -1,7 +1,10 @@
 use crate::api::common::*;
 use crate::types::UploadAssetRequest;
 use axum_typed_multipart::{FieldData, TypedMultipart};
-use shared::structs::{AnnotationLayer, MetadataLayer};
+use shared::{
+    structs::{AnnotationLayer, MetadataLayer},
+    traits::Encoder,
+};
 use std::{path::PathBuf, process::Command};
 use tempfile::NamedTempFile;
 
@@ -11,13 +14,10 @@ pub struct Params {
     pub name: String,
 }
 
-const UPLOADED_IMAGE_NAME: &str = "uploaded_image";
-const UPLOADED_ANNOTATIONS_NAME: &str = "uploaded_annotations";
-const ENCODED_IMAGE_NAME: &str = "encoded_image.zarr";
-const TRANSLATED_ANNOTATIONS_NAME: &str = "translated_annotations.json";
-
+// TODO: Handle half failed states.
 // TODO: Perform checks on files before saving them to avoid malware.
 pub async fn upload(
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
     Path(Params { parent_id, name }): Path<Params>,
     TypedMultipart(UploadAssetRequest {
         decoder,
@@ -27,70 +27,71 @@ pub async fn upload(
         annotations_file,
     }): TypedMultipart<UploadAssetRequest>,
 ) -> Response {
-    let name = &name;
+    let (encoder, encoder_name) = match encoders::export::get(&encoder.as_str()) {
+        Some(e) => {
+            logger
+                .lock()
+                .unwrap()
+                .report(Check::ResourceExistenceCheck, "Encoder found.");
 
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("Received upload assets."),
-        None,
-    );
-
-    if !encoders::export::names().contains(&encoder.as_str()) {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!("Encoder could not be found."),
-            None,
-        );
-    }
-
-    if let Some(false) = generator
-        .clone()
-        .map(|g| generators::export::names().contains(&g.as_str()))
-    {
-        return log::<()>(
-            StatusCode::BAD_REQUEST,
-            &format!("Generator could not be found."),
-            None,
-        );
-    }
-
-    // Extract image extension from metadata request body.
-    let image_filename = image_file.metadata.file_name.clone();
-    let upl_img_ext = match image_filename
-        .as_ref()
-        .map(std::path::Path::new)
-        .and_then(|name| name.extension())
-        .and_then(|ext| ext.to_str())
-    {
-        Some(ext) => ext,
+            (e, encoder)
+        }
         None => {
-            return log::<()>(
-                StatusCode::BAD_REQUEST,
-                "Failed to retrieve image extension from file metadata.",
+            return logger.lock().unwrap().error(
+                StatusCode::NOT_FOUND,
+                Error::ResourceExistenceError,
+                "IU-E00",
+                "Encoder could not be found.",
                 None,
             );
         }
     };
 
+    let generator = match generator.map(|g| generators::export::get(&g.as_str())) {
+        Some(Some(g)) => {
+            logger
+                .lock()
+                .unwrap()
+                .report(Check::ResourceExistenceCheck, "Generator found.");
+
+            Some(g)
+        }
+        Some(None) => {
+            return logger.lock().unwrap().error(
+                StatusCode::NOT_FOUND,
+                Error::ResourceExistenceError,
+                "IU-E01",
+                "Generator could not be found.",
+                None,
+            );
+        }
+        None => None,
+    };
+
     // Check if image already exists in database.
     match crate::db::image::exists(parent_id, &name) {
-        Ok(false) => { /* Image does not exist in database, continue. */ }
+        Ok(false) => {
+            /* Image does not exist in database, continue. */
+            logger.lock().unwrap().report(
+                Check::ResourceConflictCheck,
+                "Asset with same name does not already exist in directory.",
+            );
+        }
         Ok(true) => {
-            return log::<()>(
-                StatusCode::BAD_REQUEST,
-                &format!(
-                    "Image with name `{name}` already exists in directory with id `{parent_id}`. Consider deleting it from the list first."
-                ),
+            return logger.lock().unwrap().error(
+                StatusCode::CONFLICT,
+                Error::ResourceConflictError,
+                "IU-E02",
+                "Asset with same name already exists in directory.",
                 None,
             );
         }
         Err(e) => {
-            return log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "State database failed to check if image with name `{name}` already exists in directory with id `{parent_id}`.",
-                ),
+                Error::DatabaseQueryError,
+                "IU-E03",
+                "Failed to check if asset with same name exists in directory.",
                 Some(e),
             );
         }
@@ -99,11 +100,13 @@ pub async fn upload(
     // The image's directory path consists of the concatenation of
     // its parent directory's path and its name without extension.
     let path = match crate::db::directory::path(parent_id) {
-        Ok(path) => path.join(name),
+        Ok(path) => path.join(&name),
         Err(e) => {
-            return log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to retrieve directory path for image with name `{name}`.",),
+                Error::DatabaseQueryError,
+                "IU-E04",
+                "Failed to retrieve parent directory path.",
                 Some(e),
             );
         }
@@ -111,18 +114,14 @@ pub async fn upload(
 
     // Create a directory in local store for the image.
     let _ = crate::io::create(&path).await.map_err(|e| {
-        return log(
+        return logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("Failed to create a directory for image with name `{name}`."),
+            Error::ResourceCreationError,
+            "IU-E05",
+            "Failed to create a directory for asset.",
             Some(e),
         );
     });
-
-    let metadata_layers = match handle_image(image_file, &path, &name, &upl_img_ext, &encoder).await
-    {
-        Ok(layers) => layers,
-        Err(response) => return response,
-    };
 
     let mut annotations_ext = None;
     let mut annotation_layers = Vec::new();
@@ -134,13 +133,19 @@ pub async fn upload(
             };
     }
 
+    let (upl_img_ext, metadata_layers) =
+        match handle_image(Arc::clone(&logger), image_file, &path, &name, encoder).await {
+            Ok(layers) => layers,
+            Err(response) => return response,
+        };
+
     // Insert into database.
     match crate::db::image::insert(
         parent_id,
         &name,
         &upl_img_ext,
         &upl_img_ext,
-        &encoder,
+        &encoder_name,
         annotations_ext.as_deref(),
         metadata_layers,
         annotation_layers,
@@ -182,19 +187,40 @@ pub async fn upload(
 }
 
 async fn handle_image(
+    logger: Arc<Mutex<Logger<'_>>>,
     file: FieldData<NamedTempFile>,
     path: &PathBuf,
     name: &str,
-    upl_img_ext: &str,
-    encoder: &str,
-) -> Result<Vec<MetadataLayer>, Response> {
+    encoder: impl Encoder,
+) -> Result<(String, Vec<MetadataLayer>), Response> {
+    // Extract image extension from metadata request body.
+    let image_filename = file.metadata.file_name.clone();
+    let upl_img_ext = match image_filename
+        .as_ref()
+        .map(std::path::Path::new)
+        .and_then(|name| name.extension())
+        .and_then(|ext| ext.to_str())
+    {
+        Some(ext) => ext,
+        None => {
+            return Err(logger.lock().unwrap().error(
+                StatusCode::BAD_REQUEST,
+                Error::RequestIntegrityError,
+                "IUI-E00",
+                "Uploaded image has no extension.",
+                None,
+            ));
+        }
+    };
+
     // Path where the uploaded image will be stored.
-    let upl_img_path = path.join(&format!("{UPLOADED_IMAGE_NAME}.{upl_img_ext}"));
+    let upl_img_path = path.join(&format!("original-image.{upl_img_ext}"));
 
     // Path where the encoded image will be stored.
-    let enc_img_path = path.join(ENCODED_IMAGE_NAME);
+    let enc_img_path = path.join("image.zarr");
 
-    let thumbnail_path = path.join("thumbnail.jpg");
+    // Path where the thumbnail will be stored.
+    let thumbnail_path = path.join("thumbnail.jpeg");
 
     // Save image to disk.
     match crate::io::save_asset(file.contents, &upl_img_path).await {
@@ -218,7 +244,15 @@ async fn handle_image(
     }
 
     // Encode image to Zarr derivative format.
-    match crate::io::convert(&upl_img_path, &enc_img_path, &thumbnail_path, encoder).await {
+    match crate::io::try_convert(
+        &upl_img_path,
+        &upl_img_ext,
+        &enc_img_path,
+        &thumbnail_path,
+        encoder,
+    )
+    .await
+    {
         Ok(metadata) => {
             #[cfg(feature = "log.success")]
             log::<()>(
@@ -227,7 +261,7 @@ async fn handle_image(
                 None,
             );
 
-            return Ok(metadata);
+            return Ok((upl_img_ext.into(), metadata));
         }
         Err(e) => {
             let resp = log(
@@ -244,19 +278,8 @@ async fn handle_image(
 async fn handle_annotations(
     path: &PathBuf,
     file: Option<FieldData<NamedTempFile>>,
-    generator_name: String,
+    generator: impl Generator,
 ) -> Result<(String, Vec<AnnotationLayer>), Response> {
-    // Get annotations generator.
-    let Some(generator) = generators::export::get(&generator_name) else {
-        let resp = log::<()>(
-            StatusCode::NOT_FOUND,
-            &format!("Generator with name `{generator_name}` could not be found."),
-            None,
-        );
-
-        return Err(resp);
-    };
-
     // If user provides annotations file, translate it and compute buffer geometries.
     // Else generate annotations and compute buffer geometries.
     match file {
@@ -267,7 +290,7 @@ async fn handle_annotations(
 
 async fn generate_annotations(
     _path: &PathBuf,
-    _generator: Box<dyn Generator>,
+    _generator: impl Generator,
 ) -> Result<(String, Vec<AnnotationLayer>), Response> {
     // TODO: Generate annotations.
     log::<()>(
@@ -282,12 +305,15 @@ async fn generate_annotations(
 async fn translate_annotations(
     path: &PathBuf,
     file: FieldData<NamedTempFile>,
-    generator: Box<dyn Generator>,
+    generator: impl Generator,
 ) -> Result<(String, Vec<AnnotationLayer>), Response> {
-    // Get uploaded annotation file's extension from metadata request body.
-    // TODO: Fix unwrap.
-    let upl_anno_ext = match std::path::Path::new(file.metadata.file_name.as_ref().unwrap())
-        .extension()
+    // Get uploaded annotation file extension from metadata request body.
+    let upl_anno_ext = match file
+        .metadata
+        .file_name
+        .as_ref()
+        .map(std::path::Path::new)
+        .and_then(|path| path.extension())
         .and_then(|ext| ext.to_str())
     {
         Some(ext) => ext,
@@ -303,7 +329,7 @@ async fn translate_annotations(
     };
 
     // Path where the uploaded annotations file will be stored.
-    let upl_anno_path: PathBuf = path.join(&format!("{UPLOADED_ANNOTATIONS_NAME}.{upl_anno_ext}"));
+    let upl_anno_path: PathBuf = path.join(&format!("original-annotations.{upl_anno_ext}"));
 
     // Save uploaded annotations file to disk.
     match crate::io::save_asset(file.contents, &upl_anno_path).await {
@@ -354,7 +380,7 @@ async fn translate_annotations(
     };
 
     // Save json string to file.
-    let transl_anno_path = path.join(TRANSLATED_ANNOTATIONS_NAME);
+    let transl_anno_path = path.join("annotations.json");
     std::fs::write(transl_anno_path.clone(), serialized_annotation_layers)
         .expect("Unable to write file");
 

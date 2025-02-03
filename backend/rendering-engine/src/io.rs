@@ -1,6 +1,7 @@
 use crate::types::TileRequest;
 use anyhow::Result;
 use image::RgbImage;
+use shared::traits::{Decoder, Encoder};
 use shared::{
     constants::*,
     structs::{MetadataLayer, Size},
@@ -63,14 +64,10 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
     #[cfg(feature = "time")]
     let start = Instant::now();
 
-    // TODO: Dont call .to_vec inside the encoder
-    let raw_buffer = encoders::export::retrieve(
-        "OMEZarr",
-        path,
-        tile_request.level,
-        tile_request.x,
-        tile_request.y,
-    )?;
+    // TODO: Remove hardcode
+    let encoder = encoders::export::get("OMEZarr").unwrap();
+
+    let raw_buffer = encoder.retrieve(path, tile_request.level, tile_request.x, tile_request.y)?;
 
     let Some(image_buffer) = RgbImage::from_raw(TILE_SIZE, TILE_SIZE, raw_buffer) else {
         return Err(anyhow::anyhow!(
@@ -94,23 +91,20 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
     Ok(jpeg_tile)
 }
 
-pub async fn convert(
+pub async fn try_convert(
     upl_img_path: &Path,
+    upl_img_ext: &str,
     enc_img_path: &Path,
     thumbnail_path: &Path,
-    encoder: &str,
+    encoder: impl Encoder,
 ) -> Result<Vec<MetadataLayer>> {
-    let Some(extension) = upl_img_path.extension().and_then(|ext| ext.to_str()) else {
-        return Err(anyhow::anyhow!("Image has no extension."));
-    };
-
-    let decoders = decoders::export::get(extension);
+    let decoders = decoders::export::get(upl_img_ext);
     if decoders.is_empty() {
         return Err(anyhow::anyhow!("No decoders found for image."));
     }
 
     for decoder in decoders {
-        //create thumb
+        // Create thumbnail.
         let thumbnail_buffer = decoder.thumbnail(
             upl_img_path,
             &Size {
@@ -120,7 +114,7 @@ pub async fn convert(
         )?;
 
         // If successful, return early, otherwise log error and continue.
-        match encoders::export::convert(encoder, &upl_img_path, &enc_img_path, decoder) {
+        match encoder.convert(&upl_img_path, &enc_img_path, decoder) {
             Ok(metadata) => {
                 // Convert thumbnail buffer to JPEG.
                 let thumbnail_jpeg =

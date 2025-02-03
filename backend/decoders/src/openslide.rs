@@ -17,6 +17,14 @@ pub const EXTENSIONS: [&str; 11] = [
 pub struct Module;
 
 impl Decoder for Module {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
+    fn extensions(&self) -> Vec<&'static str> {
+        EXTENSIONS.into()
+    }
+
     fn get_level_count(&self, image_path: &Path) -> Result<u32> {
         let image = OpenSlide::new(image_path)?;
         let levels = Slide::get_level_count(&image)?;

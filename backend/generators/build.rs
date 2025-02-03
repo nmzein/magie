@@ -36,7 +36,7 @@ fn handle_no_generators(export: &mut File) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
 
-pub fn get(_name: &str) -> Option<Box<dyn Generator>> {{
+pub fn get(_name: &str) -> Option<impl Generator> {{
     None
 }}
 
@@ -52,14 +52,14 @@ fn handle_generators(export: &mut File, generators: Vec<String>) -> Result<()> {
         r#"/// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
 
-pub fn get(name: &str) -> Option<Box<dyn Generator>> {{
+pub fn get(name: &str) -> Option<impl Generator> {{
     match name {{"#
     )?;
 
     for generator in generators.clone() {
         writeln!(
             export,
-            r#"        crate::{}::NAME => Some(Box::new(crate::{}::Module)),"#,
+            r#"        crate::{}::NAME => Some(crate::{}::Module),"#,
             generator, generator
         )?;
     }

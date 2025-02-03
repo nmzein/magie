@@ -21,7 +21,7 @@ pub async fn thumbnail(Path(id): Path<u32>) -> Response {
         }
     };
 
-    path = path.join("thumbnail.jpg");
+    path = path.join("thumbnail.jpeg");
 
     // Try to open and read the thumbnail image
     match File::open(&path).await {

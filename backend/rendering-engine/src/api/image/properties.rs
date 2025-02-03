@@ -1,33 +1,27 @@
 use crate::api::common::*;
 
-pub async fn properties( Path(id): Path<u32>) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[IP/M00]: Received request for properties of image with id: {id}."),
-        None,
-    );
-
+pub async fn properties(
+    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Path(id): Path<u32>,
+) -> Response {
     // Get image properties from the database.
-    let properties = match crate::db::image::properties(id) {
+    match crate::db::image::properties(id) {
         Ok(properties) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                &format!("[IP/M01]: Successfully fetched properties for image with id `{id}`."),
-                None,
-            );
+            logger
+                .lock()
+                .unwrap()
+                .success(StatusCode::OK, "Retrieved asset properties successfully.");
 
-            properties
+            return Json(properties).into_response();
         }
         Err(e) => {
-            return log(
+            return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IP/E00]: Could not fetch properties for image with id `{id}`."),
+                Error::DatabaseQueryError,
+                "IP-E00",
+                "Failed to retrieve asset properties.",
                 Some(e),
             );
         }
-    };
-
-    Json(properties).into_response()
+    }
 }
