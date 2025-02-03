@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { image, transformer } from '$states';
+	import { images } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
 	import { Explorer } from './Explorer';
 	import Icon from '$icon';
@@ -44,7 +44,7 @@
 						<Explorer {contentSpaceBounds} />
 					{/if}
 				</Tabs.Content>
-				<Tabs.Content value="control" disabled={!image.initialised}>
+				<Tabs.Content value="control" disabled={!images[0]?.initialised}>
 					<AnnotationControls />
 				</Tabs.Content>
 			</div>
@@ -54,24 +54,28 @@
 			<div class="flex h-full flex-col gap-[10px]">
 				<Tabs.TriggerList id="zooming">
 					<Tabs.Trigger
-						sideEffect={() => transformer.zoom(-100)}
-						disabled={!image.initialised || transformer.atMaxScale()}
+						sideEffect={() => {
+							if (images[0]?.initialised) images[0].transformer.zoom(-100);
+						}}
+						disabled={!images[0]?.initialised || images[0].transformer.atMaxScale}
 					>
 						<Icon name="zoom-in" class="h-9 w-9" />
 					</Tabs.Trigger>
 					<button
 						onclick={() => {
-							if (image.initialised) transformer.resetScale();
+							if (images[0]?.initialised) images[0].transformer.resetScale();
 						}}
 						class="my-[5px] select-none text-center"
-						class:cursor-pointer={image.initialised}
-						class:opacity-30={!image.initialised}
+						class:cursor-pointer={images[0]?.initialised}
+						class:opacity-30={!images[0]?.initialised}
 					>
-						{truncateNumber(transformer.scale)}x
+						{images[0]?.initialised ? truncateNumber(images[0].transformer.scale) : '1.0'}x
 					</button>
 					<Tabs.Trigger
-						sideEffect={() => transformer.zoom(100)}
-						disabled={!image.initialised || transformer.atMinScale()}
+						sideEffect={() => {
+							if (images[0]?.initialised) images[0].transformer.zoom(100);
+						}}
+						disabled={!images[0]?.initialised || images[0].transformer.atMinScale}
 					>
 						<Icon name="zoom-out" class="h-9 w-9" />
 					</Tabs.Trigger>
@@ -83,11 +87,11 @@
 					</Tabs.Trigger>
 					<Tabs.Trigger
 						value="control"
-						disabled={!defined(image.properties) || image.properties.annotations.length === 0}
+						disabled={!images[0]?.initialised || images[0].properties.annotations.length === 0}
 					>
 						<Icon name="control" class="h-9 w-9" />
 					</Tabs.Trigger>
-					<Tabs.Trigger value="info" disabled={!image.initialised}>
+					<Tabs.Trigger value="info" disabled={!images[0]?.initialised}>
 						<Icon name="info" class="h-9 w-9" />
 					</Tabs.Trigger>
 				</Tabs.TriggerList>

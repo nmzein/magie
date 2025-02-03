@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { explorer, image } from '$states';
+	import { explorer, NewImageViewer } from '$states';
 	import Button from '$components/Button.svelte';
 	import Section from './Section.svelte';
 </script>
@@ -11,7 +11,7 @@
 				if (item.data.type === 'directory') {
 					explorer!.routeTo(item.route);
 				} else {
-					image.load(item.data);
+					NewImageViewer(item.data);
 				}
 			}}
 			class="flex w-full items-center gap-[10px] rounded-lg text-left hover:underline"

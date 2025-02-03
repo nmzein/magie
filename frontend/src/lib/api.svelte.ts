@@ -5,7 +5,7 @@ import {
 	PUBLIC_BACKEND_PORT
 } from '$env/static/public';
 import { request, defined } from '$helpers';
-import { image, repository } from '$states';
+import { images } from '$states';
 import type { Properties, Directory, WebSocketRequest, UploaderOptions } from '$types';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
@@ -39,26 +39,18 @@ export const http = (() => {
 		}
 
 		async function remove(id: number, mode: 'soft' | 'hard') {
-			const registry: Directory | undefined = await request.delete({
+			await request.delete({
 				url: `${IMAGE_URL}/${id}`,
 				query: { mode }
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		async function move(id: number, parent_id: number) {
-			const registry: Directory | undefined = await request.patch({
+			await request.patch({
 				url: `${IMAGE_URL}/${id}`,
 				body: { parent_id },
 				type: 'json'
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		async function upload(
@@ -67,7 +59,7 @@ export const http = (() => {
 			annotations_file: File | undefined,
 			options: UploaderOptions
 		) {
-			const registry: Directory | undefined = await request.post({
+			await request.post({
 				url: `${IMAGE_URL}/${parent_id}/${options.name}`,
 				body: {
 					decoder: options.decoder,
@@ -78,10 +70,6 @@ export const http = (() => {
 				},
 				type: 'form'
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		return { properties, thumbnail, remove, move, upload };
@@ -91,36 +79,24 @@ export const http = (() => {
 		async function create(parent_id: number, name: string) {
 			// Using POST here because even though this is idempotent,
 			// the client does not specify the created directory's id.
-			const registry: Directory | undefined = await request.post({
+			await request.post({
 				url: `${DIRECTORY_URL}/${parent_id}/${name}`
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		async function remove(id: number, mode: 'soft' | 'hard') {
-			const registry: Directory | undefined = await request.delete({
+			await request.delete({
 				url: `${DIRECTORY_URL}/${id}`,
 				query: { mode }
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		async function move(id: number, parent_id: number) {
-			const registry: Directory | undefined = await request.patch({
+			await request.patch({
 				url: `${DIRECTORY_URL}/${id}`,
 				body: { parent_id },
 				type: 'json'
 			});
-
-			if (!defined(registry)) return;
-
-			repository.registry = registry;
 		}
 
 		return { create, remove, move };
@@ -130,21 +106,21 @@ export const http = (() => {
 })();
 
 export class WebSocketState {
-	private socket: WebSocket;
+	#socket: WebSocket;
 
 	constructor() {
-		this.socket = new WebSocket(WEBSOCKET_URL);
-		this.socket.addEventListener('message', this.receive);
+		this.#socket = new WebSocket(WEBSOCKET_URL);
+		this.#socket.addEventListener('message', this.#receive);
 	}
 
-	public send(data: WebSocketRequest): boolean {
-		if (this.socket?.readyState !== WebSocket.OPEN) return false;
-		this.socket.send(JSON.stringify(data));
+	send(data: WebSocketRequest): boolean {
+		if (this.#socket.readyState !== WebSocket.OPEN) return false;
+		this.#socket.send(JSON.stringify(data));
 		return true;
 	}
 
-	receive(event: MessageEvent) {
-		image.insertTile(event);
+	#receive(event: MessageEvent) {
+		if (images[0]?.initialised) images[0].insertTile(event);
 	}
 }
 

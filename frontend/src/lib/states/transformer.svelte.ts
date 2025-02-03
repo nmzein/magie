@@ -1,84 +1,96 @@
-import { image } from '$states';
+import type { MetadataLayer } from '$types';
 
-// TODO: Make this into a class and move inside ImageViewer.
 /// Handles zoom and offset calculations.
-export const Transformer = () => {
-	const MIN_SCALE = 0.1;
-	const MAX_SCALE = 100;
-	const MIN_LEVEL = 0;
-	let maxLevel: number | undefined = $state();
-	let currentLevel: number | undefined = $state();
+export class Transformer {
+	MIN_SCALE = 0.1;
+	MAX_SCALE = 100;
+	MIN_LEVEL = 0;
+	maxLevel: number | undefined = $state();
+	currentLevel: number | undefined = $state();
+	isDragging = $state(false);
+	panStartX = $state(0);
+	panStartY = $state(0);
+	offsetX = $state(0);
+	offsetY = $state(0);
+	#scale = $state(1);
+	#scaleBreakpoints: number[] = [];
+	atMinScale: boolean = $derived(this.#scale === this.MIN_SCALE);
+	atMaxScale: boolean = $derived(this.#scale === this.MAX_SCALE);
 
-	let offsetX = $state(0);
-	let offsetY = $state(0);
-	let scale = $state(1);
-	const scaleBreakpoints: number[] | undefined = $derived.by(() => {
-		if (!image.initialised || image.properties === undefined || maxLevel === undefined) return;
-
-		const lowestResolution =
-			image.properties.metadata[maxLevel].width * image.properties.metadata[maxLevel].height;
-		let scaleBreakpoints = [];
-		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
-		for (let i = MIN_LEVEL; i < maxLevel; i++) {
-			scaleBreakpoints.push(
-				Math.sqrt(
-					(image.properties.metadata[i].width * image.properties.metadata[i].height) /
-						lowestResolution
-				)
-			);
+	constructor(metadata: MetadataLayer[]) {
+		// TODO: FIX
+		for (let i = 0; i < metadata.length; i++) {
+			if (metadata[i].cols <= 4 || metadata[i].rows <= 4) {
+				this.maxLevel = i - 1;
+				this.currentLevel = i - 1;
+				break;
+			}
 		}
 
-		return scaleBreakpoints;
-	});
+		// this.maxLevel = metadata.length - 1;
+		// this.currentLevel = metadata.length - 1;
 
-	function atMinScale() {
-		return scale === MIN_SCALE;
+		const lowestResolution = metadata[this.maxLevel!].width * metadata[this.maxLevel!].height;
+
+		// Start at highest resolution (MIN_LEVEL) and go till second lowest (maxLevel - 1).
+		for (let i = this.MIN_LEVEL; i < this.maxLevel!; i++) {
+			this.#scaleBreakpoints.push(
+				Math.sqrt((metadata[i].width * metadata[i].height) / lowestResolution)
+			);
+		}
 	}
 
-	function atMaxScale() {
-		return scale === MAX_SCALE;
+	get scale() {
+		return this.#scale;
 	}
 
-	function resetScale() {
-		offsetX = 0;
-		offsetY = 0;
-		scale = 1;
+	resetScale() {
+		this.offsetX = 0;
+		this.offsetY = 0;
+		this.#scale = 1;
 	}
 
-	function zoom(
+	zoom(
 		delta: number,
 		mouseX: number = screen.availWidth / 2,
 		mouseY: number = screen.availHeight / 2
 	) {
-		let newScale = scale * Math.exp(delta * -0.005);
+		let newScale = this.#scale * Math.exp(delta * -0.005);
 
 		// Limit the scale factor within a reasonable range.
-		if (newScale < MIN_SCALE) {
-			newScale = MIN_SCALE;
-		} else if (newScale > MAX_SCALE) {
-			newScale = MAX_SCALE;
+		if (newScale < this.MIN_SCALE) {
+			newScale = this.MIN_SCALE;
+		} else if (newScale > this.MAX_SCALE) {
+			newScale = this.MAX_SCALE;
 		}
 
-		const ratio = 1 - newScale / scale;
+		const ratio = 1 - newScale / this.#scale;
 
-		offsetX += (mouseX - offsetX) * ratio;
-		offsetY += (mouseY - offsetY) * ratio;
+		this.offsetX += (mouseX - this.offsetX) * ratio;
+		this.offsetY += (mouseY - this.offsetY) * ratio;
 
-		scale = newScale;
+		this.#scale = newScale;
 
-		handleLevelChange(delta);
+		this.#handleLevelChange(delta);
 	}
 
-	function handleLevelChange(delta: number) {
-		if (currentLevel === undefined || maxLevel === undefined || scaleBreakpoints === undefined)
+	#handleLevelChange(delta: number) {
+		if (
+			this.currentLevel === undefined ||
+			this.maxLevel === undefined ||
+			this.#scaleBreakpoints === undefined
+		)
 			return;
 
 		// If at highest detail level and zooming in,
 		// or if at lowest detail level and zooming out, do nothing.
-		if ((currentLevel == MIN_LEVEL && delta < 0) || (currentLevel == maxLevel && delta > 0)) {
+		if (
+			(this.currentLevel == this.MIN_LEVEL && delta < 0) ||
+			(this.currentLevel == this.maxLevel && delta > 0)
+		) {
 			console.log(
 				'At level',
-				currentLevel,
+				this.currentLevel,
 				'and zooming',
 				delta < 0 ? 'in' : 'out' + '. Skip computation.'
 			);
@@ -92,48 +104,17 @@ export const Transformer = () => {
 		// desired result: move to level 2 (cL + 1)
 		// should happen when: scale < 8 (sB[cl])
 		// result: cL += 1 (cL = 2)
-		if (delta > 0 && scale < scaleBreakpoints[currentLevel]) {
-			currentLevel += 1;
-			console.log('Switching to lower resolution level:', currentLevel + '.');
+		if (delta > 0 && this.#scale < this.#scaleBreakpoints[this.currentLevel]) {
+			this.currentLevel += 1;
+			console.log('Switching to lower resolution level:', this.currentLevel + '.');
 		}
 
 		// If zooming in (not at highest detail),
 		// check next breakpoint (at currentLevel - 1)
 		// if scale > sB[cL - 1] then cL -= 1 (move to higher reso.)
-		if (delta < 0 && scale > scaleBreakpoints[currentLevel - 1]) {
-			currentLevel -= 1;
-			console.log('Switching to higher resolution level:', currentLevel + '.');
+		if (delta < 0 && this.#scale > this.#scaleBreakpoints[this.currentLevel - 1]) {
+			this.currentLevel -= 1;
+			console.log('Switching to higher resolution level:', this.currentLevel + '.');
 		}
 	}
-
-	return {
-		get scale() {
-			return scale;
-		},
-		get offsetX() {
-			return offsetX;
-		},
-		set offsetX(value: number) {
-			offsetX = value;
-		},
-		get offsetY() {
-			return offsetY;
-		},
-		set offsetY(value: number) {
-			offsetY = value;
-		},
-		get currentLevel() {
-			return currentLevel;
-		},
-		set currentLevel(value: number | undefined) {
-			currentLevel = value;
-		},
-		set maxLevel(value: number | undefined) {
-			maxLevel = value;
-		},
-		atMinScale,
-		atMaxScale,
-		resetScale,
-		zoom
-	};
-};
+}

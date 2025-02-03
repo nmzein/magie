@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Bounds, Directory, Image } from '$types';
-	import { image, explorer, type SelectionBoxState, contextMenu } from '$states';
+	import { NewImageViewer, explorer, type SelectionBoxState, contextMenu } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
@@ -60,7 +60,7 @@
 				explorer!.navigateTo(value.id);
 				break;
 			case 'image':
-				image.load(value);
+				NewImageViewer(value);
 				break;
 		}
 	}

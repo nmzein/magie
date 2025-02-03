@@ -13,7 +13,7 @@ const config = {
 			$components: './src/lib/components',
 			$helpers: './src/lib/helpers.ts',
 			$icon: './src/lib/components/Icon.svelte',
-			$states: './src/lib/states',
+			$states: './src/lib/states/index.svelte.ts',
 			$types: './src/lib/types.ts',
 			$ui: './src/lib/ui',
 			$view: './src/lib/view'

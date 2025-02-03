@@ -1,44 +1,47 @@
 import type { ImageLayer, Image, TileRequest, Properties } from '$types';
 import { http, websocket } from '$api';
-import { transformer } from '$states';
 import { defined } from '$helpers';
+import { Transformer } from './transformer.svelte';
 
 export class ImageViewer {
-	info: Image | undefined = $state();
-	properties: Properties | undefined = $state();
-	// TODO: Figure out why this scaling is needed.
-	width = $derived.by(() => {
-		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
-		return this.properties.metadata[0].width * 1.003;
-	});
-	height = $derived.by(() => {
-		if (!defined(this.properties) || this.properties.metadata.length === 0) return undefined;
-		return this.properties.metadata[0].height * 1.003;
-	});
-	levels: number = $derived(this.properties?.metadata.length ?? 0);
+	initialised = $state(false);
+	// @ts-ignore
+	info: Image = $state();
+	// @ts-ignore
+	properties: Properties = $state();
+	// @ts-ignore
+	width: number;
+	// @ts-ignore
+	height: number;
+	// @ts-ignore
+	levels: number;
 	tiles: ImageLayer[] = $state([]);
-	initialised: boolean = $state(false);
+	// @ts-ignore
+	transformer: Transformer;
 
-	// TODO: Move into constructor and create new image by invoking new ImageViewer()
-	async load(info: Image) {
-		const properties = await http.image.properties(info.id);
+	constructor(info: Image) {
+		http.image.properties(info.id).then((properties) => {
+			if (!defined(properties) || properties.metadata.length === 0) return;
 
-		if (!defined(properties) || properties.metadata.length === 0) return;
+			this.info = info;
+			this.properties = properties;
+			this.levels = properties.metadata.length;
+			// TODO: Figure out why this scaling is needed.
+			this.width = this.properties.metadata[0].width * 1.003;
+			this.height = this.properties.metadata[0].height * 1.003;
 
-		this.#reset();
+			this.tiles = new Array(this.levels).fill([]);
 
-		this.info = info;
-		this.properties = properties;
-		this.tiles = new Array(this.levels).fill([]);
+			for (let level = 0; level < this.levels; level++) {
+				this.tiles[level] = new Array(properties.metadata[level].rows)
+					.fill(0)
+					.map(() => new Array(properties.metadata[level].cols).fill(new Image()));
+			}
 
-		for (let level = 0; level < this.levels; level++) {
-			this.tiles[level] = new Array(properties.metadata[level].rows)
-				.fill(0)
-				.map(() => new Array(properties.metadata[level].cols).fill(new Image()));
-		}
+			this.transformer = new Transformer(properties.metadata);
 
-		// Ready to receive new image tiles.
-		this.initialised = true;
+			this.initialised = true;
+		});
 	}
 
 	async getTile(data: TileRequest): Promise<boolean> {
@@ -46,8 +49,6 @@ export class ImageViewer {
 	}
 
 	async insertTile(event: MessageEvent) {
-		if (!this.initialised) return;
-
 		const data: Blob = event.data;
 		const arr = new Uint8Array(await data.arrayBuffer());
 
@@ -60,13 +61,5 @@ export class ImageViewer {
 		const blob = new Blob([arr.slice(3)], { type: 'image/jpeg' });
 		newTile.src = URL.createObjectURL(blob);
 		this.tiles[level][y][x] = newTile;
-	}
-
-	#reset() {
-		this.initialised = false;
-		this.info = undefined;
-		this.properties = undefined;
-		this.tiles = [];
-		transformer.resetScale();
 	}
 }

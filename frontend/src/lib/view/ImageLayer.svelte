@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { image } from '$states';
+	import { images } from '$states';
 	import type { ImageLayer } from '$types';
 
 	let {
@@ -14,15 +14,15 @@
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach(async (entry) => {
-			if (!entry.isIntersecting || !image.initialised) return;
+			if (!entry.isIntersecting || !images[0]?.initialised) return;
 
 			const target = entry.target as HTMLElement;
 			const level = parseInt(target.dataset.level!);
 			const x = parseInt(target.dataset.x!);
 			const y = parseInt(target.dataset.y!);
 
-			await image.getTile({
-				id: image.info!.id,
+			await images[0].getTile({
+				id: images[0].info.id,
 				level,
 				x,
 				y
@@ -50,9 +50,9 @@
 <div
 	id="image-layer-{layerIndex}"
 	class="absolute grid w-full"
-	style:grid-template-columns={`repeat(${image.properties!.metadata[layerIndex].cols}, 1fr)`}
-	style:grid-template-rows={`repeat(${image.properties!.metadata[layerIndex].rows}, 1fr)`}
-	style:z-index={image.levels - layerIndex}
+	style:grid-template-columns={`repeat(${images[0].properties.metadata[layerIndex].cols}, 1fr)`}
+	style:grid-template-rows={`repeat(${images[0].properties.metadata[layerIndex].rows}, 1fr)`}
+	style:z-index={images[0].levels - layerIndex}
 >
 	{#each layer as row, rowIndex (rowIndex)}
 		{#each row as tile, colIndex (colIndex)}

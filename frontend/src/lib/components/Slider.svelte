@@ -15,8 +15,8 @@
 		max: number;
 		step: number;
 		value: number;
-		inputClass: string;
-		labelClass: string;
+		inputClass?: string;
+		labelClass?: string;
 	} = $props();
 </script>
 

@@ -1,23 +1,40 @@
 import type { Directory } from '$types';
 import { http } from '$api';
 import { InitExplorerState } from '$states';
+import { defined } from '$helpers';
 
 export class RepositoryState {
-	public registry: Directory | undefined = $state();
-	public generators: string[] = $state([]);
-	public decoders: string[] = $state(['Auto (default)']);
-	public encoders: string[] = $state(['OMEZarr']);
+	#registry: Directory | undefined = $state();
+	#generators: string[] = $state([]);
+	#decoders: string[] = $state(['Auto (default)']);
+	#encoders: string[] = $state(['OMEZarr']);
+
+	get registry() {
+		return this.#registry;
+	}
+
+	get generators() {
+		return this.#generators;
+	}
+
+	get decoders() {
+		return this.#decoders;
+	}
+
+	get encoders() {
+		return this.#encoders;
+	}
 
 	constructor() {
 		http.registry().then((registry) => {
-			if (registry === undefined) return;
-			this.registry = registry;
+			if (!defined(registry)) return;
+			this.#registry = registry;
 			InitExplorerState();
 		});
 
 		http.generators().then((generators) => {
-			if (generators === undefined) return;
-			this.generators = generators;
+			if (!defined(generators)) return;
+			this.#generators = generators;
 		});
 	}
 }
