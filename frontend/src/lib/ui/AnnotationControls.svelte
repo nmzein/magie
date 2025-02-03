@@ -6,9 +6,6 @@
 </script>
 
 <div class="panel ml-auto w-fit select-none">
-	<div class="text-secondary bg-primary/15 flex flex-row items-center rounded-t-[inherit] p-2.5">
-		ANNOTATIONS
-	</div>
 	{#if images[0]?.initialised}
 		{#each images[0].properties.annotations as layer}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
