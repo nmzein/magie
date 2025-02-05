@@ -41,7 +41,7 @@ export const http = (() => {
 			return image;
 		}
 
-		async function annotations(image_id: number, annotations_layer_id: number): Promise<GLTF>
+		async function annotations(image_id: number, annotations_layer_id: number): Promise<GLTF> {
 			return await gltfLoader.loadAsync(
 				`${IMAGE_URL}/${image_id}/annotations/${annotations_layer_id}`
 			);
