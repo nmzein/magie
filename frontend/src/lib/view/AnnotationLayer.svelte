@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { IMAGE_URL } from '$api';
+	import { http } from '$api';
 	import { defined } from '$helpers';
 	import type { AnnotationLayer } from '$types';
 	import { onMount } from 'svelte';
 	import { MeshBasicMaterial, type Mesh } from 'three';
-	import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 	let {
 		imageId,
@@ -17,7 +16,6 @@
 	} = $props();
 
 	let mesh: Mesh | undefined = $state();
-	const loader = new GLTFLoader();
 
 	// Materials for this annotation layer.
 	const fillMaterial = $derived(
@@ -29,8 +27,7 @@
 	);
 
 	onMount(async () => {
-		const data = await loader.loadAsync(`${IMAGE_URL}/${imageId}/annotations/${layer.id}`);
-
+		const data = await http.image.annotations(imageId, layer.id);
 		const node = data.scene.children[0];
 
 		if (node.type === 'Mesh') {
@@ -38,7 +35,6 @@
 			mesh.name = layer.tag;
 		}
 	});
-
 	$effect(() => {
 		if (defined(mesh)) {
 			mesh.material = fillMaterial;

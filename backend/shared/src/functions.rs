@@ -56,7 +56,7 @@ pub fn find_exported_struct(contents: File) -> Option<String> {
     None
 }
 
-pub fn declare_modules(mut file: &mut dyn Write, modules: Vec<String>) {
+pub fn declare_modules(mut file: &mut dyn Write, modules: &Vec<String>) {
     writeln!(
         &mut file,
         r#"/// Auto-generated file. Any changes will be overwritten.
@@ -65,10 +65,7 @@ pub mod export;
 "#
     )
     .expect("Could not write module declaration to file.");
-
     for module in modules {
-        writeln!(&mut file, "#[cfg(feature = \"{}\")]", module)
-            .expect("Could not write module declaration to file.");
         writeln!(&mut file, "mod {};", module)
             .expect("Could not write module declaration to file.");
     }

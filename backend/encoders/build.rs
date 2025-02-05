@@ -8,14 +8,9 @@ fn main() -> Result<()> {
     let mut lib = File::create("src/lib.rs")?;
 
     let encoders = find_modules();
-    declare_modules(&mut lib, encoders.clone());
-
-    if encoders.is_empty() {
-        return handle_no_encoders(&mut export);
-    }
-
+    declare_modules(&mut lib, &encoders);
     declare_deps(&mut common)?;
-    handle_encoders(&mut export, encoders)
+    declare_exports(&mut export, &encoders)
 }
 
 fn declare_deps(common: &mut File) -> Result<()> {
@@ -53,26 +48,28 @@ pub fn interleave(channels: &[u8], output: &mut Vec<u8>) {{
     Ok(())
 }
 
-fn handle_no_encoders(export: &mut File) -> Result<()> {
+fn declare_exports(export: &mut File, encoders: &Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
+        "/// Auto-generated file. Any changes will be overwritten."
+    )?;
+    writeln!(export, "use crate::common::*;")?;
 
+    if encoders.is_empty() {
+        writeln!(
+            export,
+            r#"
 pub fn get(_name: &str) -> Option<impl Encoder> {{ None }}
 
-pub const NAMES: [&str; 0] = [];"#
-    )?;
+pub fn names() -> Vec<&'static str> {{ vec![] }}"#
+        )?;
 
-    Ok(())
-}
+        return Ok(());
+    }
 
-fn handle_encoders(export: &mut File, encoders: Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
-
+        r#"
 pub fn get(name: &str) -> Option<impl Encoder> {{
     match name {{"#
     )?;
@@ -80,8 +77,7 @@ pub fn get(name: &str) -> Option<impl Encoder> {{
     for encoder in encoders.clone() {
         writeln!(
             export,
-            r#"        crate::{}::NAME => Some(crate::{}::Module),"#,
-            encoder, encoder
+            "        crate::{encoder}::NAME => Some(crate::{encoder}::Module),"
         )?;
     }
 
@@ -100,7 +96,7 @@ pub fn get(name: &str) -> Option<impl Encoder> {{
     )?;
 
     for encoder in encoders {
-        writeln!(export, r#"        crate::{}::NAME,"#, encoder,)?;
+        writeln!(export, "        crate::{encoder}::NAME,")?;
     }
 
     writeln!(

@@ -47,7 +47,7 @@ class FetchHandler {
 		}
 	}
 
-	async request<T>(req: Req): Promise<T | undefined> {
+	async #request<T>(req: Req): Promise<T | undefined> {
 		const url = this.#url(req);
 		const content = this.#content(req);
 
@@ -82,19 +82,19 @@ class FetchHandler {
 	}
 
 	get<T>({ url, query }: Omit<Req, 'method' | 'body' | 'content_type'>): Promise<T | undefined> {
-		return this.request({ method: 'GET', url, query });
+		return this.#request({ method: 'GET', url, query });
 	}
 
 	post<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'POST', url, query, body, type });
+		return this.#request({ method: 'POST', url, query, body, type });
 	}
 
 	patch<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'PATCH', url, query, body, type });
+		return this.#request({ method: 'PATCH', url, query, body, type });
 	}
 
 	delete<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
-		return this.request({ method: 'DELETE', url, query, body, type });
+		return this.#request({ method: 'DELETE', url, query, body, type });
 	}
 }
 

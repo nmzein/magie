@@ -8,14 +8,9 @@ fn main() -> Result<()> {
     let mut lib = File::create("src/lib.rs")?;
 
     let generators = find_modules();
-    declare_modules(&mut lib, generators.clone());
-
-    if generators.is_empty() {
-        return handle_no_generators(&mut export);
-    }
-
+    declare_modules(&mut lib, &generators);
     declare_deps(&mut common)?;
-    handle_generators(&mut export, generators)
+    declare_exports(&mut export, &generators)
 }
 
 fn declare_deps(common: &mut File) -> Result<()> {
@@ -30,28 +25,28 @@ pub use std::path::Path;"#
     Ok(())
 }
 
-fn handle_no_generators(export: &mut File) -> Result<()> {
+fn declare_exports(export: &mut File, generators: &Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
-
-pub fn get(_name: &str) -> Option<impl Generator> {{
-    None
-}}
-
-pub const NAMES: [&str; 0] = [];"#
+        "/// Auto-generated file. Any changes will be overwritten."
     )?;
+    writeln!(export, "use crate::common::*;")?;
 
-    Ok(())
-}
+    if generators.is_empty() {
+        writeln!(
+            export,
+            r#"
+pub fn get(_name: &str) -> Option<impl Generator> {{ None }}
 
-fn handle_generators(export: &mut File, generators: Vec<String>) -> Result<()> {
+pub fn names() -> Vec<&'static str> {{ vec![] }}"#
+        )?;
+
+        return Ok(());
+    }
+
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
-
+        r#"
 pub fn get(name: &str) -> Option<impl Generator> {{
     match name {{"#
     )?;
@@ -59,8 +54,7 @@ pub fn get(name: &str) -> Option<impl Generator> {{
     for generator in generators.clone() {
         writeln!(
             export,
-            r#"        crate::{}::NAME => Some(crate::{}::Module),"#,
-            generator, generator
+            "        crate::{generator}::NAME => Some(crate::{generator}::Module),"
         )?;
     }
 
@@ -75,7 +69,7 @@ pub fn names() -> Vec<&'static str> {{
     )?;
 
     for generator in generators {
-        writeln!(export, r#"        crate::{}::NAME,"#, generator,)?;
+        writeln!(export, "        crate::{generator}::NAME,")?;
     }
 
     writeln!(

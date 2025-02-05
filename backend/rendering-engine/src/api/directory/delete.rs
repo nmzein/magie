@@ -135,6 +135,7 @@ pub async fn soft_delete(
     directory_path: &PathBuf,
     bin_path: &PathBuf,
 ) -> Result<(), Response> {
+    // TODO: Not sure if returning here actually ends this function.
     // Move the directory to the "Bin" in the filesystem.
     let _ = crate::io::r#move(&directory_path, &bin_path)
         .await

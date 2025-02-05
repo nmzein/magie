@@ -1,6 +1,6 @@
 /// Auto-generated file. Any changes will be overwritten.
 use crate::common::*;
-        
+
 pub fn get(extension: &str) -> Vec<impl Decoder> {
     match extension {
         "bif" => vec![
@@ -40,9 +40,8 @@ pub fn get(extension: &str) -> Vec<impl Decoder> {
     }
 }
 
-pub fn names(name: &str) -> Option<impl Decoder> {
-    match name {
-        crate::openslide::NAME => Some(crate::openslide::Module),
-        _ => None,
-    }
+pub fn names() -> Vec<&'static str> {
+    vec![
+        crate::openslide::NAME,
+    ]
 }

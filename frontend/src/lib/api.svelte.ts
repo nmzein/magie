@@ -7,12 +7,15 @@ import {
 import { request, defined } from '$helpers';
 import { images } from '$states';
 import type { Properties, Directory, WebSocketRequest, UploaderOptions } from '$types';
+import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
 const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
 const DIRECTORY_URL = new URL(HTTP_URL + '/directory');
-export const IMAGE_URL = new URL(HTTP_URL + '/image');
+const IMAGE_URL = new URL(HTTP_URL + '/image');
 const WEBSOCKET_URL = new URL(PUBLIC_WS_SCHEME + BASE_URL + '/api/websocket');
+
+const gltfLoader = new GLTFLoader();
 
 export const http = (() => {
 	async function registry(): Promise<Directory | undefined> {
@@ -36,6 +39,12 @@ export const http = (() => {
 			const image = new Image();
 			image.src = URL.createObjectURL(blob);
 			return image;
+		}
+
+		async function annotations(image_id: number, annotations_layer_id: number): Promise<GLTF>
+			return await gltfLoader.loadAsync(
+				`${IMAGE_URL}/${image_id}/annotations/${annotations_layer_id}`
+			);
 		}
 
 		async function remove(id: number, mode: 'soft' | 'hard') {
@@ -72,7 +81,7 @@ export const http = (() => {
 			});
 		}
 
-		return { properties, thumbnail, remove, move, upload };
+		return { properties, thumbnail, annotations, remove, move, upload };
 	})();
 
 	const directory = (() => {

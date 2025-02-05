@@ -10,14 +10,9 @@ fn main() -> Result<()> {
     let mut lib = File::create("src/lib.rs")?;
 
     let decoders = find_modules();
-    declare_modules(&mut lib, decoders.clone());
-
-    if decoders.is_empty() {
-        return handle_no_decoders(&mut export);
-    }
-
+    declare_modules(&mut lib, &decoders);
     declare_deps(&mut common)?;
-    handle_decoders(&mut export, decoders)
+    declare_exports(&mut export, &decoders)
 }
 
 fn declare_deps(common: &mut File) -> Result<()> {
@@ -36,26 +31,28 @@ pub use std::path::Path;"#
     Ok(())
 }
 
-fn handle_no_decoders(export: &mut File) -> Result<()> {
+fn declare_exports(export: &mut File, decoders: &Vec<String>) -> Result<()> {
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
-
-pub fn get(_extension: &str) -> Vec<impl Decoder> {{
-    vec![]
-}}"#
+        "/// Auto-generated file. Any changes will be overwritten."
     )?;
+    writeln!(export, "use crate::common::*;")?;
 
-    Ok(())
-}
+    if decoders.is_empty() {
+        writeln!(
+            export,
+            r#"
+pub fn get(_extension: &str) -> Vec<impl Decoder> {{ vec![] }}
 
-fn handle_decoders(export: &mut File, decoders: Vec<String>) -> Result<()> {
+pub fn names() -> Vec<&'static str> {{ vec![] }}"#
+        )?;
+
+        return Ok(());
+    }
+
     writeln!(
         export,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-use crate::common::*;
-        
+        r#"
 pub fn get(extension: &str) -> Vec<impl Decoder> {{
     match extension {{"#
     )?;
@@ -86,24 +83,20 @@ pub fn get(extension: &str) -> Vec<impl Decoder> {{
 
     writeln!(
         export,
-        r#"pub fn names(name: &str) -> Option<impl Decoder> {{
-    match name {{"#
+        r#"pub fn names() -> Vec<&'static str> {{
+    vec!["#
     )?;
 
-    // Loop over decoders.
     for decoder in decoders {
-        writeln!(
-            export,
-            r#"        crate::{decoder}::NAME => Some(crate::{decoder}::Module),"#,
-        )?;
+        writeln!(export, "        crate::{decoder}::NAME,")?;
     }
 
     writeln!(
         export,
-        r#"        _ => None,
-    }}
+        r#"    ]
 }}"#
     )?;
+
     Ok(())
 }
 
