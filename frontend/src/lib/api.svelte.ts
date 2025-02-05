@@ -105,11 +105,11 @@ export const http = (() => {
 	return { registry, generators, image, directory };
 })();
 
-export class WebSocketState {
+export class WebSocketHandler {
 	#socket: WebSocket;
 
-	constructor() {
-		this.#socket = new WebSocket(WEBSOCKET_URL);
+	constructor(url: URL | string) {
+		this.#socket = new WebSocket(url);
 		this.#socket.addEventListener('message', this.#receive);
 	}
 
@@ -124,8 +124,8 @@ export class WebSocketState {
 	}
 }
 
-export let websocket: WebSocketState;
+export let websocket: WebSocketHandler;
 
 export function ConnectWebSocket() {
-	websocket = new WebSocketState();
+	websocket = new WebSocketHandler(WEBSOCKET_URL);
 }

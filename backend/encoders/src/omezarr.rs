@@ -101,10 +101,13 @@ impl Encoder for Module {
                             .flatten()
                             .collect::<Vec<u8>>();
 
+                        let x: u64 = x.into();
+                        let y: u64 = y.into();
+
                         array.store_chunks_elements(
                             &ArraySubset::new_with_start_end_inc(
-                                vec![0, 0, 0, y.into(), x.into()],
-                                vec![0, 2, 0, y.into(), x.into()],
+                                vec![0, 0, 0, y, x],
+                                vec![0, 2, 0, y, x],
                             )?,
                             &tile,
                         )?;
@@ -127,21 +130,40 @@ impl Encoder for Module {
     }
 
     fn retrieve(&self, image_path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
+        #[cfg(feature = "time")]
+        let start = std::time::Instant::now();
+
         let store = Arc::new(FilesystemStore::new(image_path)?);
-        let array = Arc::new(Array::open(store, &format!("{GROUP_PATH}/{}", level))?);
+        let array = Array::open(store, &format!("{GROUP_PATH}/{}", level))?;
+
+        #[cfg(feature = "time")]
+        println!("Opening array took {:?}", start.elapsed());
 
         let x: u64 = x.into();
         let y: u64 = y.into();
 
+        #[cfg(feature = "time")]
+        let start = std::time::Instant::now();
+
+        // #1 Bottleneck
         // Retrieve tile for each RGB channel.
         let channels = array.retrieve_chunks_elements(&ArraySubset::new_with_start_end_inc(
             vec![0, 0, 0, y, x],
             vec![0, 2, 0, y, x],
         )?)?;
 
+        #[cfg(feature = "time")]
+        println!("Retrieval took {:?}", start.elapsed());
+
+        #[cfg(feature = "time")]
+        let start = std::time::Instant::now();
+
         // Interleave RGB channels.
         let mut tile = Vec::with_capacity(TILE_LENGTH * 3);
         interleave(&channels, &mut tile);
+
+        #[cfg(feature = "time")]
+        println!("Interleave took {:?}", start.elapsed());
 
         Ok(tile)
     }

@@ -7,8 +7,6 @@ use shared::{
     structs::{MetadataLayer, Size},
 };
 use std::path::Path;
-#[cfg(feature = "time")]
-use std::time::Instant;
 use tempfile::NamedTempFile;
 use tokio::fs;
 
@@ -61,13 +59,13 @@ pub async fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
 }
 
 pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>> {
-    #[cfg(feature = "time")]
-    let start = Instant::now();
-
     // TODO: Remove hardcode
     let encoder = encoders::export::get("OMEZarr").unwrap();
 
     let raw_buffer = encoder.retrieve(path, tile_request.level, tile_request.x, tile_request.y)?;
+
+    #[cfg(feature = "time")]
+    let start = std::time::Instant::now();
 
     let Some(image_buffer) = RgbImage::from_raw(TILE_SIZE, TILE_SIZE, raw_buffer) else {
         return Err(anyhow::anyhow!(
@@ -75,20 +73,35 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
         ));
     };
 
-    let mut jpeg_tile =
-        turbojpeg::compress_image(&image_buffer, 70, turbojpeg::Subsamp::Sub2x2)?.to_vec();
+    #[cfg(feature = "time")]
+    println!("Convert to buffer took: {:?}", start.elapsed());
+
+    #[cfg(feature = "time")]
+    let start = std::time::Instant::now();
+
+    // #2 Bottleneck
+    let jpeg_tile = turbojpeg::compress_image(&image_buffer, 70, turbojpeg::Subsamp::Sub2x2)?;
+
+    #[cfg(feature = "time")]
+    println!("Convert to jpeg took: {:?}", start.elapsed());
+
+    #[cfg(feature = "time")]
+    let start = std::time::Instant::now();
 
     // Prepend tile position and level
     // (will be in this form [level, x, y, tile...])
-    // ! FIX: x, y can be > u8.
-    jpeg_tile.insert(0, tile_request.y as u8);
-    jpeg_tile.insert(0, tile_request.x as u8);
-    jpeg_tile.insert(0, tile_request.level as u8);
+    let res = [
+        tile_request.level.to_be_bytes().as_slice(),
+        tile_request.x.to_be_bytes().as_slice(),
+        tile_request.y.to_be_bytes().as_slice(),
+        jpeg_tile.to_vec().as_slice(),
+    ]
+    .concat();
 
     #[cfg(feature = "time")]
-    time("Total tile took", level, x, y, start);
+    println!("Final insert took: {:?}", start.elapsed());
 
-    Ok(jpeg_tile)
+    Ok(res)
 }
 
 pub async fn try_convert(
@@ -136,17 +149,4 @@ pub async fn try_convert(
 
     // None of the decoders were successful.
     Err(anyhow::anyhow!("All decoders failed to convert image."))
-}
-
-#[cfg(feature = "time")]
-fn time(message: &str, level: u32, x: u64, y: u64, start: Instant) -> Instant {
-    println!(
-        "<{}:({}, {})>: {} took: {:?}",
-        level,
-        x,
-        y,
-        message,
-        start.elapsed()
-    );
-    Instant::now()
 }

@@ -1,5 +1,3 @@
-import { type ServerResponse, responseHandler } from './api.helpers';
-
 type Req = {
 	method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
 	url: string;
@@ -9,13 +7,13 @@ type Req = {
 };
 
 class FetchHandler {
-	private url(req: Req): URL {
+	#url(req: Req): URL {
 		const url = new URL(req.url);
 		url.search = new URLSearchParams(req.query).toString();
 		return url;
 	}
 
-	private content(req: Req) {
+	#content(req: Req) {
 		if (!req.body) return;
 		if (!req.type) req.type = 'json';
 
@@ -35,11 +33,25 @@ class FetchHandler {
 		}
 	}
 
-	async request<T>(req: Req): Promise<T | undefined> {
-		const url = this.url(req);
-		const content = this.content(req);
+	async #response<T>(res: Response) {
+		switch (res.headers.get('Content-Type')) {
+			case 'application/json': {
+				return await attempt<T>(res.json());
+			}
+			case 'image/jpeg': {
+				return (await attempt(res.blob())) as [Error | null, T];
+			}
+			default: {
+				return [new Error('Unsupported Content-Type'), undefined] as const;
+			}
+		}
+	}
 
-		return await attempt(
+	async request<T>(req: Req): Promise<T | undefined> {
+		const url = this.#url(req);
+		const content = this.#content(req);
+
+		return attempt(
 			fetch(url, { method: req.method, headers: content?.headers, body: content?.body })
 		).then(([error, response]) => {
 			if (error) {
@@ -56,23 +68,15 @@ class FetchHandler {
 				return;
 			}
 
-			const contentType = response.headers.get('Content-Type') as ServerResponse['content_type'];
-			const handler = responseHandler[contentType];
-
-			if (!contentType || !handler) {
-				console.error(
-					`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${contentType}`
-				);
-				return;
-			}
-
-			return attempt(handler(response)).then(([error, result]) => {
+			return this.#response<T>(response).then(([error, result]) => {
 				if (error) {
-					console.error(`Parse Error [${url.pathname}${url.search}]:`, error);
+					console.error(
+						`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${error}`
+					);
 					return;
 				}
 
-				return result as T;
+				return result;
 			});
 		});
 	}

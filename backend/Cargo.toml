@@ -9,7 +9,7 @@ opt-level = 1
 codegen-units = 1
 lto = "fat"
 strip = "symbols"
-opt-level = 3 # TODO: Check speed compared to 2.
+opt-level = 3     # TODO: Check speed compared to 2.
 
 [workspace.dependencies]
 anyhow = "1.0.95"

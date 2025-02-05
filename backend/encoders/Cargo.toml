@@ -16,3 +16,4 @@ zarrs = { workspace = true }
 default = ["omezarr"]
 
 omezarr = []
+time = []

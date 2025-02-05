@@ -31,7 +31,6 @@ export class ImageViewer {
 			this.height = this.properties.metadata[0].height * 1.003;
 
 			this.tiles = new Array(this.levels).fill([]);
-
 			for (let level = 0; level < this.levels; level++) {
 				this.tiles[level] = new Array(properties.metadata[level].rows)
 					.fill(0)
@@ -51,14 +50,15 @@ export class ImageViewer {
 	async insertTile(event: MessageEvent) {
 		const data: Blob = event.data;
 		const arr = new Uint8Array(await data.arrayBuffer());
+		const dataView = new DataView(arr.buffer);
 
-		const level = arr[0];
-		const x = arr[1];
-		const y = arr[2];
+		const level = dataView.getUint32(0);
+		const x = dataView.getUint32(4);
+		const y = dataView.getUint32(8);
+		const tile = arr.slice(12);
 
 		const newTile = new Image();
-		// Remove position and level values from start of array.
-		const blob = new Blob([arr.slice(3)], { type: 'image/jpeg' });
+		const blob = new Blob([tile], { type: 'image/jpeg' });
 		newTile.src = URL.createObjectURL(blob);
 		this.tiles[level][y][x] = newTile;
 	}

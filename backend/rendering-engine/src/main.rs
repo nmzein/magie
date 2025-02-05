@@ -80,7 +80,7 @@ async fn main() {
         .nest("/image", image_routes)
         .route("/registry", get(api::registry::registry))
         .route("/generators", get(api::generators::generators))
-        .route("/websocket", get(api::image::tiles::websocket));
+        .route("/websocket", get(api::websocket::websocket));
 
     let app = Router::new()
         .nest("/api", api_routes)

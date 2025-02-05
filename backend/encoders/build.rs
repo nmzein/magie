@@ -36,22 +36,17 @@ pub use zarrs::{{
     group::GroupBuilder,
 }};
 
-pub fn interleave<'a>(channels: &[u8], tile: &'a mut Vec<u8>) -> &'a [u8] {{
-    tile.clear();
-    tile.reserve(TILE_SPLIT_LENGTH);
-
+pub fn interleave(channels: &[u8], output: &mut Vec<u8>) {{
     let rs = &channels[..TILE_LENGTH];
     let gs = &channels[TILE_LENGTH..TILE_LENGTH * 2];
     let bs = &channels[TILE_LENGTH * 2..];
 
-    tile.extend(
+    output.extend(
         rs.iter()
             .zip(gs)
             .zip(bs)
             .flat_map(|((&r, &g), &b)| [r, g, b]),
     );
-
-    tile
 }}"#
     )?;
 
