@@ -34,12 +34,10 @@
 	"dependencies": {
 		"@iconify/json": "2.2.303",
 		"@tailwindcss/vite": "4.0.3",
-		"canvas": "3.1.0",
 		"runed": "0.23.2",
 		"tailwind-merge": "3.0.1",
 		"tailwindcss": "4.0.3",
 		"three": "0.173.0",
-		"unplugin-icons": "22.0.0",
-		"ws": "8.18.0"
+		"unplugin-icons": "22.0.0"
 	}
 }
