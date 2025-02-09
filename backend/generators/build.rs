@@ -1,82 +1,123 @@
+use quote::quote;
 use shared::functions::{declare_modules, find_modules};
-use std::io::Result;
-use std::{fs::File, io::Write};
+use std::fs::{self, File};
+use syn::{Ident, Item, LitStr};
 
-fn main() -> Result<()> {
-    let mut common = File::create("src/common.rs")?;
-    let mut export = File::create("src/export.rs")?;
-    let mut lib = File::create("src/lib.rs")?;
-
+fn main() {
     let generators = find_modules();
+
+    let common_code = generate_common();
+    let export_code = generate_export(&generators);
+
+    let common_formatted = prettyplease::unparse(&syn::parse2(common_code).unwrap());
+    let export_formatted = prettyplease::unparse(&syn::parse2(export_code).unwrap());
+
+    fs::write("src/common.rs", common_formatted).unwrap();
+    fs::write("src/export.rs", export_formatted).unwrap();
+
+    let mut lib = File::create("src/lib.rs").unwrap();
     declare_modules(&mut lib, &generators);
-    declare_deps(&mut common)?;
-    declare_exports(&mut export, &generators)
 }
 
-fn declare_deps(common: &mut File) -> Result<()> {
-    writeln!(
-        common,
-        r#"/// Auto-generated file. Any changes will be overwritten.
-pub use anyhow::Result;
-pub use shared::{{structs::AnnotationLayer, traits::Generator}};
-pub use std::path::Path;"#
-    )?;
-
-    Ok(())
+fn generate_common() -> proc_macro2::TokenStream {
+    quote! {
+        /// Auto-generated file. Any changes will be overwritten.
+        pub use anyhow::Result;
+        pub use shared::{structs::AnnotationLayer, traits::Generator};
+        pub use std::path::Path;
+    }
 }
 
-fn declare_exports(export: &mut File, generators: &Vec<String>) -> Result<()> {
-    writeln!(
-        export,
-        "/// Auto-generated file. Any changes will be overwritten."
-    )?;
-    writeln!(export, "use crate::common::*;")?;
-
-    if generators.is_empty() {
-        writeln!(
-            export,
-            r#"
-pub fn get(_name: &str) -> Option<impl Generator> {{ None }}
-
-pub fn names() -> Vec<&'static str> {{ vec![] }}"#
-        )?;
-
-        return Ok(());
-    }
-
-    writeln!(
-        export,
-        r#"
-pub fn get(name: &str) -> Option<impl Generator> {{
-    match name {{"#
-    )?;
-
-    for generator in generators.clone() {
-        writeln!(
-            export,
-            "        crate::{generator}::NAME => Some(crate::{generator}::Module),"
-        )?;
-    }
-
-    writeln!(
-        export,
-        r#"        _ => None,
-    }}
-}}
-
-pub fn names() -> Vec<&'static str> {{
-    vec!["#
-    )?;
+fn extract_generator_names(generators: Vec<String>) -> Vec<String> {
+    let mut names = Vec::new();
 
     for generator in generators {
-        writeln!(export, "        crate::{generator}::NAME,")?;
+        let contents =
+            fs::read_to_string(format!("src/{generator}.rs")).expect("Failed to read file");
+
+        let parsed = syn::parse_file(&contents).unwrap().items;
+
+        for item in parsed {
+            if let Item::Impl(item_impl) = item {
+                if let Some(trait_path) = &item_impl.trait_ {
+                    if trait_path
+                        .1
+                        .segments
+                        .last()
+                        .is_some_and(|seg| seg.ident == "Generator")
+                    {
+                        for impl_item in item_impl.items {
+                            if let syn::ImplItem::Fn(method) = impl_item {
+                                if method.sig.ident == "name" {
+                                    if let Some(syn::Stmt::Expr(syn::Expr::Lit(expr_lit), _)) =
+                                        method.block.stmts.first()
+                                    {
+                                        if let syn::Lit::Str(lit_str) = &expr_lit.lit {
+                                            names.push(lit_str.value());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    writeln!(
-        export,
-        r#"    ]
-}}"#
-    )?;
+    names
+}
 
-    Ok(())
+fn generate_export(generators: &[String]) -> proc_macro2::TokenStream {
+    let generator_names = extract_generator_names(generators.to_vec());
+
+    let code = if generators.is_empty() {
+        quote! {
+            /// Auto-generated file. Any changes will be overwritten.
+            use crate::common::*;
+
+            pub fn get(_name: &str) -> Option<Box<dyn Generator>> {
+                None
+            }
+
+            pub fn names() -> Vec<&'static str> {
+                vec![]
+            }
+        }
+    } else {
+        let match_arms = generator_names
+            .iter()
+            .zip(generators.iter())
+            .map(|(name, generator)| {
+                let ident = Ident::new(generator, proc_macro2::Span::call_site());
+                quote! {
+                    #name => Some(Box::new(crate::#ident::Module)),
+                }
+            });
+
+        let names = generator_names.iter().map(|name| {
+            let name_lit = LitStr::new(name, proc_macro2::Span::call_site());
+            quote! { #name_lit, }
+        });
+
+        quote! {
+            /// Auto-generated file. Any changes will be overwritten.
+            use crate::common::*;
+
+            pub fn get(name: &str) -> Option<Box<dyn Generator>> {
+                match name {
+                    #(#match_arms)*
+                    _ => None,
+                }
+            }
+
+            pub fn names() -> Vec<&'static str> {
+                vec![
+                    #(#names)*
+                ]
+            }
+        }
+    };
+
+    code
 }

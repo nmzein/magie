@@ -1,5 +1,4 @@
 use crate::{api::common::*, types::DeleteMode};
-use std::path::PathBuf;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -32,7 +31,7 @@ pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) 
         Err(e) => {
             return log(
                 StatusCode::NOT_FOUND,
-                &format!("[ID/E01]: Bin directory was not found in the database."),
+                "[ID/E01]: Bin directory was not found in the database.",
                 Some(e),
             );
         }
@@ -41,7 +40,7 @@ pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) 
     if image_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
         return log::<()>(
             StatusCode::BAD_REQUEST,
-            &format!("[ID/E02]: Cannot soft delete an image that is already in the Bin."),
+            "[ID/E02]: Cannot soft delete an image that is already in the Bin.",
             None,
         );
     }
@@ -74,50 +73,54 @@ pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) 
     }
 }
 
-pub async fn hard_delete(id: u32, image_path: &PathBuf) -> Result<(), Response> {
-    let _ = crate::io::delete(&image_path).await.map_err(|e| {
-        return log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("[ID-H/E00]: Failed to hard delete image with id `{id}` from the filesystem."),
-            Some(e),
-        );
-    });
+pub async fn hard_delete(id: u32, image_path: &std::path::Path) -> Result<(), Response> {
+    match crate::io::delete(image_path).await {
+        Ok(()) => {}
+        Err(e) => {
+            return Err(log(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &format!(
+                    "[ID-H/E00]: Failed to hard delete image with id `{id}` from the filesystem."
+                ),
+                Some(e),
+            ));
+        }
+    }
 
-    let _ = crate::db::image::delete(id).map_err(|e| {
-        return log(
+    match crate::db::image::delete(id) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("[ID-H/E01]: Failed to hard delete image with id `{id}` from the database."),
             Some(e),
-        );
-    });
-
-    Ok(())
+        )),
+    }
 }
 
 pub async fn soft_delete(
     id: u32,
-    image_path: &PathBuf,
-    bin_path: &PathBuf,
+    image_path: &std::path::Path,
+    bin_path: &std::path::Path,
 ) -> Result<(), Response> {
-    let _ = crate::io::r#move(&image_path, &bin_path)
-        .await
-        .map_err(|e| {
-            return log(
+    match crate::io::r#move(image_path, bin_path).await {
+        Ok(()) => {}
+        Err(e) => {
+            return Err(log(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 &format!(
                     "[ID-S/E00]: Failed to soft delete image with id `{id}` from the filesystem."
                 ),
                 Some(e),
-            );
-        });
+            ));
+        }
+    }
 
-    let _ = crate::db::image::r#move(id, BIN_ID).map_err(|e| {
-        return log(
+    match crate::db::image::r#move(id, BIN_ID) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(log(
             StatusCode::INTERNAL_SERVER_ERROR,
             &format!("[ID-S/E01]: Failed to soft delete image with id `{id}` from the database."),
             Some(e),
-        );
-    });
-
-    Ok(())
+        )),
+    }
 }

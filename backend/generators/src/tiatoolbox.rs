@@ -7,13 +7,11 @@ use serde::Deserialize;
 use std::{collections::HashMap, io::Read};
 use wkb::reader;
 
-pub const NAME: &str = "TIAToolbox";
-
 pub struct Module;
 
 impl Generator for Module {
     fn name(&self) -> &'static str {
-        NAME
+        "TIAToolbox"
     }
 
     fn translate(&self, annotations_path: &Path) -> Result<Vec<AnnotationLayer>> {
@@ -22,11 +20,11 @@ impl Generator for Module {
         let conn = Connection::open(annotations_path)?;
 
         let mut stmt = conn.prepare(
-            r#"
+            "
                 SELECT cx, cy, geometry, properties, CAST(area AS REAL) AS area
                 FROM annotations
                 ORDER BY area ASC;
-            "#,
+            ",
         )?;
 
         let annotations = stmt.query_map([], |row| {
@@ -81,8 +79,7 @@ impl Annotation {
         decoder.read_to_end(&mut buf)?;
 
         // Read geometry stored in well-known bytes format.
-        let Ok(Some(polygon)) = reader::read_wkb(&mut buf).and_then(|g| Ok(g.try_to_geometry()))
-        else {
+        let Ok(Some(polygon)) = reader::read_wkb(&buf).map(|g| g.try_to_geometry()) else {
             return Err(anyhow::anyhow!("Failed to read wkb."));
         };
 

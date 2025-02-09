@@ -11,7 +11,7 @@ use std::{
 };
 
 pub async fn logging_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse {
-    // Extract information from the request
+    // Extract information from the request.
     let method = req.method().clone();
     let uri = req.uri();
     let path = uri.path().to_string();
@@ -19,13 +19,11 @@ pub async fn logging_middleware(mut req: Request<Body>, next: Next) -> impl Into
 
     let logger = Logger::start(method, path, query);
 
-    // Pass the request information to the next middleware/handler
+    // Pass the request information to the next middleware/handler.
     req.extensions_mut().insert(logger);
 
     // Call the next middleware/handler.
-    let response = next.run(req).await;
-
-    response
+    next.run(req).await
 }
 
 #[derive(Clone)]
@@ -64,23 +62,23 @@ pub enum Log<'a> {
 
 #[derive(Clone, Debug)]
 pub enum Check {
-    RequestIntegrityCheck,
-    ResourceConflictCheck,
-    ResourceExistenceCheck,
+    RequestIntegrity,
+    ResourceConflict,
+    ResourceExistence,
 }
 
 #[derive(Clone, Debug)]
 pub enum Error {
-    RequestIntegrityError,
-    ResourceConflictError,
-    ResourceCreationError,
-    ResourceDeletionError,
-    ResourceExistenceError,
-    ResourceMoveError,
-    ResourceReadError,
-    DatabaseQueryError,
-    DatabaseInsertionError,
-    DatabaseDeletionError,
+    RequestIntegrity,
+    ResourceConflict,
+    ResourceCreation,
+    ResourceDeletion,
+    ResourceExistence,
+    ResourceMove,
+    ResourceRead,
+    DatabaseQuery,
+    DatabaseInsertion,
+    DatabaseDeletion,
 }
 
 impl<'a> Logger<'a> {
@@ -157,7 +155,7 @@ impl<'a> Logger<'a> {
                     println!("\nStarted {method} {path}");
 
                     #[cfg(feature = "log.console")]
-                    if query.len() > 0 {
+                    if !query.is_empty() {
                         // Format query so that it is in the form {key: value}, {key: value}, ...
                         let params: HashMap<_, _> = query
                             .split('&')
@@ -169,7 +167,7 @@ impl<'a> Logger<'a> {
 
                         let formatted_params = params
                             .iter()
-                            .map(|(key, value)| format!("{}: {}", key, value))
+                            .map(|(key, value)| format!("{key}: {value}"))
                             .collect::<Vec<String>>()
                             .join(", ");
 
@@ -195,10 +193,10 @@ impl<'a> Logger<'a> {
                     details,
                 } => {
                     #[cfg(feature = "log.console")]
-                    println!("  >>> {error:?} ({id})  {message}");
+                    println!("  >>> ERROR {error:?} ({id})  {message}");
                     if let Some(details) = details {
                         #[cfg(feature = "log.console")]
-                        println!("     {details}");
+                        println!("            {details}");
                     }
                 }
                 Log::Completed { status_code } => {

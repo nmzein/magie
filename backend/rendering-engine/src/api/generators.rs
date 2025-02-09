@@ -8,5 +8,5 @@ pub async fn generators(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) ->
         .unwrap()
         .success(StatusCode::OK, "Retrieved annotation generators.");
 
-    return Json(generators).into_response();
+    Json(generators).into_response()
 }

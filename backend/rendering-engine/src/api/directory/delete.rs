@@ -13,7 +13,7 @@ pub async fn delete(
     if PRIVILEDGED.contains(&id) {
         return logger.lock().unwrap().error(
             StatusCode::FORBIDDEN,
-            Error::RequestIntegrityError,
+            Error::RequestIntegrity,
             "DD-E00",
             "Cannot delete priviledged directories.",
             None,
@@ -21,14 +21,14 @@ pub async fn delete(
     }
 
     logger.lock().unwrap().report(
-        Check::RequestIntegrityCheck,
+        Check::RequestIntegrity,
         "Specified directory is not a priviledged directory.",
     );
 
     if STORES.contains(&id) {
         return logger.lock().unwrap().error(
             StatusCode::FORBIDDEN,
-            Error::RequestIntegrityError,
+            Error::RequestIntegrity,
             "DD-E01",
             "Invalid way to delete a store, use DELETE /api/stores/:id instead.",
             None,
@@ -36,7 +36,7 @@ pub async fn delete(
     }
 
     logger.lock().unwrap().report(
-        Check::RequestIntegrityCheck,
+        Check::RequestIntegrity,
         "Specified directory is not a store.",
     );
 
@@ -44,7 +44,7 @@ pub async fn delete(
     let directory_path = match crate::db::directory::path(id) {
         Ok(path) => {
             logger.lock().unwrap().report(
-                Check::ResourceExistenceCheck,
+                Check::ResourceExistence,
                 "Directory exists in the database and its path was successfully retrieved.",
             );
 
@@ -53,7 +53,7 @@ pub async fn delete(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::NOT_FOUND,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "DD-E02",
                 "Failed to retrieve directory path from the database. There is a chance that the directory does not exist.",
                 Some(e),
@@ -65,7 +65,7 @@ pub async fn delete(
     let bin_path = match crate::db::directory::path(BIN_ID) {
         Ok(path) => {
             logger.lock().unwrap().report(
-                Check::ResourceExistenceCheck,
+                Check::ResourceExistence,
                 "Bin directory exists in the database and its path was successfully retrieved.",
             );
 
@@ -74,7 +74,7 @@ pub async fn delete(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "DD-E03",
                 "Bin directory was not found in the database.",
                 Some(e),
@@ -85,7 +85,7 @@ pub async fn delete(
     if directory_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
         return logger.lock().unwrap().error(
             StatusCode::BAD_REQUEST,
-            Error::RequestIntegrityError,
+            Error::RequestIntegrity,
             "DD-E04",
             "Cannot soft delete a directory that is already in the Bin.",
             None,
@@ -113,7 +113,7 @@ pub async fn delete(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "DD-E05",
                 "Failed to retrieve registry from the database.",
                 Some(e),
@@ -126,23 +126,24 @@ pub async fn delete(
         .unwrap()
         .success(StatusCode::OK, "Directory deleted successfully.");
 
-    return (StatusCode::OK, Json(registry)).into_response();
+    (StatusCode::OK, Json(registry)).into_response()
 }
 
+// TODO: Fix all these map_errs by converting to match
 pub async fn soft_delete(
     logger: Arc<Mutex<Logger<'_>>>,
     id: u32,
-    directory_path: &PathBuf,
-    bin_path: &PathBuf,
+    directory_path: &std::path::Path,
+    bin_path: &std::path::Path,
 ) -> Result<(), Response> {
     // TODO: Not sure if returning here actually ends this function.
     // Move the directory to the "Bin" in the filesystem.
-    let _ = crate::io::r#move(&directory_path, &bin_path)
+    crate::io::r#move(directory_path, bin_path)
         .await
         .map_err(|e| {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceDeletionError,
+                Error::ResourceDeletion,
                 "DDS-E00",
                 "Failed to soft delete directory from the filesystem.",
                 Some(e),
@@ -155,10 +156,10 @@ pub async fn soft_delete(
         .log("Directory moved to the Bin in the filesystem.");
 
     // Move the directory to the "Bin" in the database.
-    let _ = crate::db::directory::r#move(id, BIN_ID, MoveMode::SoftDelete).map_err(|e| {
+    crate::db::directory::r#move(id, BIN_ID, &MoveMode::SoftDelete).map_err(|e| {
         return logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Error::DatabaseDeletionError,
+            Error::DatabaseDeletion,
             "DDS-E01",
             "Failed to soft delete directory from the database.",
             Some(e),
@@ -176,13 +177,13 @@ pub async fn soft_delete(
 pub async fn hard_delete(
     logger: Arc<Mutex<Logger<'_>>>,
     id: u32,
-    directory_path: &PathBuf,
+    directory_path: &std::path::Path,
 ) -> Result<(), Response<Body>> {
     // Remove the directory from the filesystem.
-    let _ = crate::io::delete(&directory_path).await.map_err(|e| {
+    let _ = crate::io::delete(directory_path).await.map_err(|e| {
         return Err::<(), Response<Body>>(logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceDeletionError,
+            Error::ResourceDeletion,
             "DDH-E00",
             "Failed to hard delete directory from the filesystem.",
             Some(e),
@@ -198,7 +199,7 @@ pub async fn hard_delete(
     let _ = crate::db::directory::delete(id).map_err(|e| {
         return Err::<(), Response<Body>>(logger.lock().unwrap().error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Error::DatabaseDeletionError,
+            Error::DatabaseDeletion,
             "DDH-E01",
             "Failed to hard delete directory from the database.",
             Some(e),

@@ -13,7 +13,6 @@ pub use serde::Deserialize;
 pub use shared::traits::Generator;
 pub use std::{
     fmt::Debug,
-    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -26,15 +25,15 @@ pub static STORE_ID: u32 = 2;
 
 pub fn log<T: Debug>(status_code: StatusCode, message: &str, details: Option<T>) -> Response {
     if status_code.is_success() {
-        println!("Ok <{}>: {}", status_code, message);
+        println!("Ok <{status_code}>: {message}");
         if let Some(details) = details {
-            println!("Details: {:?}", details);
+            println!("Details: {details:?}");
         }
         println!();
     } else {
-        eprintln!("Error <{}>: {}", status_code, message);
+        eprintln!("Error <{status_code}>: {message}");
         if let Some(details) = details {
-            eprintln!("Details: {:?}", details);
+            eprintln!("Details: {details:?}");
         }
         eprintln!();
     }

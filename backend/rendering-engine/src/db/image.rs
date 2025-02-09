@@ -19,10 +19,10 @@ pub fn insert(
 
     // TODO: Remove hardcoding.
     transaction.execute(
-        r#"
+        "
             INSERT INTO images (parent_id, name, upl_img_ext, upl_img_fmt, enc_img_ext, enc_img_fmt, upl_anno_ext)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
-        "#,
+        ",
         (parent_id, name, upl_img_ext,  upl_img_fmt, "zarr", enc_img_fmt, annotations_ext),
     )?;
 
@@ -33,10 +33,10 @@ pub fn insert(
 
     for m in metadata_layers {
         transaction.execute(
-            r#"
+            "
                 INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6);
-            "#,
+            ",
             (image_id, m.level, m.cols, m.rows, m.width, m.height),
         )?;
 
@@ -49,10 +49,10 @@ pub fn insert(
 
     for a in annotation_layers {
         transaction.execute(
-            r#"
+            "
                 INSERT INTO annotation_layer (image_id, tag)
                 VALUES (?1, ?2);
-            "#,
+            ",
             (image_id, a.tag.clone()),
         )?;
 
@@ -71,9 +71,9 @@ pub fn insert(
 pub fn delete(id: u32) -> Result<()> {
     let conn = RDB.conn.lock().unwrap();
     conn.execute(
-        r#"
+        "
             DELETE FROM images WHERE id = ?1;
-        "#,
+        ",
         [id],
     )?;
 
@@ -87,12 +87,12 @@ pub fn delete(id: u32) -> Result<()> {
 pub fn exists(parent_id: u32, name: &str) -> Result<bool> {
     let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        r#"
+        "
             SELECT 1 FROM images WHERE name = ?1 AND parent_id = ?2;
-        "#,
+        ",
     )?;
 
-    let exists = stmt.exists(&[name, &parent_id.to_string()])?;
+    let exists = stmt.exists([name, &parent_id.to_string()])?;
 
     #[cfg(feature = "log.database")]
     log(
@@ -110,11 +110,11 @@ pub fn get(id: u32) -> Result<(String, PathBuf)> {
     {
         let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            r#"
+            "
             SELECT name, parent_id
             FROM images
             WHERE id = ?1;
-        "#,
+        ",
         )?;
 
         returned = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
@@ -132,12 +132,12 @@ pub fn get(id: u32) -> Result<(String, PathBuf)> {
 pub fn properties(id: u32) -> Result<ImageProperties> {
     let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        r#"
+        "
             SELECT level, cols, rows, width, height
             FROM metadata_layer
             WHERE image_id = ?1
             ORDER BY level ASC;
-        "#,
+        ",
     )?;
 
     let metadata_layers = stmt
@@ -153,11 +153,11 @@ pub fn properties(id: u32) -> Result<ImageProperties> {
         .collect::<Result<Vec<_>, _>>()?;
 
     let mut stmt = conn.prepare(
-        r#"
+        "
                 SELECT id, tag
                 FROM annotation_layer
                 WHERE image_id = ?1;
-            "#,
+            ",
     )?;
 
     let annotation_layers = stmt
@@ -180,12 +180,12 @@ pub fn get_annotation_layer_path(image_id: u32, annotation_layer_id: u32) -> Res
     let conn = RDB.conn.lock().unwrap();
 
     let mut stmt = conn.prepare(
-        r#"
+        "
             SELECT tag
             FROM annotation_layer
             WHERE image_id = :image_id
             AND id = :annotation_layer_id;
-        "#,
+        ",
     )?;
 
     let path = stmt.query_row(
@@ -208,11 +208,11 @@ pub fn get_annotation_layer_path(image_id: u32, annotation_layer_id: u32) -> Res
 pub fn r#move(id: u32, destination_id: u32) -> Result<()> {
     let conn = RDB.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        r#"
+        "
             UPDATE images
             SET parent_id = ?1
             WHERE id = ?2;
-        "#,
+        ",
     )?;
 
     stmt.execute([destination_id, id])?;
@@ -231,11 +231,11 @@ pub fn path(id: u32) -> Result<PathBuf> {
     {
         let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            r#"
+            "
             SELECT parent_id, name
             FROM images
             WHERE id = ?1;
-            "#,
+            ",
         )?;
 
         (parent_id, name) = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;

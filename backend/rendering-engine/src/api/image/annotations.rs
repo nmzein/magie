@@ -19,7 +19,7 @@ pub async fn annotations(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "IA-E00",
                 "Failed to retrieve path of annotation layer from registry database.",
                 Some(e),
@@ -35,7 +35,7 @@ pub async fn annotations(
                 .unwrap()
                 .success(StatusCode::OK, "Annotation layer retrieved successfully.");
 
-            return (
+            (
                 axum::response::AppendHeaders([
                     (header::CONTENT_TYPE, "model/gltf-binary"),
                     (
@@ -45,12 +45,12 @@ pub async fn annotations(
                 ]),
                 Bytes::from(file_data),
             )
-                .into_response();
+                .into_response()
         }
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceExistenceError,
+                Error::ResourceExistence,
                 "IA-E01",
                 "Failed to retrieve GLB annotation layer file.",
                 Some(e.into()),

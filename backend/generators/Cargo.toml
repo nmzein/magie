@@ -5,6 +5,10 @@ edition = "2021"
 
 [build-dependencies]
 shared = { version = "0.1.0", path = "../shared" }
+prettyplease = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
@@ -12,7 +16,7 @@ anyhow = { workspace = true }
 
 # Optional Dependencies
 flate2 = { version = "1.0.35", optional = true }
-geo-traits = { version = "0.2.0", optional = true}
+geo-traits = { version = "0.2.0", optional = true }
 geo-types = { version = "0.7.15", optional = true }
 rusqlite = { version = "0.32.1", features = ["bundled"], optional = true }
 serde = { version = "1.0.217", features = ["derive"], optional = true }
@@ -20,6 +24,15 @@ serde_json = { version = "1.0.137", optional = true }
 wkb = { version = "0.8.0", optional = true }
 
 [features]
-default = ["tiatoolbox"]
+default = ["tiatoolbox", "test"]
 
-tiatoolbox = ["dep:flate2", "dep:geo-traits", "dep:geo-types", "dep:rusqlite", "dep:serde", "dep:serde_json", "dep:wkb"]
+tiatoolbox = [
+    "dep:flate2",
+    "dep:geo-traits",
+    "dep:geo-types",
+    "dep:rusqlite",
+    "dep:serde",
+    "dep:serde_json",
+    "dep:wkb",
+]
+test = []

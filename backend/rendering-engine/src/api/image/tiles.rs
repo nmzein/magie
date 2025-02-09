@@ -38,7 +38,7 @@ pub async fn tiles(message: Utf8Bytes, sender: Sender<Message>) {
 
     // TODO: Remove hardcoding, import from consts.
     let encoded_img_path = path.join("image.zarr");
-    let tile = match crate::io::retrieve(&encoded_img_path, &tile_request).await {
+    let tile = match crate::io::retrieve(&encoded_img_path, &tile_request) {
         Ok(tile) => tile,
         Err(e) => {
             log(
@@ -66,7 +66,5 @@ pub async fn tiles(message: Utf8Bytes, sender: Sender<Message>) {
                 ),
                 Some(e),
             );
-
-            return;
         });
 }

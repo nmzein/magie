@@ -11,7 +11,7 @@ pub async fn thumbnail(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "IT-E00",
                 "Failed to retrieve asset thumbnail path.",
                 Some(e),
@@ -32,17 +32,17 @@ pub async fn thumbnail(
                         .success(StatusCode::OK, "Retrieved asset thumbnail successfully.");
 
                     // Create a response with the binary content of the image.
-                    return (
+                    (
                         StatusCode::OK,
                         [(CONTENT_TYPE, "image/jpeg")],
                         Bytes::from(buffer),
                     )
-                        .into_response();
+                        .into_response()
                 }
                 Err(e) => {
                     return logger.lock().unwrap().error(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        Error::ResourceReadError,
+                        Error::ResourceRead,
                         "IT-E01",
                         "Failed to read asset thumbnail.",
                         Some(e.into()),
@@ -53,7 +53,7 @@ pub async fn thumbnail(
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceReadError,
+                Error::ResourceRead,
                 "IT-E01",
                 "Failed to open asset thumbnail.",
                 Some(e.into()),

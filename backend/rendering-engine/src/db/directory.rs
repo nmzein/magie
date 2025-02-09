@@ -7,60 +7,60 @@ use std::path::PathBuf;
 fn make_space(id: u32, width: u32, transaction: &Transaction) -> Result<u32> {
     // Get the rgt value of the directory.
     let rgt = transaction.query_row(
-        r#"
+        "
             SELECT rgt
             FROM directories
             WHERE id = ?1;
-        "#,
+        ",
         [id],
         |row| row.get(0),
     )?;
 
     // Update the rgt values of the directory (hence the =), its parent, ancestors, and siblings and their children.
     transaction.execute(
-        r#"
+        "
             UPDATE directories
             SET rgt = rgt + ?1
             WHERE rgt >= ?2;
-        "#,
+        ",
         [width, rgt],
     )?;
 
     // Update the lft values of the siblings and their children.
     transaction.execute(
-        r#"
+        "
             UPDATE directories
             SET lft = lft + ?1
             WHERE lft > ?2;
-        "#,
+        ",
         [width, rgt],
     )?;
 
-    return Ok(rgt + width);
+    Ok(rgt + width)
 }
 
 fn shrink_space(width: u32, threshold: u32, transaction: &Transaction) -> Result<()> {
     // Update the lft values of the siblings and their children.
     transaction.execute(
-        r#"
+        "
             UPDATE directories
             SET lft = lft - ?1
             WHERE lft > ?2 AND rgt > ?2;
-        "#,
+        ",
         [width, threshold],
     )?;
 
     // Update the rgt values of the parent, ancestors, and siblings and their children.
     transaction.execute(
-        r#"
+        "
             UPDATE directories
             SET rgt = rgt - ?1
             WHERE rgt > ?2;
-        "#,
+        ",
         [width, threshold],
     )?;
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn insert(parent_id: u32, name: &str) -> Result<()> {
@@ -72,10 +72,10 @@ pub fn insert(parent_id: u32, name: &str) -> Result<()> {
 
     // Insert the new directory.
     transaction.execute(
-        r#"
+        "
             INSERT INTO directories (name, parent_id, lft, rgt)
             VALUES (?1, ?2, ?3, ?4);
-        "#,
+        ",
         (name, &parent_id, &(parent_rgt - 2), &(parent_rgt - 1)),
     )?;
 
@@ -93,11 +93,11 @@ pub fn delete(id: u32) -> Result<()> {
 
     // Get the rgt value of the directory.
     let (lft, rgt) = transaction.query_row(
-        r#"
+        "
             SELECT lft, rgt
             FROM directories
             WHERE id = ?1;
-        "#,
+        ",
         [id],
         |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u32>(1)?)),
     )?;
@@ -107,10 +107,10 @@ pub fn delete(id: u32) -> Result<()> {
 
     // Delete the directory.
     transaction.execute(
-        r#"
+        "
             DELETE FROM directories
             WHERE id = ?1;
-        "#,
+        ",
         [id],
     )?;
 
@@ -122,16 +122,16 @@ pub fn delete(id: u32) -> Result<()> {
     Ok(())
 }
 
-pub fn r#move(id: u32, destination_id: u32, mode: MoveMode) -> Result<()> {
+pub fn r#move(id: u32, destination_id: u32, mode: &MoveMode) -> Result<()> {
     let mut conn = RDB.conn.lock().unwrap();
     let transaction = conn.transaction()?;
 
     let width: u32 = transaction.query_row(
-        r#"
+        "
             SELECT rgt - lft
             FROM directories
             WHERE id = ?1;
-        "#,
+        ",
         [id],
         |row| row.get(0),
     )?;
@@ -144,39 +144,39 @@ pub fn r#move(id: u32, destination_id: u32, mode: MoveMode) -> Result<()> {
 
     // The current left and right values of the directory after space was made.
     let (lft, rgt, parent_id): (u32, u32, u32) = transaction.query_row(
-        r#"
+        "
             SELECT lft, rgt, parent_id
             FROM directories
             WHERE id = ?1;
-        "#,
+        ",
         [id],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
     )?;
 
-    let offset: i32 = target_rgt as i32 - rgt as i32;
+    let offset = target_rgt - rgt;
 
     match mode {
         MoveMode::Regular => {
             // Update the directory.
             transaction.execute(
-                r#"
+                "
                     UPDATE directories
                     SET parent_id = ?1,
                         lft = ?2,
                         rgt = ?3
                     WHERE id = ?4;
-                "#,
+                ",
                 (destination_id, target_lft, target_rgt, id),
             )?;
 
             // Update the children of the directory.
             transaction.execute(
-                r#"
+                "
                     UPDATE directories
                     SET lft = lft + ?1,
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
-                "#,
+                ",
                 (offset, lft, rgt),
             )?;
         }
@@ -185,25 +185,25 @@ pub fn r#move(id: u32, destination_id: u32, mode: MoveMode) -> Result<()> {
 
             // Mark the directory as deleted.
             transaction.execute(
-                r#"
+                "
                     UPDATE directories
                     SET predeletion_parent_id = ?1,
                         parent_id = ?2,
                         lft = ?3,
                         rgt = ?4
                     WHERE id = ?5;
-                "#,
+                ",
                 (parent_id, destination_id, target_lft, target_rgt, id),
             )?;
 
             // Update the children of the directory.
             transaction.execute(
-                r#"
+                "
                     UPDATE directories
                     SET lft = lft + ?1,
                         rgt = rgt + ?1
                     WHERE lft > ?2 AND rgt < ?3;
-                "#,
+                ",
                 (offset, lft, rgt),
             )?;
         }
@@ -223,12 +223,12 @@ pub fn exists(parent_id: u32, name: &str) -> Result<Option<PathBuf>> {
     {
         let conn = RDB.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            r#"
+            "
                 SELECT 1 FROM directories WHERE name = ?1 AND parent_id = ?2;
-            "#,
+            ",
         )?;
 
-        exists = stmt.exists(&[name, &parent_id.to_string()])?;
+        exists = stmt.exists([name, &parent_id.to_string()])?;
     }
 
     #[cfg(feature = "log.database")]
@@ -237,11 +237,11 @@ pub fn exists(parent_id: u32, name: &str) -> Result<Option<PathBuf>> {
         Some(&exists),
     );
 
-    if !exists {
+    if exists {
+        Ok(None)
+    } else {
         // Return the would-be path for the new directory.
         Ok(Some(path(parent_id)?.join(name)))
-    } else {
-        Ok(None)
     }
 }
 
@@ -250,7 +250,7 @@ pub fn path(id: u32) -> Result<PathBuf> {
 
     // Combine the two queries into one
     let mut stmt = conn.prepare(
-        r#"
+        "
             WITH dir AS (
                 SELECT lft, rgt
                 FROM directories
@@ -260,7 +260,7 @@ pub fn path(id: u32) -> Result<PathBuf> {
             FROM directories d, dir
             WHERE d.lft <= dir.lft AND d.rgt >= dir.rgt
             ORDER BY d.lft;
-        "#,
+        ",
     )?;
 
     // Initialize an empty PathBuf

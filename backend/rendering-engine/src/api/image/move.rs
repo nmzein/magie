@@ -6,17 +6,10 @@ pub struct Body {
 }
 
 pub async fn r#move(Path(id): Path<u32>, Json(Body { parent_id }): Json<Body>) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!("[IM/M00]: Received request to move image with id `{id}` to directory with id `{parent_id}`."),
-        None,
-    );
-
     if parent_id == ROOT_ID {
         return log::<()>(
             StatusCode::BAD_REQUEST,
-            &format!("[IM/E00]: Cannot move images into the root directory."),
+            "[IM/E00]: Cannot move images into the root directory.",
             None,
         );
     }
@@ -46,26 +39,24 @@ pub async fn r#move(Path(id): Path<u32>, Json(Body { parent_id }): Json<Body>) -
     };
 
     // Move the directory in the filesystem.
-    let _ = crate::io::r#move(&target_image_path, &dest_directory_path)
-        .await
-        .map_err(|e| {
-            return log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                    &format!("[IM/E03]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the filesystem."),
-                Some(e),
-            );
-        });
+    match crate::io::r#move(&target_image_path, &dest_directory_path).await {
+        Ok(()) => {}
+        Err(e) => return log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+                &format!("[IM/E03]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the filesystem."),
+            Some(e),
+        )
+    }
 
     // Move the image in the database.
-    let _ = crate::db::image::r#move(id, parent_id)
-        .map_err(|e| {
-            return log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("[IM/E04]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the database."),
-
-                Some(e),
-            );
-        });
+    match crate::db::image::r#move(id, parent_id) {
+        Ok(()) => {}
+        Err(e) =>  return log(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("[IM/E04]: Failed to move image with id `{id}` into directory with id `{parent_id}` in the database."),
+            Some(e),
+        )
+    }
 
     match crate::db::general::get_registry() {
         Ok(registry) => {

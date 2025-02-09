@@ -15,7 +15,7 @@ pub async fn websocket(ws: WebSocketUpgrade) -> impl IntoResponse {
         // Spawn a task that forwards messages from the mpsc receiver to the websocket sink.
         tokio::spawn(async move {
             while let Some(message) = receiver.recv().await {
-                if sink.send(message.into()).await.is_err() {
+                if sink.send(message).await.is_err() {
                     break;
                 }
             }

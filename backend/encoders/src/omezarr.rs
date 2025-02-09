@@ -3,21 +3,14 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 static GROUP_PATH: &str = "/group";
 
-pub const NAME: &str = "OMEZarr";
-
 pub struct Module;
 
 impl Encoder for Module {
     fn name(&self) -> &'static str {
-        NAME
+        "OMEZarr"
     }
 
-    fn convert<D: Decoder>(
-        &self,
-        input_path: &Path,
-        output_path: &Path,
-        decoder: D,
-    ) -> Result<Vec<MetadataLayer>> {
+    fn convert(&self, output_path: &Path, decoder: Box<dyn Decoder>) -> Result<Vec<MetadataLayer>> {
         // One store per image.
         let store = Arc::new(FilesystemStore::new(output_path)?);
         // One group per image.
@@ -25,18 +18,18 @@ impl Encoder for Module {
         // Write group metadata to store.
         group.store_metadata()?;
 
-        let levels = decoder.get_level_count(&input_path)?;
+        let levels = decoder.get_level_count()?;
         if levels == 0 {
             return Err(anyhow::anyhow!("Image has no levels."));
         }
-        let (level_0_width, level_0_height) = decoder.get_level_dimensions(&input_path, 0)?;
+        let (level_0_width, level_0_height) = decoder.get_level_dimensions(0)?;
 
         // Collect metadata in parallel.
         let metadata: Vec<MetadataLayer> = (0..levels)
             .into_par_iter()
             .map(|level| {
                 // Get image dimensions.
-                let (width, height) = decoder.get_level_dimensions(&input_path, level)?;
+                let (width, height) = decoder.get_level_dimensions(level)?;
 
                 // Calculate number of tiles per row and column.
                 let cols = width.div_ceil(TILE_SIZE);
@@ -73,20 +66,17 @@ impl Encoder for Module {
                     for x in 0..cols {
                         // Rearrange tile from [R,G,B,R,G,B] to [R,R,G,G,B,B].
                         let tile = decoder
-                            .read_region(
-                                &input_path,
-                                &Region {
-                                    size: Size {
-                                        width: TILE_SIZE,
-                                        height: TILE_SIZE,
-                                    },
-                                    level: level,
-                                    address: Address {
-                                        x: (x * TILE_SIZE * width_ratio),
-                                        y: (y * TILE_SIZE * height_ratio),
-                                    },
+                            .read_region(&Region {
+                                size: Size {
+                                    width: TILE_SIZE,
+                                    height: TILE_SIZE,
                                 },
-                            )?
+                                level,
+                                address: Address {
+                                    x: (x * TILE_SIZE * width_ratio),
+                                    y: (y * TILE_SIZE * height_ratio),
+                                },
+                            })?
                             .chunks(3)
                             .fold(
                                 vec![Vec::new(), Vec::new(), Vec::new()],

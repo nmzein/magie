@@ -1,5 +1,5 @@
-#![deny(clippy::all)]
-#![warn(clippy::restriction, clippy::pedantic, clippy::nursery, clippy::cargo)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::wildcard_imports, clippy::too_many_lines)]
 
 mod api;
 mod db;
@@ -94,5 +94,5 @@ async fn main() {
 }
 
 fn fetch_env_var(name: &str) -> String {
-    env::var(name).expect(&format!("{name} is not set."))
+    env::var(name).unwrap_or_else(|_| panic!("{name} is not set."))
 }

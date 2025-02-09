@@ -65,6 +65,7 @@ pub mod export;
 "#
     )
     .expect("Could not write module declaration to file.");
+
     for module in modules {
         writeln!(&mut file, "mod {};", module)
             .expect("Could not write module declaration to file.");

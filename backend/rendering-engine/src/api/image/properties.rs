@@ -12,12 +12,12 @@ pub async fn properties(
                 .unwrap()
                 .success(StatusCode::OK, "Retrieved asset properties successfully.");
 
-            return Json(properties).into_response();
+            Json(properties).into_response()
         }
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "IP-E00",
                 "Failed to retrieve asset properties.",
                 Some(e),

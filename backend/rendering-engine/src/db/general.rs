@@ -36,11 +36,7 @@ impl Database {
 pub fn get_registry() -> Result<Directory> {
     let conn = RDB.conn.lock().unwrap();
 
-    let mut stmt = conn.prepare(
-        r#"
-            SELECT id, name, parent_id FROM images;
-        "#,
-    )?;
+    let mut stmt = conn.prepare("SELECT id, name, parent_id FROM images;")?;
     let files = stmt.query_map([], |row| {
         Ok(File {
             r#type: "image".into(),
@@ -67,11 +63,7 @@ pub fn get_registry() -> Result<Directory> {
     let mut registry: Vec<Directory> = Vec::new();
 
     // Retrieve all directories.
-    let mut stmt = conn.prepare(
-        r#"
-            SELECT id, name, lft, rgt FROM directories ORDER BY lft ASC;
-        "#,
-    )?;
+    let mut stmt = conn.prepare("SELECT id, name, lft, rgt FROM directories ORDER BY lft ASC;")?;
     let directories = stmt.query_map([], |row| {
         Ok(Directory {
             r#type: "directory".into(),
@@ -98,7 +90,7 @@ pub fn get_registry() -> Result<Directory> {
 
         // Get files of current directory before adding it to stack.
         if let Some(files) = filemap.get(&directory.id) {
-            directory.files = files.clone();
+            directory.files.clone_from(files);
         }
 
         // Push current directory onto the stack.

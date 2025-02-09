@@ -1,5 +1,6 @@
 pub use crate::RDB;
 pub use anyhow::Result;
+
 #[cfg(feature = "log.database")]
 use std::fmt::Debug;
 

@@ -3,3 +3,4 @@ mod common;
 pub mod export;
 
 mod tiatoolbox;
+mod test;

@@ -1,9 +1,9 @@
 use crate::types::TileRequest;
 use anyhow::Result;
 use image::RgbImage;
-use shared::traits::{Decoder, Encoder};
+use shared::traits::Encoder;
 use shared::{
-    constants::*,
+    constants::TILE_SIZE,
     structs::{MetadataLayer, Size},
 };
 use std::path::Path;
@@ -29,13 +29,10 @@ pub async fn delete(path: &Path) -> Result<()> {
 
 pub async fn r#move(source_path: &Path, destination_base: &Path) -> Result<()> {
     // Extract the last segment of the source path
-    let last_segment = match source_path.file_name() {
-        Some(name) => name,
-        None => {
-            return Err(anyhow::anyhow!(
-                "Could not extract last segment from source path."
-            ))
-        }
+    let Some(last_segment) = source_path.file_name() else {
+        return Err(anyhow::anyhow!(
+            "Could not extract last segment from source path."
+        ));
     };
 
     let destination_path = destination_base.join(last_segment);
@@ -47,18 +44,18 @@ pub async fn r#move(source_path: &Path, destination_base: &Path) -> Result<()> {
         ));
     }
 
-    let _ = fs::rename(source_path, destination_path).await?;
+    fs::rename(source_path, destination_path).await?;
 
-    return Ok(());
+    Ok(())
 }
 
-pub async fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
+pub fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
     file.persist(path)?;
 
     Ok(())
 }
 
-pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>> {
+pub fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>> {
     // TODO: Remove hardcode
     let encoder = encoders::export::get("OMEZarr").unwrap();
 
@@ -105,29 +102,29 @@ pub async fn retrieve(path: &Path, tile_request: &TileRequest) -> Result<Vec<u8>
 }
 
 pub async fn try_convert(
-    upl_img_path: &Path,
-    upl_img_ext: &str,
-    enc_img_path: &Path,
+    source_path: &Path,
+    source_extension: &str,
+    destination_path: &Path,
     thumbnail_path: &Path,
-    encoder: impl Encoder,
+    encoder: Box<dyn Encoder>,
 ) -> Result<Vec<MetadataLayer>> {
-    let decoders = decoders::export::get(upl_img_ext);
+    let decoders = decoders::export::get(source_extension);
     if decoders.is_empty() {
         return Err(anyhow::anyhow!("No decoders found for image."));
     }
 
-    for decoder in decoders {
+    for mut decoder in decoders {
+        // Open the image with the decoder.
+        decoder.open(source_path)?;
+
         // Create thumbnail.
-        let thumbnail_buffer = decoder.thumbnail(
-            upl_img_path,
-            &Size {
-                width: THUMBNAIL_WIDTH,
-                height: THUMBNAIL_HEIGHT,
-            },
-        )?;
+        let thumbnail_buffer = decoder.thumbnail(&Size {
+            width: THUMBNAIL_WIDTH,
+            height: THUMBNAIL_HEIGHT,
+        })?;
 
         // If successful, return early, otherwise log error and continue.
-        match encoder.convert(&upl_img_path, &enc_img_path, decoder) {
+        match encoder.convert(destination_path, decoder) {
             Ok(metadata) => {
                 // Convert thumbnail buffer to JPEG.
                 let thumbnail_jpeg =
@@ -141,7 +138,7 @@ pub async fn try_convert(
             }
             Err(e) => {
                 eprintln!("Error <Decoders>: Decoder failed to convert image.");
-                eprintln!("Details: {:?}", e);
+                eprintln!("Details: {e:?}");
                 eprintln!();
             }
         }

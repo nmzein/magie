@@ -5,6 +5,10 @@ edition = "2021"
 
 [build-dependencies]
 shared = { version = "0.1.0", path = "../shared" }
+prettyplease = { workspace = true }
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
 
 [dependencies]
 shared = { version = "0.1.0", path = "../shared" }
@@ -13,7 +17,8 @@ rayon = { workspace = true }
 zarrs = { workspace = true }
 
 [features]
-default = ["omezarr"]
+default = ["omezarr", "test"]
 
 omezarr = []
+test = []
 time = []

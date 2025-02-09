@@ -8,12 +8,12 @@ pub async fn registry(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) -> R
                 .unwrap()
                 .success(StatusCode::OK, "Retrieved registry.");
 
-            return Json(registry).into_response();
+            Json(registry).into_response()
         }
         Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQueryError,
+                Error::DatabaseQuery,
                 "RG-E00",
                 "Failed to retrieve registry.",
                 Some(e),
