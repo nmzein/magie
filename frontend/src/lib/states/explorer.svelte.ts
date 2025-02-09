@@ -61,6 +61,9 @@ export class ExplorerState {
 
 	// Defaults to going up to parent #directory.
 	up(index: number = this.#directory.route.length - 2) {
+		// Return if in data or bin directories.
+		if (this.#directory.data.id === 1 || this.#directory.data.id === 2) return;
+
 		this.deselectAll();
 
 		const directory = this.#findRoute(this.#directory.route.slice(0, index + 1));
