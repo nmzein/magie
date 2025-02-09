@@ -4,8 +4,28 @@
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { BoundingClientRect } from '$actions';
+	import { defined } from '$helpers';
 
 	const selection: SelectionBoxState<Directory | Image> = new SelectionBoxState();
+	let mainPanel: HTMLElement | undefined = $state();
+
+	function autoscroll(e: PointerEvent) {
+		const SCROLL_SPEED = 10;
+		const SCROLL_THRESHOLD = 50; // # of pixels from edge to trigger scroll.
+
+		if (!selection.dragging || !defined(selection.parentBounds) || !defined(mainPanel)) return;
+
+		// Scroll down.
+		if (e.clientY > selection.parentBounds.bottom - SCROLL_THRESHOLD) {
+			mainPanel.scrollTop += SCROLL_SPEED;
+			selection.update({ x: e.clientX, y: e.clientY });
+		}
+		// Scroll up.
+		else if (e.clientY < selection.parentBounds.top + SCROLL_THRESHOLD) {
+			mainPanel.scrollTop -= SCROLL_SPEED;
+			selection.update({ x: e.clientX, y: e.clientY });
+		}
+	}
 
 	function onpointerdown(e: PointerEvent) {
 		// If main panel not clicked directly, return.
@@ -21,6 +41,7 @@
 
 	function onpointermove(e: PointerEvent) {
 		selection.update({ x: e.clientX, y: e.clientY });
+		autoscroll(e);
 	}
 
 	function onpointerup() {
@@ -85,6 +106,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+	bind:this={mainPanel}
 	onscroll={(e) => {
 		selection.parentScroll = {
 			// @ts-ignore
@@ -95,14 +117,14 @@
 		selection.update();
 	}}
 	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
-	class="@container h-[408px] select-none rounded-br-[10px]
-		   {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
+	class="@container h-[408px] rounded-br-[10px] select-none
+           {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}
 	{oncontextmenu}
 >
 	<div
 		id="main"
-		class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 relative grid min-h-full grid-cols-1 gap-3 p-3"
+		class="relative grid min-h-full grid-cols-1 gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
 	>
 		{#if explorer!.directoryCreator.show}
 			<DirectoryCreator />

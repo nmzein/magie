@@ -3,7 +3,7 @@
 	import Icon from '$icon';
 </script>
 
-<div class="flex select-none flex-row">
+<div class="flex flex-row select-none">
 	<Icon name="back" class="h-10 w-10" onclick={() => explorer!.undo()} />
 	<Icon name="forward" class="h-10 w-10" onclick={() => explorer!.redo()} />
 	<Icon name="up" class="h-10 w-10" onclick={() => explorer!.up()} />

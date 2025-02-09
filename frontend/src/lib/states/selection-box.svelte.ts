@@ -10,7 +10,7 @@ export class SelectionBoxState<T = any> {
 	#startScroll = { top: 0, left: 0 };
 	#bounds: Bounds = $state(DEFAULT_BOUND);
 	element: HTMLElement | undefined;
-	parentBounds: DOMRect | Bounds | undefined = $state();
+	parentBounds: DOMRect | undefined = $state();
 	parentScroll = $state({ top: 0, left: 0 });
 	show: boolean = $derived(this.#dragging && (this.#bounds.width > 5 || this.#bounds.height > 5));
 
