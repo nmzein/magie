@@ -46,8 +46,8 @@ pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) 
     }
 
     let result = match mode {
-        DeleteMode::Soft => soft_delete(id, &image_path, &bin_path).await,
-        DeleteMode::Hard => hard_delete(id, &image_path).await,
+        DeleteMode::Soft => soft_delete(id, &image_path, &bin_path),
+        DeleteMode::Hard => hard_delete(id, &image_path),
     };
 
     if let Err(error) = result {
@@ -73,8 +73,8 @@ pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) 
     }
 }
 
-pub async fn hard_delete(id: u32, image_path: &std::path::Path) -> Result<(), Response> {
-    match crate::io::delete(image_path).await {
+pub fn hard_delete(id: u32, image_path: &std::path::Path) -> Result<(), Response> {
+    match crate::io::delete(image_path) {
         Ok(()) => {}
         Err(e) => {
             return Err(log(
@@ -97,12 +97,12 @@ pub async fn hard_delete(id: u32, image_path: &std::path::Path) -> Result<(), Re
     }
 }
 
-pub async fn soft_delete(
+pub fn soft_delete(
     id: u32,
     image_path: &std::path::Path,
     bin_path: &std::path::Path,
 ) -> Result<(), Response> {
-    match crate::io::r#move(image_path, bin_path).await {
+    match crate::io::r#move(image_path, bin_path) {
         Ok(()) => {}
         Err(e) => {
             return Err(log(

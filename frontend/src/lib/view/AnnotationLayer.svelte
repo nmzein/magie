@@ -35,6 +35,7 @@
 			mesh.name = layer.tag;
 		}
 	});
+
 	$effect(() => {
 		if (defined(mesh)) {
 			mesh.material = fillMaterial;

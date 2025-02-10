@@ -10,7 +10,11 @@ impl Encoder for Module {
         "OMEZarr"
     }
 
-    fn convert(&self, output_path: &Path, decoder: Box<dyn Decoder>) -> Result<Vec<MetadataLayer>> {
+    fn convert(
+        &self,
+        output_path: &Path,
+        decoder: &Box<dyn Decoder>,
+    ) -> Result<Vec<MetadataLayer>> {
         // One store per image.
         let store = Arc::new(FilesystemStore::new(output_path)?);
         // One group per image.
@@ -119,12 +123,19 @@ impl Encoder for Module {
         Ok(metadata)
     }
 
-    fn retrieve(&self, image_path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
+    fn retrieve(
+        &self,
+        buf: &mut Box<[u8]>,
+        image_path: &Path,
+        level: u32,
+        x: u32,
+        y: u32,
+    ) -> Result<()> {
         #[cfg(feature = "time")]
         let start = std::time::Instant::now();
 
         let store = Arc::new(FilesystemStore::new(image_path)?);
-        let array = Array::open(store, &format!("{GROUP_PATH}/{}", level))?;
+        let array = Array::open(store, &format!("{GROUP_PATH}/{level}"))?;
 
         #[cfg(feature = "time")]
         println!("Opening array took {:?}", start.elapsed());
@@ -149,12 +160,11 @@ impl Encoder for Module {
         let start = std::time::Instant::now();
 
         // Interleave RGB channels.
-        let mut tile = Vec::with_capacity(TILE_LENGTH * 3);
-        interleave(&channels, &mut tile);
+        interleave(&channels, buf);
 
         #[cfg(feature = "time")]
         println!("Interleave took {:?}", start.elapsed());
 
-        Ok(tile)
+        Ok(())
     }
 }

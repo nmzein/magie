@@ -39,7 +39,7 @@ pub async fn r#move(Path(id): Path<u32>, Json(Body { parent_id }): Json<Body>) -
     };
 
     // Move the directory in the filesystem.
-    match crate::io::r#move(&target_image_path, &dest_directory_path).await {
+    match crate::io::r#move(&target_image_path, &dest_directory_path) {
         Ok(()) => {}
         Err(e) => return log(
             StatusCode::INTERNAL_SERVER_ERROR,

@@ -56,36 +56,42 @@ pub async fn create(
     };
 
     // Create the directory in the filesystem.
-    let _ = crate::io::create(&path).await.map_err(|e| {
-        return logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceCreation,
-            "DC-E03",
-            "Failed to create directory.",
-            Some(e),
-        );
-    });
-
-    logger
-        .lock()
-        .unwrap()
-        .log("Directory created in the filesystem.");
+    match crate::io::create(&path) {
+        Ok(()) => {
+            logger
+                .lock()
+                .unwrap()
+                .log("Directory created in the filesystem.");
+        }
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceCreation,
+                "DC-E03",
+                "Failed to create directory.",
+                Some(e),
+            );
+        }
+    }
 
     // Insert the directory into the database.
-    let _ = crate::db::directory::insert(parent_id, &name).map_err(|e| {
-        return logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::DatabaseInsertion,
-            "DC-E04",
-            "Failed to insert directory into the database.",
-            Some(e),
-        );
-    });
-
-    logger
-        .lock()
-        .unwrap()
-        .log("Directory inserted into the database.");
+    match crate::db::directory::insert(parent_id, &name) {
+        Ok(()) => {
+            logger
+                .lock()
+                .unwrap()
+                .log("Directory inserted into the database.");
+        }
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseInsertion,
+                "DC-E04",
+                "Failed to insert directory into the database.",
+                Some(e),
+            );
+        }
+    }
 
     let registry = match crate::db::general::get_registry() {
         Ok(registry) => {

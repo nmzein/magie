@@ -146,12 +146,17 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
     let match_arms = extension_map.iter().map(|(ext, decoders)| {
         let modules = decoders.iter().map(|d| {
             let ident = Ident::new(d, proc_macro2::Span::call_site());
-            quote! { Box::new(crate::#ident::Module::default()), }
+            quote! {
+                if let Ok(decoder) = crate::#ident::Module::open(image_path) {
+                    return Some(Box::new(decoder));
+                }
+            }
         });
         quote! {
-            #ext => vec![
+            #ext => {
                 #(#modules)*
-            ],
+                None
+            },
         }
     });
 
@@ -165,8 +170,8 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
             /// Auto-generated file. Any changes will be overwritten.
             use crate::common::*;
 
-            pub fn get(_extension: &str) -> Vec<Box<dyn Decoder>> {
-                vec![]
+            pub fn get(_extension: &str, _image_path: &Path) -> Option<Box<dyn Decoder>> {
+                None
             }
 
             pub fn names() -> Vec<&'static str> {
@@ -178,10 +183,10 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
             /// Auto-generated file. Any changes will be overwritten.
             use crate::common::*;
 
-            pub fn get(extension: &str) -> Vec<Box<dyn Decoder>> {
+            pub fn get(extension: &str, image_path: &Path) -> Option<Box<dyn Decoder>> {
                 match extension {
                     #(#match_arms)*
-                    _ => vec![],
+                    _ => None,
                 }
             }
 

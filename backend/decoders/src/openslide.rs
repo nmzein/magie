@@ -2,13 +2,7 @@ use crate::common::*;
 use openslide_rs::{traits::Slide, OpenSlide};
 
 pub struct Module {
-    image: Option<OpenSlide>,
-}
-
-impl Default for Module {
-    fn default() -> Self {
-        Self { image: None }
-    }
+    image: OpenSlide,
 }
 
 impl Decoder for Module {
@@ -30,68 +24,52 @@ impl Decoder for Module {
         ]
     }
 
-    fn open(&mut self, image_path: &Path) -> Result<()> {
-        self.image = Some(OpenSlide::new(image_path)?);
-
-        Ok(())
+    fn open(image_path: &Path) -> Result<Self> {
+        Ok(Self {
+            image: OpenSlide::new(image_path)?,
+        })
     }
 
     fn get_level_count(&self) -> Result<u32> {
-        if let Some(image) = &self.image {
-            let levels = Slide::get_level_count(image)?;
+        let levels = Slide::get_level_count(&self.image)?;
 
-            return Ok(levels);
-        }
-
-        Err(anyhow::anyhow!("Image not opened"))
+        Ok(levels)
     }
 
     fn get_level_dimensions(&self, level: u32) -> Result<(u32, u32)> {
-        if let Some(image) = &self.image {
-            let image_dimensions = Slide::get_level_dimensions(image, level)?;
+        let image_dimensions = Slide::get_level_dimensions(&self.image, level)?;
 
-            return Ok((image_dimensions.w, image_dimensions.h));
-        }
-
-        Err(anyhow::anyhow!("Image not opened"))
+        Ok((image_dimensions.w, image_dimensions.h))
     }
 
     fn read_region(&self, region: &Region) -> Result<Vec<u8>> {
-        if let Some(image) = &self.image {
-            use openslide_rs::{Address, Region, Size};
+        use openslide_rs::{Address, Region, Size};
 
-            let region = Region {
-                size: Size {
-                    w: region.size.width,
-                    h: region.size.height,
-                },
-                level: region.level,
-                address: Address {
-                    x: region.address.x,
-                    y: region.address.y,
-                },
-            };
+        let region = Region {
+            size: Size {
+                w: region.size.width,
+                h: region.size.height,
+            },
+            level: region.level,
+            address: Address {
+                x: region.address.x,
+                y: region.address.y,
+            },
+        };
 
-            let tile = Slide::read_image_rgb(image, &region)?.to_vec();
+        let tile = Slide::read_image_rgb(&self.image, &region)?.to_vec();
 
-            return Ok(tile);
-        }
-
-        Err(anyhow::anyhow!("Image not opened"))
+        Ok(tile)
     }
 
     fn thumbnail(&self, size: &Size) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>> {
-        if let Some(image) = &self.image {
-            use openslide_rs::Size;
+        use openslide_rs::Size;
 
-            let thumbnail = image.thumbnail_rgb(&Size {
-                w: size.width,
-                h: size.height,
-            })?;
+        let thumbnail = self.image.thumbnail_rgb(&Size {
+            w: size.width,
+            h: size.height,
+        })?;
 
-            return Ok(thumbnail);
-        }
-
-        Err(anyhow::anyhow!("Image not opened"))
+        Ok(thumbnail)
     }
 }

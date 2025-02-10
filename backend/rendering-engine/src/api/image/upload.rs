@@ -5,7 +5,7 @@ use shared::{
     structs::{AnnotationLayer, MetadataLayer},
     traits::Encoder,
 };
-use std::{path::PathBuf, process::Command};
+use std::process::Command;
 use tempfile::NamedTempFile;
 
 #[derive(Deserialize)]
@@ -113,15 +113,18 @@ pub async fn upload(
     };
 
     // Create a directory in local store for the image.
-    let _ = crate::io::create(&path).await.map_err(|e| {
-        return logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceCreation,
-            "IU-E05",
-            "Failed to create a directory for asset.",
-            Some(e),
-        );
-    });
+    match crate::io::create(&path) {
+        Ok(()) => {}
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceCreation,
+                "IU-E05",
+                "Failed to create a directory for asset.",
+                Some(e),
+            );
+        }
+    }
 
     let mut annotations_ext = None;
     let mut annotation_layers = Vec::new();
@@ -134,7 +137,7 @@ pub async fn upload(
     }
 
     let (upl_img_ext, metadata_layers) =
-        match handle_image(Arc::clone(&logger), image_file, &path, &name, encoder).await {
+        match handle_image(&logger, image_file, &path, &name, &encoder) {
             Ok(layers) => layers,
             Err(response) => return response,
         };
@@ -186,12 +189,12 @@ pub async fn upload(
     }
 }
 
-async fn handle_image(
-    logger: Arc<Mutex<Logger<'_>>>,
+fn handle_image(
+    logger: &Arc<Mutex<Logger<'_>>>,
     file: FieldData<NamedTempFile>,
     path: &std::path::Path,
     name: &str,
-    encoder: Box<dyn Encoder>,
+    encoder: &Box<dyn Encoder>,
 ) -> Result<(String, Vec<MetadataLayer>), Response> {
     // Extract image extension from metadata request body.
     let image_filename = file.metadata.file_name.clone();
@@ -247,9 +250,7 @@ async fn handle_image(
         &enc_img_path,
         &thumbnail_path,
         encoder,
-    )
-    .await
-    {
+    ) {
         Ok(metadata) => {
             #[cfg(feature = "log.success")]
             log::<()>(
@@ -273,7 +274,7 @@ async fn handle_image(
 }
 
 fn handle_annotations(
-    path: &PathBuf,
+    path: &std::path::Path,
     file: Option<FieldData<NamedTempFile>>,
     generator: Box<dyn Generator>,
 ) -> Result<(String, Vec<AnnotationLayer>), Response> {
@@ -300,7 +301,7 @@ fn generate_annotations(
 }
 
 fn translate_annotations(
-    path: &PathBuf,
+    path: &std::path::Path,
     file: FieldData<NamedTempFile>,
     generator: &Box<dyn Generator>,
 ) -> Result<(String, Vec<AnnotationLayer>), Response> {
@@ -323,7 +324,7 @@ fn translate_annotations(
     };
 
     // Path where the uploaded annotations file will be stored.
-    let upl_anno_path: PathBuf = path.join(format!("original-annotations.{upl_anno_ext}"));
+    let upl_anno_path = path.join(format!("original-annotations.{upl_anno_ext}"));
 
     // Save uploaded annotations file to disk.
     match crate::io::save_asset(file.contents, &upl_anno_path) {

@@ -1,14 +1,6 @@
 use crate::common::*;
 
-pub struct Module {
-    _image: Option<()>,
-}
-
-impl Default for Module {
-    fn default() -> Self {
-        Self { _image: None }
-    }
-}
+pub struct Module;
 
 impl Decoder for Module {
     fn name(&self) -> &'static str {
@@ -16,11 +8,11 @@ impl Decoder for Module {
     }
 
     fn extensions(&self) -> Vec<&'static str> {
-        vec!["test"]
+        vec!["tiff"]
     }
 
-    fn open(&mut self, _image_path: &Path) -> Result<()> {
-        Ok(())
+    fn open(_image_path: &Path) -> Result<Self> {
+        Ok(Self {})
     }
 
     fn get_level_count(&self) -> Result<u32> {

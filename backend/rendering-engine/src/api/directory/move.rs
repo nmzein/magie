@@ -114,9 +114,14 @@ pub async fn r#move(
     );
 
     // Move the directory in the filesystem.
-    let _ = crate::io::r#move(&target_directory_path, &dest_directory_path)
-        .await
-        .map_err(|e| {
+    match crate::io::r#move(&target_directory_path, &dest_directory_path) {
+        Ok(()) => {
+            logger
+                .lock()
+                .unwrap()
+                .log("Directory moved in the filesystem.");
+        }
+        Err(e) => {
             return logger.lock().unwrap().error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceMove,
@@ -124,28 +129,27 @@ pub async fn r#move(
                 "Failed to move directory in the filesystem.",
                 Some(e),
             );
-        });
-
-    logger
-        .lock()
-        .unwrap()
-        .log("Directory moved in the filesystem.");
+        }
+    }
 
     // Move the directory in the database.
-    let _ = crate::db::directory::r#move(id, parent_id, &MoveMode::Regular).map_err(|e| {
-        return logger.lock().unwrap().error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceMove,
-            "DM-E07",
-            "Failed to move directory in the database.",
-            Some(e),
-        );
-    });
-
-    logger
-        .lock()
-        .unwrap()
-        .log("Directory moved in the database.");
+    match crate::db::directory::r#move(id, parent_id, &MoveMode::Regular) {
+        Ok(()) => {
+            logger
+                .lock()
+                .unwrap()
+                .log("Directory moved in the database.");
+        }
+        Err(e) => {
+            return logger.lock().unwrap().error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceMove,
+                "DM-E07",
+                "Failed to move directory in the database.",
+                Some(e),
+            );
+        }
+    }
 
     let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
