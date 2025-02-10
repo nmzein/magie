@@ -1,12 +1,9 @@
 use crate::api::common::*;
 
-pub async fn generators(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) -> Response {
+pub async fn generators(Extension(mut logger): Extension<Logger<'_>>) -> Response {
     let generators = generators::export::names();
 
-    logger
-        .lock()
-        .unwrap()
-        .success(StatusCode::OK, "Retrieved annotation generators.");
+    logger.success(StatusCode::OK, "Retrieved annotation generators.");
 
     Json(generators).into_response()
 }

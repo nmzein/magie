@@ -6,12 +6,12 @@ pub struct Params {
 }
 
 pub async fn delete(
-    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Extension(mut logger): Extension<Logger<'_>>,
     Path(id): Path<u32>,
     Query(Params { mode }): Query<Params>,
 ) -> Response {
     if PRIVILEDGED.contains(&id) {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DD-E00",
@@ -20,13 +20,13 @@ pub async fn delete(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Specified directory is not a priviledged directory.",
     );
 
     if STORES.contains(&id) {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DD-E01",
@@ -35,7 +35,7 @@ pub async fn delete(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Specified directory is not a store.",
     );
@@ -43,7 +43,7 @@ pub async fn delete(
     // Retrieve directory path.
     let directory_path = match crate::db::directory::path(id) {
         Ok(path) => {
-            logger.lock().unwrap().report(
+            logger.report(
                 Check::ResourceExistence,
                 "Directory exists in the database and its path was successfully retrieved.",
             );
@@ -51,7 +51,7 @@ pub async fn delete(
             path
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::DatabaseQuery,
                 "DD-E02",
@@ -64,7 +64,7 @@ pub async fn delete(
     // Retrieve Bin path.
     let bin_path = match crate::db::directory::path(BIN_ID) {
         Ok(path) => {
-            logger.lock().unwrap().report(
+            logger.report(
                 Check::ResourceExistence,
                 "Bin directory exists in the database and its path was successfully retrieved.",
             );
@@ -72,7 +72,7 @@ pub async fn delete(
             path
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "DD-E03",
@@ -83,7 +83,7 @@ pub async fn delete(
     };
 
     if directory_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
             "DD-E04",
@@ -93,8 +93,8 @@ pub async fn delete(
     }
 
     let result = match mode {
-        DeleteMode::Soft => soft_delete(&logger, id, &directory_path, &bin_path),
-        DeleteMode::Hard => hard_delete(&logger, id, &directory_path),
+        DeleteMode::Soft => soft_delete(&mut logger, id, &directory_path, &bin_path),
+        DeleteMode::Hard => hard_delete(&mut logger, id, &directory_path),
     };
 
     if let Err(response) = result {
@@ -103,15 +103,12 @@ pub async fn delete(
 
     let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Registry retrieved from the database.");
+            logger.log("Registry retrieved from the database.");
 
             registry
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "DD-E05",
@@ -121,16 +118,13 @@ pub async fn delete(
         }
     };
 
-    logger
-        .lock()
-        .unwrap()
-        .success(StatusCode::OK, "Directory deleted successfully.");
+    logger.success(StatusCode::OK, "Directory deleted successfully.");
 
     (StatusCode::OK, Json(registry)).into_response()
 }
 
 pub fn soft_delete(
-    logger: &Arc<Mutex<Logger<'_>>>,
+    logger: &mut Logger<'_>,
     id: u32,
     directory_path: &std::path::Path,
     bin_path: &std::path::Path,
@@ -139,13 +133,10 @@ pub fn soft_delete(
     // Move the directory to the "Bin" in the filesystem.
     match crate::io::r#move(directory_path, bin_path) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory moved to the Bin in the filesystem.");
+            logger.log("Directory moved to the Bin in the filesystem.");
         }
         Err(e) => {
-            return Err(logger.lock().unwrap().error(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceDeletion,
                 "DDS-E00",
@@ -158,14 +149,11 @@ pub fn soft_delete(
     // Move the directory to the "Bin" in the database.
     match crate::db::directory::r#move(id, BIN_ID, &MoveMode::SoftDelete) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory moved to the Bin in the database.");
+            logger.log("Directory moved to the Bin in the database.");
 
             Ok(())
         }
-        Err(e) => Err(logger.lock().unwrap().error(
+        Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletion,
             "DDS-E01",
@@ -176,20 +164,17 @@ pub fn soft_delete(
 }
 
 pub fn hard_delete(
-    logger: &Arc<Mutex<Logger<'_>>>,
+    logger: &mut Logger<'_>,
     id: u32,
     directory_path: &std::path::Path,
 ) -> Result<(), Response<Body>> {
     // Remove the directory from the filesystem.
     match crate::io::delete(directory_path) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory deleted from the filesystem.");
+            logger.log("Directory deleted from the filesystem.");
         }
         Err(e) => {
-            return Err(logger.lock().unwrap().error(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceDeletion,
                 "DDH-E00",
@@ -202,14 +187,11 @@ pub fn hard_delete(
     // Remove the directory from the database.
     match crate::db::directory::delete(id) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory deleted from the database.");
+            logger.log("Directory deleted from the database.");
 
             Ok(())
         }
-        Err(e) => Err(logger.lock().unwrap().error(
+        Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletion,
             "DDH-E01",

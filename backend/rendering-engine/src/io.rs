@@ -75,7 +75,7 @@ pub fn retrieve(path: &Path, &TileRequest { id: _, x, y, level }: &TileRequest) 
     let res = [
         level.to_be_bytes().as_slice(),
         x.to_be_bytes().as_slice(),
-        y.to_be_bytes().as_ref(),
+        y.to_be_bytes().as_slice(),
         jpeg_buffer.as_ref(),
     ]
     .concat();

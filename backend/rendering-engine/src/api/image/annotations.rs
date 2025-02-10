@@ -8,7 +8,7 @@ pub struct Params {
 }
 
 pub async fn annotations(
-    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Extension(mut logger): Extension<Logger<'_>>,
     Path(Params {
         image_id,
         annotation_layer_id,
@@ -17,7 +17,7 @@ pub async fn annotations(
     let path = match crate::db::image::get_annotation_layer_path(image_id, annotation_layer_id) {
         Ok(layers) => layers,
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "IA-E00",
@@ -30,10 +30,7 @@ pub async fn annotations(
     // Read the binary content of the GLB file.
     match std::fs::read(&path) {
         Ok(file_data) => {
-            logger
-                .lock()
-                .unwrap()
-                .success(StatusCode::OK, "Annotation layer retrieved successfully.");
+            logger.success(StatusCode::OK, "Annotation layer retrieved successfully.");
 
             (
                 axum::response::AppendHeaders([
@@ -48,7 +45,7 @@ pub async fn annotations(
                 .into_response()
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceExistence,
                 "IA-E01",

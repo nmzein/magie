@@ -1,17 +1,14 @@
 use crate::api::common::*;
 
-pub async fn registry(Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>) -> Response {
+pub async fn registry(Extension(mut logger): Extension<Logger<'_>>) -> Response {
     match crate::db::general::get_registry() {
         Ok(registry) => {
-            logger
-                .lock()
-                .unwrap()
-                .success(StatusCode::OK, "Retrieved registry.");
+            logger.success(StatusCode::OK, "Retrieved registry.");
 
             Json(registry).into_response()
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "RG-E00",

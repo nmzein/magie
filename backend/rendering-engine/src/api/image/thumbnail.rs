@@ -3,13 +3,13 @@ use axum::{body::Bytes, http::header::CONTENT_TYPE};
 use tokio::{fs::File, io::AsyncReadExt};
 
 pub async fn thumbnail(
-    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Extension(mut logger): Extension<Logger<'_>>,
     Path(id): Path<u32>,
 ) -> Response {
     let path = match crate::db::image::get(id) {
         Ok((_, path)) => path.join("thumbnail.jpeg"),
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "IT-E00",
@@ -26,10 +26,7 @@ pub async fn thumbnail(
             // Read the file content into a buffer.
             match file.read_to_end(&mut buffer).await {
                 Ok(_) => {
-                    logger
-                        .lock()
-                        .unwrap()
-                        .success(StatusCode::OK, "Retrieved asset thumbnail successfully.");
+                    logger.success(StatusCode::OK, "Retrieved asset thumbnail successfully.");
 
                     // Create a response with the binary content of the image.
                     (
@@ -40,7 +37,7 @@ pub async fn thumbnail(
                         .into_response()
                 }
                 Err(e) => {
-                    return logger.lock().unwrap().error(
+                    return logger.error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error::ResourceRead,
                         "IT-E01",
@@ -51,7 +48,7 @@ pub async fn thumbnail(
             }
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceRead,
                 "IT-E01",

@@ -6,7 +6,6 @@ use axum::{
 };
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -82,8 +81,8 @@ pub enum Error {
 }
 
 impl<'a> Logger<'a> {
-    fn start(method: Method, path: String, query: String) -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(Self {
+    fn start(method: Method, path: String, query: String) -> Self {
+        Self {
             logs: vec![Log::Started {
                 method,
                 path,
@@ -91,7 +90,7 @@ impl<'a> Logger<'a> {
             }],
             start: Instant::now(),
             lap: Instant::now(),
-        }))
+        }
     }
 
     // Log a message.

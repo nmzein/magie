@@ -17,7 +17,7 @@ pub struct Params {
 // TODO: Handle half failed states.
 // TODO: Perform checks on files before saving them to avoid malware.
 pub async fn upload(
-    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Extension(mut logger): Extension<Logger<'_>>,
     Path(Params { parent_id, name }): Path<Params>,
     TypedMultipart(UploadAssetRequest {
         decoder,
@@ -29,15 +29,12 @@ pub async fn upload(
 ) -> Response {
     let (encoder, encoder_name) = match encoders::export::get(encoder.as_str()) {
         Some(e) => {
-            logger
-                .lock()
-                .unwrap()
-                .report(Check::ResourceExistence, "Encoder found.");
+            logger.report(Check::ResourceExistence, "Encoder found.");
 
             (e, encoder)
         }
         None => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
                 "IU-E00",
@@ -49,15 +46,12 @@ pub async fn upload(
 
     let generator = match generator.map(|g| generators::export::get(g.as_str())) {
         Some(Some(g)) => {
-            logger
-                .lock()
-                .unwrap()
-                .report(Check::ResourceExistence, "Generator found.");
+            logger.report(Check::ResourceExistence, "Generator found.");
 
             Some(g)
         }
         Some(None) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
                 "IU-E01",
@@ -72,13 +66,13 @@ pub async fn upload(
     match crate::db::image::exists(parent_id, &name) {
         Ok(false) => {
             /* Image does not exist in database, continue. */
-            logger.lock().unwrap().report(
+            logger.report(
                 Check::ResourceConflict,
                 "Asset with same name does not already exist in directory.",
             );
         }
         Ok(true) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::CONFLICT,
                 Error::ResourceConflict,
                 "IU-E02",
@@ -87,7 +81,7 @@ pub async fn upload(
             );
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "IU-E03",
@@ -102,7 +96,7 @@ pub async fn upload(
     let path = match crate::db::directory::path(parent_id) {
         Ok(path) => path.join(&name),
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "IU-E04",
@@ -116,7 +110,7 @@ pub async fn upload(
     match crate::io::create(&path) {
         Ok(()) => {}
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
                 "IU-E05",
@@ -137,7 +131,7 @@ pub async fn upload(
     }
 
     let (upl_img_ext, metadata_layers) =
-        match handle_image(&logger, image_file, &path, &name, &encoder) {
+        match handle_image(&mut logger, image_file, &path, &name, &encoder) {
             Ok(layers) => layers,
             Err(response) => return response,
         };
@@ -190,7 +184,7 @@ pub async fn upload(
 }
 
 fn handle_image(
-    logger: &Arc<Mutex<Logger<'_>>>,
+    logger: &mut Logger<'_>,
     file: FieldData<NamedTempFile>,
     path: &std::path::Path,
     name: &str,
@@ -204,7 +198,7 @@ fn handle_image(
         .and_then(|name| name.extension())
         .and_then(|ext| ext.to_str())
     else {
-        return Err(logger.lock().unwrap().error(
+        return Err(logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
             "IUI-E00",

@@ -6,12 +6,12 @@ pub struct Body {
 }
 
 pub async fn r#move(
-    Extension(logger): Extension<Arc<Mutex<Logger<'_>>>>,
+    Extension(mut logger): Extension<Logger<'_>>,
     Path(id): Path<u32>,
     Json(Body { parent_id }): Json<Body>,
 ) -> Response {
     if PRIVILEDGED.contains(&id) {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DM-E00",
@@ -20,13 +20,13 @@ pub async fn r#move(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Specified parent directory is not a priviledged directory.",
     );
 
     if STORES.contains(&id) {
-        logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DM-E01",
@@ -35,13 +35,13 @@ pub async fn r#move(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Specified directory is not a store.",
     );
 
     if parent_id == ROOT_ID {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DM-E02",
@@ -50,7 +50,7 @@ pub async fn r#move(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Specified parent directory is not the root directory.",
     );
@@ -58,7 +58,7 @@ pub async fn r#move(
     // Retrieve target directory path.
     let target_directory_path = match crate::db::directory::path(id) {
         Ok(path) => {
-            logger.lock().unwrap().report(
+            logger.report(
                 Check::ResourceExistence,
                 "Target directory exists in the database and its path was successfully retrieved.",
             );
@@ -66,7 +66,7 @@ pub async fn r#move(
             path
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::DatabaseQuery,
                 "DM-E03",
@@ -79,7 +79,7 @@ pub async fn r#move(
     // Retrieve destination directory path.
     let dest_directory_path = match crate::db::directory::path(parent_id) {
         Ok(path) => {
-            logger.lock().unwrap().report(
+            logger.report(
                 Check::ResourceExistence,
                 "Destination directory exists in the database and its path was successfully retrieved.",
             );
@@ -87,7 +87,7 @@ pub async fn r#move(
             path
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::DatabaseQuery,
                 "DM-E04",
@@ -99,7 +99,7 @@ pub async fn r#move(
 
     // Check destination is not inside target.
     if dest_directory_path.starts_with(&target_directory_path) {
-        return logger.lock().unwrap().error(
+        return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DM-E05",
@@ -108,7 +108,7 @@ pub async fn r#move(
         );
     }
 
-    logger.lock().unwrap().report(
+    logger.report(
         Check::RequestIntegrity,
         "Destination directory is not inside target directory.",
     );
@@ -116,13 +116,10 @@ pub async fn r#move(
     // Move the directory in the filesystem.
     match crate::io::r#move(&target_directory_path, &dest_directory_path) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory moved in the filesystem.");
+            logger.log("Directory moved in the filesystem.");
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceMove,
                 "DM-E06",
@@ -135,13 +132,10 @@ pub async fn r#move(
     // Move the directory in the database.
     match crate::db::directory::r#move(id, parent_id, &MoveMode::Regular) {
         Ok(()) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Directory moved in the database.");
+            logger.log("Directory moved in the database.");
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceMove,
                 "DM-E07",
@@ -153,15 +147,12 @@ pub async fn r#move(
 
     let registry = match crate::db::general::get_registry() {
         Ok(registry) => {
-            logger
-                .lock()
-                .unwrap()
-                .log("Registry retrieved from the database.");
+            logger.log("Registry retrieved from the database.");
 
             registry
         }
         Err(e) => {
-            return logger.lock().unwrap().error(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "DM-E08",
@@ -171,10 +162,7 @@ pub async fn r#move(
         }
     };
 
-    logger
-        .lock()
-        .unwrap()
-        .success(StatusCode::OK, "Directory moved successfully.");
+    logger.success(StatusCode::OK, "Directory moved successfully.");
 
     (StatusCode::OK, Json(registry)).into_response()
 }

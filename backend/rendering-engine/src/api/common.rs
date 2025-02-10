@@ -11,10 +11,7 @@ pub use axum::{
 };
 pub use serde::Deserialize;
 pub use shared::traits::Generator;
-pub use std::{
-    fmt::Debug,
-    sync::{Arc, Mutex},
-};
+pub use std::fmt::Debug;
 
 pub static PRIVILEDGED: [u32; 2] = [ROOT_ID, BIN_ID];
 pub static STORES: [u32; 1] = [STORE_ID];
