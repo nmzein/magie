@@ -1,3 +1,23 @@
+export type Store = {
+	id: number;
+	name: string;
+};
+
+export type Directory = {
+	type: 'Directory';
+	parentId: number;
+	id: number;
+	name: string;
+	children: number[];
+};
+
+export type Image = {
+	type: 'File';
+	parentId: number;
+	id: number;
+	name: string;
+};
+
 export type UploaderOptions = {
 	name: string;
 	encoder: string;
@@ -9,7 +29,8 @@ export type UploaderOptions = {
 export type WebSocketRequest = TileRequest;
 
 export type TileRequest = {
-	id: number;
+	store_id: number;
+	image_id: number;
 	level: number;
 	x: number;
 	y: number;
@@ -37,34 +58,6 @@ export type AnnotationLayer = {
 };
 
 export type ImageLayer = HTMLImageElement[][];
-
-export type Directory = {
-	type: 'directory';
-	id: number;
-	name: string;
-	files: Image[];
-	subdirectories: Directory[];
-};
-
-export type Image = {
-	type: 'image';
-	id: number;
-	name: string;
-};
-
-export type Path = string[];
-export type Route = number[];
-
-export type Navigable<T = Image | Directory> = {
-	path: Path;
-	route: Route;
-	data: T;
-};
-
-export type Clipboard = {
-	mode: 'cut' | 'copy' | undefined;
-	items: (Image | Directory)[];
-};
 
 export type Bounds = { width: number; height: number; left: number; top: number };
 export const DEFAULT_BOUND: Bounds = { width: 0, height: 0, left: 0, top: 0 };

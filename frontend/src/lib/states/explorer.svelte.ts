@@ -1,28 +1,42 @@
-import type { Image, Route, Directory, Navigable, Clipboard, Point } from '$types';
-import { repository } from '$states';
+import type { Directory, Image, Point } from '$types';
+import { repository, clipboard } from '$states';
 import { http } from '$api';
 import { UploaderState } from './uploader.svelte';
 import { StateHistory } from 'runed';
+import { defined } from '$helpers';
+import { SvelteSet } from 'svelte/reactivity';
+
+export const ROOT_ID = 0;
+export const BIN_ID = 1;
 
 export class ExplorerState {
 	position: Point = $state({ x: -1, y: -1 });
-	#clipboard: Clipboard = $state({
-		mode: undefined,
-		items: []
-	});
-	clipboardIsEmpty = $derived(this.#clipboard.items.length === 0);
-	#selected: (Image | Directory)[] = $state([]);
-	#pinned: Navigable[] = $state([]);
-	// TODO: Default to directory last opened by the user.
-	#directory: Navigable<Directory> = $state({
-		path: [repository.registry!.subdirectories[1].name],
-		route: [repository.registry!.subdirectories[1].id],
-		data: repository.registry!.subdirectories[1]
-	});
-	// @ts-ignore
-	#history: StateHistory<Navigable<Directory>>;
+	#selected = new SvelteSet<number>();
+	#pinned = new SvelteSet<number>();
+	// TODO: This will be selected from a top level stores page.
+	#storeId: number = $state(1);
+	#store = $derived(repository.store(this.#storeId));
+	#directoryId: number = $state(ROOT_ID); // TODO: Default to directory last opened by the user.
+	#directory: Directory = $derived(this.#store?.get(this.#directoryId) as Directory);
+	inBin: boolean = $derived(this.#directoryId === BIN_ID);
+	#history!: StateHistory<number>;
 	uploader = new UploaderState();
 	directoryCreator = new DirectoryCreator();
+	path = $derived.by(() => {
+		const path: [string, number][] = [];
+		let currentDirectory = this.#directory;
+
+		while (defined(currentDirectory.parentId)) {
+			path.unshift([currentDirectory.name, currentDirectory.id]);
+			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+		}
+
+		const storeName = repository.storeName(this.#storeId);
+		if (!defined(storeName)) return;
+		path.unshift([storeName, ROOT_ID]);
+
+		return path;
+	});
 
 	get selected() {
 		return this.#selected;
@@ -32,6 +46,14 @@ export class ExplorerState {
 		return this.#pinned;
 	}
 
+	get storeId() {
+		return this.#storeId;
+	}
+
+	get directoryId() {
+		return this.#directoryId;
+	}
+
 	get directory() {
 		return this.#directory;
 	}
@@ -39,188 +61,151 @@ export class ExplorerState {
 	constructor() {
 		$effect.root(() => {
 			this.#history = new StateHistory(
-				() => this.#directory,
-				(r) => (this.#directory = r)
+				() => this.#directoryId,
+				(r) => (this.#directoryId = r)
 			);
 		});
 	}
 
-	#findRoute(route: Route): Navigable<Directory> | undefined {
-		let path = [];
-		let currentDirectory = repository.registry!; // Initial root node.
+	#recurse(levels: number): Directory {
+		let currentDirectory = this.#directory;
 
-		for (const id of route) {
-			const directory = currentDirectory.subdirectories.find((value) => value.id === id);
-			if (directory === undefined) return;
-			currentDirectory = directory;
-			path.push(currentDirectory.name);
+		while (levels > 0 && defined(currentDirectory.parentId)) {
+			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+			levels -= 1;
 		}
 
-		return { path, route, data: currentDirectory };
+		return currentDirectory;
+	}
+
+	get(id: number): Directory | Image | undefined {
+		return this.#store?.get(id);
 	}
 
 	// Defaults to going up to parent #directory.
-	up(index: number = this.#directory.route.length - 2) {
-		// Return if in data or bin directories.
-		if (this.#directory.data.id === 1 || this.#directory.data.id === 2) return;
+	up(levels: number = 1) {
+		if (this.#directoryId === ROOT_ID) return;
 
 		this.deselectAll();
 
-		const directory = this.#findRoute(this.#directory.route.slice(0, index + 1));
-		if (!directory) return;
+		const directory = this.#recurse(levels);
+		if (!defined(directory)) return;
 
-		this.#directory = directory;
-		this.select(this.#directory.data);
+		this.#directoryId = directory.id;
+		this.select(this.#directoryId);
 	}
 
 	undo() {
 		this.deselectAll();
 		this.#history.undo();
-		this.select(this.#directory.data);
+		this.select(this.#directoryId);
 	}
 
 	redo() {
 		this.deselectAll();
 		this.#history.redo();
-		this.select(this.#directory.data);
+		this.select(this.#directoryId);
 	}
 
-	routeTo(route: Route) {
-		if (route.length === 0 || this.#directory.data.id === route[route.length - 1]) return;
-		this.deselectAll();
-
-		const directory = this.#findRoute(route);
-		if (!directory) return;
-
-		this.#directory = directory;
-	}
-
-	navigateTo(id: number) {
-		if (this.#directory.data.id === id) return;
+	goto(id: number) {
+		if (id === this.#directoryId) return;
 
 		this.deselectAll();
 
-		const directory = this.#directory.data.subdirectories.find((value) => value.id === id);
-		if (!directory) return;
+		const directory = this.#store?.get(id);
+		if (!defined(directory) || directory.type === 'File') return;
 
-		this.#directory.path.push(directory.name);
-		this.#directory.route.push(directory.id);
-		this.#directory.data = directory;
+		this.#directoryId = directory.id;
 	}
 
-	isSelected(item: Directory | Image): boolean {
-		return this.selected.includes(item);
+	isSelected(id: number): boolean {
+		return this.#selected.has(id);
 	}
 
-	select(item: Directory | Image) {
-		this.selected.push(item);
+	select(id: number) {
+		this.#selected.add(id);
 	}
 
-	selectGroup(items: (Directory | Image)[]) {
-		this.#selected = this.selected.concat(items);
+	selectGroup(ids: number[]) {
+		ids.forEach((id) => this.#selected.add(id));
 	}
 
 	selectAll() {
-		this.#selected = this.#directory.data.subdirectories;
-		this.#selected = this.#selected.concat(this.#directory.data.files);
+		this.selectGroup(this.#directory.children);
 	}
 
-	deselect(item: Directory | Image) {
-		this.#selected = this.#selected.filter((i) => i !== item);
+	deselect(id: number) {
+		this.#selected.delete(id);
 	}
 
 	deselectAll() {
-		this.#selected = [];
+		this.#selected.clear();
 	}
 
-	isPinned(item: Directory | Image): boolean {
-		return this.#pinned.some((i) => i.data.id === item.id);
+	isPinned(id: number): boolean {
+		return this.#pinned.has(id);
 	}
 
 	pinSelected() {
-		this.selected.forEach((item) => {
-			if (this.#pinned.some((i) => i.data.id === item.id)) return;
-
-			this.pin({
-				path: this.#directory.path.concat(item.name),
-				route: this.#directory.route.concat(item.id),
-				data: item
-			});
-		});
+		this.#selected.forEach((id) => this.#pinned.add(id));
 	}
 
 	unpinSelected() {
-		this.selected.forEach((item) => {
-			const index = this.#pinned.findIndex((i) => i.data.id === item.id);
-			if (index === -1) return;
-			this.#pinned.splice(index, 1);
-		});
+		this.#selected.forEach((id) => this.#pinned.delete(id));
 	}
 
-	pin(item: Navigable) {
-		// Check not already #pinned.
-		if (this.#pinned.some((i) => i === item)) return;
-		this.#pinned.push(item);
+	pin(id: number) {
+		this.#pinned.add(id);
 	}
 
-	unpin(item: Navigable) {
-		// Search for index of dir in #pinned.
-		const index = this.#pinned.findIndex((i) => i === item);
-		if (index === -1) return;
-		this.#pinned.splice(index, 1);
+	unpin(id: number) {
+		this.#pinned.delete(id);
 	}
 
 	deleteSelected(mode: 'soft' | 'hard') {
-		this.selected.forEach((item) => {
-			switch (item.type) {
-				case 'directory':
-					http.directory.remove(item.id, mode);
+		this.#selected.forEach((id) => {
+			switch (this.#store?.get(id)?.type) {
+				case 'Directory':
+					http.directory.remove(this.#storeId, id, mode);
 					break;
-				case 'image':
-					http.image.remove(item.id, mode);
+				case 'File':
+					http.image.remove(this.#storeId, id, mode);
 					break;
 			}
 		});
 	}
 
 	clipSelected(mode: 'cut' | 'copy') {
-		this.#clipboard = {
-			mode,
-			items: this.selected
-		};
-	}
-
-	clearClipboard() {
-		this.#clipboard = {
-			mode: undefined,
-			items: []
-		};
+		clipboard.mode = mode;
+		clipboard.items = new SvelteSet<number>([...this.selected]);
 	}
 
 	paste() {
-		if (this.#clipboard.mode === 'cut') {
-			this.#clipboard.items.forEach((item) => {
-				// Return if the item is already in the current #directory.
-				if (this.#directory.data.subdirectories.some((i) => i.id === item.id)) {
-					this.deselectAll();
-					this.clearClipboard();
-					return;
-				}
+		switch (clipboard.mode) {
+			case 'cut': {
+				clipboard.items.forEach((id) => {
+					// Return if the item is already in the current #directory.
+					if (this.#directory.children.some((i) => i === id)) {
+						return;
+					}
 
-				switch (item.type) {
-					case 'directory':
-						http.directory.move(item.id, this.#directory.data.id);
-						break;
-					case 'image':
-						http.image.move(item.id, this.#directory.data.id);
-						break;
-				}
-			});
-			this.deselectAll();
-			this.clearClipboard();
-		} else if (this.#clipboard.mode === 'copy') {
-			console.log('TODO!');
-			// TODO
+					switch (this.#store?.get(id)?.type) {
+						case 'Directory':
+							http.directory.move(this.#storeId, id, this.#directoryId);
+							break;
+						case 'File':
+							http.image.move(this.#storeId, id, this.#directoryId);
+							break;
+					}
+				});
+				this.deselectAll();
+				clipboard.clear();
+				break;
+			}
+			case 'copy': {
+				console.log('TODO!');
+				break;
+			}
 		}
 	}
 }
@@ -236,9 +221,9 @@ class DirectoryCreator {
 		this.#show = true;
 	}
 
-	async create(parentId: number, name: string) {
+	async create(storeId: number, parentId: number, name: string) {
 		this.#show = false;
-		await http.directory.create(parentId, name);
+		await http.directory.create(storeId, parentId, name);
 	}
 
 	close() {

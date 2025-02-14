@@ -82,14 +82,16 @@ pub enum Error {
 
 impl<'a> Logger<'a> {
     fn start(method: Method, path: String, query: String) -> Self {
+        let time = Instant::now();
+
         Self {
             logs: vec![Log::Started {
                 method,
                 path,
                 query,
             }],
-            start: Instant::now(),
-            lap: Instant::now(),
+            start: time,
+            lap: time,
         }
     }
 

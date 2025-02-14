@@ -12,10 +12,12 @@ shared = { version = "0.1.0", path = "../shared" }
 decoders = { version = "0.1.0", path = "../decoders" }
 encoders = { version = "0.1.0", path = "../encoders" }
 generators = { version = "0.1.0", path = "../generators" }
+macros = { version = "0.1.0", path = "../macros" }
 
 anyhow = { workspace = true }
 axum = { workspace = true }
 axum_typed_multipart = { workspace = true }
+chrono = { workspace = true }
 dotenvy = { workspace = true }
 futures-util = { workspace = true }
 image = { workspace = true }
@@ -32,13 +34,7 @@ turbojpeg = { workspace = true }
 default = [
     # "time",
     "log.console",
-    "log.success",
-    "log.request",
-    # "log.database",
 ]
 
 time = []
 "log.console" = []
-"log.success" = []
-"log.request" = []
-"log.database" = []

@@ -1,11 +1,13 @@
 import { http } from '$api';
 import { defined } from '$helpers';
-import { repository } from '$states';
+import { explorer, repository } from '$states';
 import type { UploaderOptions } from '$types';
 
 export class UploaderState {
 	image: File | undefined = $state();
 	annotations: File | undefined = $state();
+	storeId: number | undefined = $state();
+	parentId: number | undefined = $state();
 	options: UploaderOptions = $state({
 		name: '',
 		encoder: repository.encoders[0],
@@ -27,16 +29,20 @@ export class UploaderState {
 
 	open() {
 		this.#show = true;
+		this.storeId = explorer!.storeId;
+		this.parentId = explorer!.directoryId;
 	}
 
 	close() {
 		this.#show = false;
 	}
 
-	async upload(parentId: number) {
+	async upload() {
 		this.#show = false;
 
 		if (
+			!defined(this.storeId) ||
+			!defined(this.parentId) ||
 			!defined(this.image) ||
 			(['provide', 'generate'].includes(this.options.annotations) &&
 				!defined(this.options.generator))
@@ -44,9 +50,15 @@ export class UploaderState {
 			return;
 
 		if (this.options.annotations === 'provide') {
-			await http.image.upload(parentId, this.image, this.annotations, this.options);
+			await http.image.upload(
+				this.storeId,
+				this.parentId,
+				this.image,
+				this.annotations,
+				this.options
+			);
 		} else {
-			await http.image.upload(parentId, this.image, undefined, this.options);
+			await http.image.upload(this.storeId, this.parentId, this.image, undefined, this.options);
 		}
 
 		this.reset();
@@ -57,5 +69,7 @@ export class UploaderState {
 		this.annotations = undefined;
 		this.currentPage = 0;
 		this.options.name = '';
+		this.storeId = undefined;
+		this.parentId = undefined;
 	}
 }

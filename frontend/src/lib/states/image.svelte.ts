@@ -5,24 +5,20 @@ import { Transformer } from './transformer.svelte';
 
 export class ImageViewer {
 	initialised = $state(false);
-	// @ts-ignore
+	storeId: number = $state();
 	info: Image = $state();
-	// @ts-ignore
 	properties: Properties = $state();
-	// @ts-ignore
-	width: number;
-	// @ts-ignore
-	height: number;
-	// @ts-ignore
-	levels: number;
+	width!: number;
+	height!: number;
+	levels!: number;
 	tiles: ImageLayer[] = $state([]);
-	// @ts-ignore
-	transformer: Transformer;
+	transformer!: Transformer;
 
-	constructor(info: Image) {
-		http.image.properties(info.id).then((properties) => {
+	constructor(storeId: number, info: Image) {
+		http.image.properties(storeId, info.id).then((properties) => {
 			if (!defined(properties) || properties.metadata.length === 0) return;
 
+			this.storeId = storeId;
 			this.info = info;
 			this.properties = properties;
 			this.levels = properties.metadata.length;

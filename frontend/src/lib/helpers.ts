@@ -42,7 +42,7 @@ class FetchHandler {
 				return (await attempt(res.blob())) as [Error | null, T];
 			}
 			default: {
-				return [new Error('Unsupported Content-Type'), undefined] as const;
+				return [null, null];
 			}
 		}
 	}

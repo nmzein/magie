@@ -1,60 +1,119 @@
 use crate::api::common::*;
-use crate::types::UploadAssetRequest;
-use axum_typed_multipart::{FieldData, TypedMultipart};
+use anyhow::anyhow;
+use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use shared::{
-    structs::{AnnotationLayer, MetadataLayer},
+    constants::{
+        ANNOTATIONS_PATH, IMAGE_PATH, THUMBNAIL_PATH, TRANSLATED_ANNOTATIONS_PATH,
+        UPLOADED_ANNOTATIONS_PATH, UPLOADED_IMAGE_PATH,
+    },
     traits::Encoder,
+    types::{AnnotationLayer, MetadataLayer},
 };
-use std::process::Command;
+use std::{fs, process::Command};
 use tempfile::NamedTempFile;
 
 #[derive(Deserialize)]
 pub struct Params {
-    pub parent_id: u32,
-    pub name: String,
+    store_id: u32,
+    parent_id: u32,
+    name: String,
+}
+
+#[derive(TryFromMultipart)]
+pub struct Multipart {
+    decoder: Option<String>,
+    encoder: String,
+    generator: Option<String>,
+    #[form_data(limit = "unlimited")]
+    image_file: FieldData<NamedTempFile>,
+    #[form_data(limit = "unlimited")]
+    annotations_file: Option<FieldData<NamedTempFile>>,
+}
+
+fn extract_extension(filename: Option<String>) -> Option<String> {
+    let extension = filename
+        .as_ref()
+        .map(std::path::Path::new)
+        .and_then(|name| name.extension())
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_owned());
+
+    extension
 }
 
 // TODO: Handle half failed states.
 // TODO: Perform checks on files before saving them to avoid malware.
+// TODO: Sanitise file name
 pub async fn upload(
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(Params { parent_id, name }): Path<Params>,
-    TypedMultipart(UploadAssetRequest {
+    Path(Params {
+        store_id,
+        parent_id,
+        name,
+    }): Path<Params>,
+    TypedMultipart(Multipart {
         decoder,
         encoder,
         generator,
         image_file,
         annotations_file,
-    }): TypedMultipart<UploadAssetRequest>,
+    }): TypedMultipart<Multipart>,
 ) -> Response {
-    let (encoder, encoder_name) = match encoders::export::get(encoder.as_str()) {
-        Some(e) => {
-            logger.report(Check::ResourceExistence, "Encoder found.");
+    // Extract image extension from metadata request body.
+    let Some(uploaded_image_extension) = extract_extension(image_file.metadata.file_name.clone())
+    else {
+        return logger.error(
+            StatusCode::BAD_REQUEST,
+            Error::RequestIntegrity,
+            "IU-E00",
+            "Uploaded image has no extension.",
+            None,
+        );
+    };
 
-            (e, encoder)
+    // Extract annotations extension from metadata request body.
+    let uploaded_annotations_extension = annotations_file
+        .as_ref()
+        .and_then(|f| extract_extension(f.metadata.file_name.clone()));
+
+    if annotations_file.is_some() && uploaded_annotations_extension.is_none() {
+        return logger.error(
+            StatusCode::BAD_REQUEST,
+            Error::RequestIntegrity,
+            "IU-E01",
+            "Uploaded annotations file has no extension.",
+            None,
+        );
+    }
+
+    // Get the encoder object that will be used to encode the image to Zarr.
+    let encoder_object = match encoders::export::get(encoder.as_str()) {
+        Some(encoder) => {
+            logger.report(Check::ResourceExistence, "Encoder found.");
+            encoder
         }
         None => {
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E00",
+                "IU-E02",
                 "Encoder could not be found.",
                 None,
             );
         }
     };
 
-    let generator = match generator.map(|g| generators::export::get(g.as_str())) {
-        Some(Some(g)) => {
+    // Get the generator object that will be used to translate or generate annotations.
+    let generator_object = match generator.as_ref().map(|g| generators::export::get(g)) {
+        Some(Some(generator)) => {
             logger.report(Check::ResourceExistence, "Generator found.");
-
-            Some(g)
+            Some(generator)
         }
         Some(None) => {
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E01",
+                "IU-E03",
                 "Generator could not be found.",
                 None,
             );
@@ -62,53 +121,39 @@ pub async fn upload(
         None => None,
     };
 
-    // Check if image already exists in database.
-    match crate::db::image::exists(parent_id, &name) {
-        Ok(false) => {
-            /* Image does not exist in database, continue. */
+    // FIXME: Decoder here will not be correct.
+    let image_id = match crate::db::image::insert(
+        store_id,
+        parent_id,
+        &name,
+        decoder.as_deref(),
+        &encoder,
+        generator.as_deref(),
+        &uploaded_image_extension,
+        uploaded_annotations_extension.as_deref(),
+    ) {
+        Ok(id) => {
+            // Image does not exist in database, continue.
             logger.report(
                 Check::ResourceConflict,
                 "Asset with same name does not already exist in directory.",
             );
+            id
         }
-        Ok(true) => {
+        Err(e) => {
             return logger.error(
                 StatusCode::CONFLICT,
                 Error::ResourceConflict,
-                "IU-E02",
-                "Asset with same name already exists in directory.",
-                None,
-            );
-        }
-        Err(e) => {
-            return logger.error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQuery,
-                "IU-E03",
-                "Failed to check if asset with same name exists in directory.",
-                Some(e),
-            );
-        }
-    }
-
-    // The image's directory path consists of the concatenation of
-    // its parent directory's path and its name without extension.
-    let path = match crate::db::directory::path(parent_id) {
-        Ok(path) => path.join(&name),
-        Err(e) => {
-            return logger.error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQuery,
                 "IU-E04",
-                "Failed to retrieve parent directory path.",
+                "Asset with same name already exists in directory.",
                 Some(e),
             );
         }
     };
 
     // Create a directory in local store for the image.
-    match crate::io::create(&path) {
-        Ok(()) => {}
+    let path = match crate::io::create(store_id, image_id) {
+        Ok(path) => path,
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -118,240 +163,178 @@ pub async fn upload(
                 Some(e),
             );
         }
-    }
+    };
 
-    let mut annotations_ext = None;
     let mut annotation_layers = Vec::new();
-    if let Some(generator) = generator {
-        (annotations_ext, annotation_layers) =
-            match handle_annotations(&path, annotations_file, generator) {
-                Ok((name, layers)) => (Some(name), layers),
+    if let Some(generator_object) = generator_object {
+        if let Some(uploaded_annotations_extension) = uploaded_annotations_extension {
+            annotation_layers = match handle_annotations(
+                &mut logger,
+                &path,
+                &uploaded_annotations_extension,
+                annotations_file,
+                generator_object,
+            ) {
+                Ok(layers) => layers,
                 Err(response) => return response,
             };
-    }
-
-    let (upl_img_ext, metadata_layers) =
-        match handle_image(&mut logger, image_file, &path, &name, &encoder) {
-            Ok(layers) => layers,
-            Err(response) => return response,
-        };
-
-    // Insert into database.
-    match crate::db::image::insert(
-        parent_id,
-        &name,
-        &upl_img_ext,
-        &upl_img_ext,
-        &encoder_name,
-        annotations_ext.as_deref(),
-        metadata_layers,
-        annotation_layers,
-    ) {
-        Ok(()) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::CREATED,
-                "Successfully saved uploaded file(s) metadata to database.",
-                None,
-            );
         }
+    };
+
+    let metadata_layers = match handle_image(
+        &mut logger,
+        image_file,
+        &path,
+        &uploaded_image_extension,
+        &encoder_object,
+    ) {
+        Ok(layers) => layers,
+        Err(response) => return response,
+    };
+
+    // Insert layers into database.
+    match crate::db::image::insert_layers(store_id, image_id, metadata_layers, annotation_layers) {
+        Ok(()) => logger.log("Successfully saved asset layers to database."),
         Err(e) => {
-            return log(
+            return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to save uploaded file(s) metadata to database.",
+                Error::ResourceCreation,
+                "IU-E06",
+                "Failed to save asset layers to database.",
                 Some(e),
             );
         }
     };
 
-    match crate::db::general::get_registry() {
-        Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "Successfully retrieved registry from the state database.",
-                None,
-            );
+    logger.success(StatusCode::CREATED, "Successfully uploaded assets.");
 
-            Json(registry).into_response()
-        }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to retrieve registry from the state database.",
-            Some(e),
-        ),
-    }
+    (StatusCode::OK).into_response()
 }
 
 fn handle_image(
     logger: &mut Logger<'_>,
     file: FieldData<NamedTempFile>,
     path: &std::path::Path,
-    name: &str,
+    extension: &str,
     encoder: &Box<dyn Encoder>,
-) -> Result<(String, Vec<MetadataLayer>), Response> {
-    // Extract image extension from metadata request body.
-    let image_filename = file.metadata.file_name.clone();
-    let Some(upl_img_ext) = image_filename
-        .as_ref()
-        .map(std::path::Path::new)
-        .and_then(|name| name.extension())
-        .and_then(|ext| ext.to_str())
-    else {
-        return Err(logger.error(
-            StatusCode::BAD_REQUEST,
-            Error::RequestIntegrity,
-            "IUI-E00",
-            "Uploaded image has no extension.",
-            None,
-        ));
-    };
-
+) -> Result<Vec<MetadataLayer>, Response> {
     // Path where the uploaded image will be stored.
-    let upl_img_path = path.join(format!("original-image.{upl_img_ext}"));
+    let uploaded_image_path = path.join(UPLOADED_IMAGE_PATH);
 
     // Path where the encoded image will be stored.
-    let enc_img_path = path.join("image.zarr");
+    let final_image_path = path.join(IMAGE_PATH);
 
     // Path where the thumbnail will be stored.
-    let thumbnail_path = path.join("thumbnail.jpeg");
+    let thumbnail_path = path.join(THUMBNAIL_PATH);
 
     // Save image to disk.
-    match crate::io::save_asset(file.contents, &upl_img_path) {
-        Ok(()) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::CREATED,
-                &format!("Successfully saved image with name `{name}` to disk."),
-                None,
-            );
-        }
+    match crate::io::save_asset(file.contents, &uploaded_image_path) {
+        Ok(()) => logger.log("Successfully saved image to disk."),
         Err(e) => {
-            let resp = log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to save image with name `{name}` to disk."),
+                Error::ResourceCreation,
+                "IUI-E00",
+                "Failed to save image to disk.",
                 Some(e),
-            );
-
-            return Err(resp);
+            ));
         }
     }
 
     // Encode image to Zarr derivative format.
     match crate::io::try_convert(
-        &upl_img_path,
-        upl_img_ext,
-        &enc_img_path,
+        &uploaded_image_path,
+        extension,
+        &final_image_path,
         &thumbnail_path,
         encoder,
     ) {
         Ok(metadata) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::CREATED,
-                &format!("Successfully converted image with name `{name}` to Zarr."),
-                None,
-            );
+            logger.log("Successfully converted image to Zarr.");
 
-            Ok((upl_img_ext.into(), metadata))
+            Ok(metadata)
         }
         Err(e) => {
-            let resp = log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!("Failed to convert the image with name `{name}` to Zarr."),
+                Error::ResourceCreation,
+                "IUI-E01",
+                "Failed to convert image to Zarr.",
                 Some(e),
-            );
-
-            Err(resp)
+            ));
         }
     }
 }
 
 fn handle_annotations(
+    logger: &mut Logger<'_>,
     path: &std::path::Path,
+    extension: &str,
     file: Option<FieldData<NamedTempFile>>,
     generator: Box<dyn Generator>,
-) -> Result<(String, Vec<AnnotationLayer>), Response> {
+) -> Result<Vec<AnnotationLayer>, Response> {
     // If user provides annotations file, translate it and compute buffer geometries.
     // Else generate annotations and compute buffer geometries.
     match file {
-        Some(file) => translate_annotations(path, file, &generator),
-        None => generate_annotations(path, generator),
+        Some(file) => translate_annotations(logger, path, extension, file, &generator),
+        None => generate_annotations(logger, path, extension, generator),
     }
 }
 
+// TODO: Generate annotations.
 fn generate_annotations(
+    _logger: &mut Logger<'_>,
     _path: &std::path::Path,
+    _extension: &str,
     _generator: Box<dyn Generator>,
-) -> Result<(String, Vec<AnnotationLayer>), Response> {
-    // TODO: Generate annotations.
-    log::<()>(
-        StatusCode::CREATED,
-        "No annotations provided. TODO: Generate annotations.",
-        None,
-    );
-
+) -> Result<Vec<AnnotationLayer>, Response> {
     todo!("Generating annotations not supported yet.")
 }
 
 fn translate_annotations(
+    logger: &mut Logger<'_>,
     path: &std::path::Path,
+    extension: &str,
     file: FieldData<NamedTempFile>,
     generator: &Box<dyn Generator>,
-) -> Result<(String, Vec<AnnotationLayer>), Response> {
-    // Get uploaded annotation file extension from metadata request body.
-    let Some(upl_anno_ext) = file
-        .metadata
-        .file_name
-        .as_ref()
-        .map(std::path::Path::new)
-        .and_then(|path| path.extension())
-        .and_then(|ext| ext.to_str())
-    else {
-        let resp = log::<()>(
-            StatusCode::BAD_REQUEST,
-            "Failed to retrieve annotation file extension from file metadata.",
-            None,
-        );
-
-        return Err(resp);
-    };
-
+) -> Result<Vec<AnnotationLayer>, Response> {
     // Path where the uploaded annotations file will be stored.
-    let upl_anno_path = path.join(format!("original-annotations.{upl_anno_ext}"));
+    let uploaded_annotations_path = path.join(format!("{UPLOADED_ANNOTATIONS_PATH}.{extension}"));
+
+    // Path where intermediate Three.js buffer geometries will be stored.
+    let translated_annotations_path = path.join(TRANSLATED_ANNOTATIONS_PATH);
+
+    // Path where the GLB annotations will be stored.
+    let final_annotations_path = path.join(ANNOTATIONS_PATH);
 
     // Save uploaded annotations file to disk.
-    match crate::io::save_asset(file.contents, &upl_anno_path) {
-        Ok(()) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::CREATED,
-                "Successfully saved annotations file to disk.",
-                None,
-            );
-        }
+    match crate::io::save_asset(file.contents, &uploaded_annotations_path) {
+        Ok(()) => logger.log("Successfully saved annotations file to disk."),
         Err(e) => {
-            let resp = log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceCreation,
+                "IUTA-E00",
                 "Failed to save annotations file to disk.",
                 Some(e),
-            );
-
-            return Err(resp);
+            ));
         }
     }
 
     // Translate annotations.
-    let annotation_layers = match generator.translate(&upl_anno_path) {
-        Ok(layers) => layers,
+    let annotation_layers = match generator.translate(&uploaded_annotations_path) {
+        Ok(layers) => {
+            logger.log("Successfully translated annotations file.");
+            layers
+        }
         Err(e) => {
-            let resp = log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Failed to translate annotations file with name using the generator.",
+                Error::ResourceCreation,
+                "IUTA-E01",
+                "Failed to translate annotations file.",
                 Some(e),
-            );
-
-            return Err(resp);
+            ));
         }
     };
 
@@ -359,55 +342,72 @@ fn translate_annotations(
     // TODO: Or, try writing own buffer geometry creator/gltf lib in Rust.
     // Serialize annotation layers.
     let Ok(serialized_annotation_layers) = serde_json::to_string(&annotation_layers) else {
-        let resp = log::<()>(
+        return Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to serialize annotation layers.",
+            Error::ResourceCreation,
+            "IUTA-E02",
+            "Failed to serialise annotations file.",
             None,
-        );
-
-        return Err(resp);
+        ));
     };
 
-    // Save json string to file.
-    let transl_anno_path = path.join("annotations.json");
-    std::fs::write(transl_anno_path.clone(), serialized_annotation_layers)
-        .expect("Unable to write file");
+    fs::write(
+        translated_annotations_path.clone(),
+        serialized_annotation_layers,
+    )
+    .map_err(|e| {
+        return logger.error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ResourceCreation,
+            "IUTA-E03",
+            "Failed to save translated annotations file to disk.",
+            Some(e.into()),
+        );
+    })?;
 
     // Compute annotation positions and normals.
     match Command::new("node")
         .arg("--max-old-space-size=4096")
         .arg("./geometry-computer/index.js")
-        .arg(transl_anno_path)
-        .arg(path)
+        .arg(translated_annotations_path)
+        .arg(final_annotations_path)
         .output()
     {
         Ok(output) => {
             if output.status.success() {
-                log::<()>(
-                    StatusCode::CREATED,
-                    "Successfully computed annotation positions and normals.",
-                    None,
+                logger.log(
+                    "Successfully computed annotation positions and normals and saved to disk.",
                 );
             } else {
-                let resp = log(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to compute annotation positions and normals.",
-                    Some(String::from_utf8(output.stderr)),
-                );
+                let e = String::from_utf8(output.stderr).map_err(|e| {
+                    return logger.error(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Error::ResourceCreation,
+                        "IUTA-E04",
+                        "Failed to convert stderr to string.",
+                        Some(e.into()),
+                    );
+                })?;
 
-                return Err(resp);
+                return Err(logger.error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Error::ResourceCreation,
+                    "IUTA-E05",
+                    "Failed to compute annotation positions and normals.",
+                    Some(anyhow!(e)),
+                ));
             }
         }
         Err(e) => {
-            let resp = log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceCreation,
+                "IUTA-E06",
                 "Failed to run geometry computation.",
-                Some(e),
-            );
-
-            return Err(resp);
+                Some(e.into()),
+            ));
         }
     }
 
-    Ok((upl_anno_ext.to_owned(), annotation_layers))
+    Ok(annotation_layers)
 }

@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { contextMenu, explorer, SelectionBoxState } from '$states';
-	import { type Directory, type Image } from '$types';
+	import { clipboard, contextMenu, explorer, SelectionBoxState } from '$states';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { BoundingClientRect } from '$actions';
 	import { defined } from '$helpers';
+	import { BIN_ID } from '$lib/states/explorer.svelte';
 
-	const selection: SelectionBoxState<Directory | Image> = new SelectionBoxState();
+	const selection: SelectionBoxState<number> = new SelectionBoxState();
 	let mainPanel: HTMLElement | undefined = $state();
 
 	function autoscroll(e: PointerEvent) {
@@ -78,7 +78,7 @@
 		} else if (!e.shiftKey && e.key === 'Delete') {
 			e.preventDefault();
 			// If delete in bin then hard delete.
-			if (explorer!.directory.data.id === 1) {
+			if (explorer!.inBin) {
 				explorer!.deleteSelected('hard');
 			} else {
 				explorer!.deleteSelected('soft');
@@ -95,7 +95,7 @@
 		contextMenu.position = { x: e.clientX, y: e.clientY };
 		contextMenu.items = [
 			{ name: 'Select All', action: () => explorer!.selectAll() },
-			{ name: 'Paste', action: () => explorer!.paste(), disabled: explorer!.clipboardIsEmpty },
+			{ name: 'Paste', action: () => explorer!.paste(), disabled: clipboard.isEmpty },
 			{ name: 'New Image', action: () => explorer!.uploader.open() },
 			{ name: 'New Directory', action: () => explorer!.directoryCreator.open() }
 		];
@@ -108,33 +108,35 @@
 <div
 	bind:this={mainPanel}
 	onscroll={(e) => {
+		let target = e.target as HTMLElement;
+
 		selection.parentScroll = {
-			// @ts-ignore
-			top: e.target?.scrollTop,
-			// @ts-ignore
-			left: e.target?.scrollLeft
+			top: target.scrollTop,
+			left: target.scrollLeft
 		};
 		selection.update();
 	}}
 	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
-	class="@container h-[408px] rounded-br-[10px] select-none
+	class="@container h-[408px] select-none rounded-br-[10px]
            {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}
 	{oncontextmenu}
 >
 	<div
 		id="main"
-		class="relative grid min-h-full grid-cols-1 gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
+		class="@sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4 relative grid min-h-full grid-cols-1 gap-3 p-3"
 	>
 		{#if explorer!.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
-		{#each explorer!.directory.data.subdirectories as subdirectory}
-			<Item value={subdirectory} {selection} />
-		{/each}
-		{#each explorer!.directory.data.files as file}
-			<Item value={file} {selection} />
-		{/each}
+		{#key explorer!.directoryId}
+			{#each explorer!.directory.children as id}
+				{@const item = explorer!.get(id)}
+				{#if id !== BIN_ID && defined(item)}
+					<Item {item} {selection} />
+				{/if}
+			{/each}
+		{/key}
 
 		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
 			<div

@@ -4,10 +4,13 @@
 	import UploadAsset from './UploadAsset.svelte';
 	import * as Pages from '$components/pages/index.ts';
 	import * as Tabs from '$components/tabs/index.ts';
+	import { defined } from '$helpers';
 
 	$effect(() => {
-		if (explorer!.uploader.image) {
+		if (defined(explorer!.uploader.image)) {
 			explorer!.uploader.options.name = explorer!.uploader.image.name;
+		} else {
+			explorer!.uploader.options.name = '';
 		}
 	});
 </script>
@@ -29,7 +32,7 @@
 			<Pages.Root bind:currentPage={explorer!.uploader.currentPage}>
 				<Pages.Page nextDisabled={!explorer!.uploader.imageSatisfied}>
 					<div class="flex h-full gap-5">
-						<div class="flex-3 flex flex-col gap-1">
+						<div class="flex flex-3 flex-col gap-1">
 							<span class="text-secondary text-sm">IMAGE</span>
 							<UploadAsset
 								bind:asset={explorer!.uploader.image}
@@ -73,9 +76,9 @@
 
 				<Pages.Page
 					nextDisabled={!explorer!.uploader.annotationsSatisfied}
-					done={async () => await explorer!.uploader.upload(explorer!.directory.data.id)}
+					done={async () => await explorer!.uploader.upload()}
 				>
-					<div class="flex h-full select-none flex-col justify-between gap-5">
+					<div class="flex h-full flex-col justify-between gap-5 select-none">
 						<Tabs.Root
 							classes={{
 								list: 'rounded-md bg-primary/10 w-fit p-1 self-center',
@@ -104,7 +107,7 @@
 
 								<Tabs.Content value="provide">
 									<div class="flex h-full gap-5">
-										<div class="flex-3 flex flex-col gap-1">
+										<div class="flex flex-3 flex-col gap-1">
 											<span class="text-secondary text-sm">ANNOTATIONS</span>
 											<UploadAsset
 												bind:asset={explorer!.uploader.annotations}

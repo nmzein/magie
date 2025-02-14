@@ -1,11 +1,16 @@
 use crate::api::common::*;
 
+#[derive(Deserialize)]
+pub struct Params {
+    store_id: u32,
+    image_id: u32,
+}
+
 pub async fn properties(
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(id): Path<u32>,
+    Path(Params { store_id, image_id }): Path<Params>,
 ) -> Response {
-    // Get image properties from the database.
-    match crate::db::image::properties(id) {
+    match crate::db::image::properties(store_id, image_id) {
         Ok(properties) => {
             logger.success(StatusCode::OK, "Retrieved asset properties successfully.");
 

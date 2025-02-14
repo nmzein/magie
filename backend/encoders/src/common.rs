@@ -1,8 +1,8 @@
 /// Auto-generated file. Any changes will be overwritten.
 pub use anyhow::Result;
 pub use shared::{
-    constants::*, structs::{Address, MetadataLayer, Region, Size},
-    traits::{Decoder, Encoder},
+    constants::*, traits::{Decoder, Encoder},
+    types::{Address, MetadataLayer, Region, Size},
 };
 pub use std::{path::Path, sync::Arc};
 pub use zarrs::{

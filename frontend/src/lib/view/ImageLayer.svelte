@@ -22,7 +22,8 @@
 			const y = parseInt(target.dataset.y!);
 
 			await images[0].getTile({
-				id: images[0].info.id,
+				store_id: images[0].storeId,
+				image_id: images[0].info.id,
 				level,
 				x,
 				y

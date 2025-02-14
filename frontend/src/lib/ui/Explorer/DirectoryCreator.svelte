@@ -18,14 +18,16 @@
 				explorer!.directoryCreator.close();
 			} else {
 				// Clicked anywhere and a name was set, create directory.
-				explorer!.directoryCreator.create(explorer!.directory.data.id, name);
+				// FIX: I don't like this.
+				explorer!.directoryCreator.create(explorer!.storeId, explorer!.directory.id, name);
 			}
 		}
 	);
 
 	function onkeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter' && name !== '' && defined(explorer!.directory)) {
-			explorer!.directoryCreator.create(explorer!.directory.data.id, name);
+			// FIX: I don't like this.
+			explorer!.directoryCreator.create(explorer!.storeId, explorer!.directory.id, name);
 		}
 	}
 </script>

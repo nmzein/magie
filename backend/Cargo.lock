@@ -1443,6 +1443,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "matchers"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2182,12 +2190,14 @@ dependencies = [
  "anyhow",
  "axum",
  "axum_typed_multipart",
+ "chrono",
  "decoders",
  "dotenvy",
  "encoders",
  "futures-util",
  "generators",
  "image",
+ "macros",
  "rusqlite",
  "rusqlite_migration",
  "serde",
