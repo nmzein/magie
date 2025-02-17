@@ -16,16 +16,21 @@ FROM bun AS frontend
 
 # --- Install /frontend.
 WORKDIR /frontend
+
 COPY ./frontend ./
 COPY --from=start .env ./
+
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run build
 
 # --- Install /backend/geometry-computer.
 WORKDIR /backend/geometry-computer
+
 COPY ./backend/geometry-computer/package.json ./
 COPY ./backend/geometry-computer/bun.lockb ./
+
 RUN bun install --frozen-lockfile
+
 COPY ./backend/geometry-computer ./
 
 # =======================================
@@ -43,7 +48,10 @@ RUN --mount=type=cache,target=/var/cache/apt \
     libssl-dev
 
 COPY --from=start .env ./
+
+WORKDIR /databases
 COPY ./databases ./
+
 WORKDIR /backend
 COPY ./backend ./
 RUN cargo build --release
@@ -77,7 +85,10 @@ COPY --from=backend /databases ./
 WORKDIR /app/backend
 COPY --from=backend /backend/target/release/rendering_engine ./
 
-EXPOSE 4000
+# ---
+WORKDIR /app
+
 EXPOSE 3000
+EXPOSE 4000
 
 CMD /bin/bash -c "cd backend && ./rendering_engine & cd frontend && bun preview -- --host"
