@@ -1,10 +1,13 @@
 .DS_Store
 node_modules/
+
 /frontend/.svelte-kit
 /frontend/vite.config.js.timestamp-*
 /frontend/vite.config.ts.timestamp-*
+
 /backend/target
 /backend/tmp/**
+
 /stores/**
 /databases/**
 !/databases/registry.sql
