@@ -38,6 +38,19 @@ export class Explorer {
 
 		return path;
 	});
+	searchQuery: string = $state('');
+	filteredChildren = $derived.by(() => {
+		let children = this.directory.children;
+
+		const query = this.searchQuery.toLowerCase();
+		if (!query) return children;
+
+		children = this.directory.children?.filter((child) =>
+			this.#store?.get(child)?.name.toLowerCase().includes(query)
+		);
+
+		return children;
+	});
 
 	async upload() {
 		await this.uploader.upload(this.#storeId, this.#directoryId);

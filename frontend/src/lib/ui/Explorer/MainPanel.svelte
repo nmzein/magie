@@ -131,14 +131,12 @@
 		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
-		{#key explorer.directoryId}
-			{#each explorer.directory.children as id}
-				{@const item = explorer.get(id)}
-				{#if id !== BIN_ID && defined(item)}
-					<Item {item} {selection} />
-				{/if}
-			{/each}
-		{/key}
+		{#each explorer.filteredChildren as id (id)}
+			{@const item = explorer.get(id)}
+			{#if id !== BIN_ID && defined(item)}
+				<Item {item} {selection} />
+			{/if}
+		{/each}
 
 		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
 			<div
