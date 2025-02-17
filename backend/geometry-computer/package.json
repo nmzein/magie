@@ -1,10 +1,10 @@
 {
   "name": "geometry-computer",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "main": "index.js",
   "type": "module",
   "dependencies": {
-    "three": "0.173.0",
-    "@gltf-transform/core": "4.1.1"
+    "@gltf-transform/core": "4.1.1",
+    "three": "0.173.0"
   }
 }

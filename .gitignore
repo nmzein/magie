@@ -4,7 +4,8 @@ node_modules/
 /frontend/vite.config.js.timestamp-*
 /frontend/vite.config.ts.timestamp-*
 /backend/target
-/stores
+/backend/tmp/**
+/stores/**
 /databases/**
 !/databases/registry.sql
 !/databases/store.sql
