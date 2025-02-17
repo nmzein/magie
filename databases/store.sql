@@ -1,6 +1,9 @@
 CREATE TABLE IF NOT EXISTS id_counter (next_id INTEGER NOT NULL);
 
-INSERT OR IGNORE INTO id_counter (next_id) VALUES (1);
+INSERT
+OR IGNORE INTO id_counter (next_id)
+VALUES
+    (1);
 
 CREATE TABLE IF NOT EXISTS directories (
     id INTEGER PRIMARY KEY,
@@ -40,7 +43,7 @@ CREATE TABLE IF NOT EXISTS metadata_layer (
 );
 
 CREATE TABLE IF NOT EXISTS annotation_layer (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL,
     image_id INTEGER NOT NULL,
     tag TEXT NOT NULL,
     colour TEXT NOT NULL,

@@ -56,7 +56,7 @@ pub async fn delete(
 
     if let Err(error) = match mode {
         DeleteMode::Soft => soft_delete(&mut logger, store_id, image_id),
-        DeleteMode::Hard => hard_delete(&mut logger, store_id, image_id, &image_path),
+        DeleteMode::Hard => hard_delete(&mut logger, store_id, image_id),
     } {
         return error;
     };
@@ -77,13 +77,8 @@ pub fn soft_delete(logger: &mut Logger<'_>, store_id: u32, image_id: u32) -> Res
     }
 }
 
-pub fn hard_delete(
-    logger: &mut Logger<'_>,
-    store_id: u32,
-    image_id: u32,
-    image_path: &std::path::Path,
-) -> Result<(), Response> {
-    match crate::io::delete(image_path) {
+pub fn hard_delete(logger: &mut Logger<'_>, store_id: u32, image_id: u32) -> Result<(), Response> {
+    match crate::io::delete(store_id, image_id) {
         Ok(()) => {}
         Err(e) => {
             return Err(logger.error(

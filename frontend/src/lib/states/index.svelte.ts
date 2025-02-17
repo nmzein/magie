@@ -1,19 +1,16 @@
-import { ExplorerState } from './explorer.svelte';
-import { RepositoryState } from './repository.svelte';
-import { SelectionBoxState } from './selection-box.svelte';
-import { ImageViewer } from './image.svelte';
-import { ContextMenu } from './context-menu.svelte';
-import { Clipboard } from './clipboard.svelte';
+import { Registry } from './registry.svelte.ts';
+import { Repository } from './repository.svelte.ts';
+import { SelectionBoxState } from './selection-box.svelte.ts';
+import { ImageViewer } from './image.svelte.ts';
+import { ContextMenu } from './context-menu.svelte.ts';
+import { Clipboard } from './clipboard.svelte.ts';
 import type { Image } from '$types';
 
 export { SelectionBoxState };
 
-export const repository = new RepositoryState();
+export const registry = new Registry();
+export const repository = new Repository();
 export const clipboard = new Clipboard();
-export let explorer: ExplorerState | undefined;
-export function InitExplorerState() {
-	explorer = new ExplorerState();
-}
 export const images: ImageViewer[] = $state([]);
 export function NewImageViewer(storeId: number, info: Image) {
 	images[0] = new ImageViewer(storeId, info);

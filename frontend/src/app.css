@@ -10,7 +10,7 @@
 }
 
 @theme {
-	/* --animate-*: initial;
+	--animate-*: initial;
 	--blur-*: initial;
 	--breakpoint-*: initial;
 	--color-*: initial;
@@ -21,7 +21,7 @@
 	--perspective-*: initial;
 	--shadow-*: initial;
 	--transition-timing-function-*: initial;
-	--width-*: initial; */
+	--width-*: initial;
 
 	--color-background: rgb(41, 41, 41);
 	--color-black: rgb(0, 0, 0);
@@ -31,6 +31,7 @@
 	--color-tertiary: rgb(62, 62, 62);
 	--color-accent: rgb(12, 98, 197);
 	--color-accent-light: rgb(14, 112, 224);
+	--color-accent-dark: rgb(10, 73, 145);
 }
 
 * {

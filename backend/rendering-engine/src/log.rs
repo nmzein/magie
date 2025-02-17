@@ -69,7 +69,7 @@ pub enum Check {
 #[derive(Clone, Debug)]
 pub enum Error {
     RequestIntegrity,
-    ResourceConflict,
+    // ResourceConflict,
     ResourceCreation,
     ResourceDeletion,
     ResourceExistence,

@@ -6,7 +6,7 @@ pub fn insert_<C>(conn: C, parent_id: u32, name: &str) -> Result<()>
 where
     C: Deref<Target = Connection>,
 {
-    let id = counter(&conn)?;
+    let id = counter_(&conn)?;
 
     let mut stmt =
         conn.prepare_cached("INSERT INTO directories (id, name, parent_id) VALUES (?1, ?2, ?3);")?;

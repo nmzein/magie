@@ -29,7 +29,11 @@ pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
     Ok(path)
 }
 
-pub fn delete(path: &Path) -> Result<()> {
+pub fn delete(store_id: u32, image_id: u32) -> Result<()> {
+    let path = Path::new(LOCAL_STORE_BASE_PATH)
+        .join(format!("s{store_id}"))
+        .join(format!("i{image_id}"));
+
     // Remove directory.
     fs::remove_dir_all(path)?;
 
@@ -75,7 +79,7 @@ pub fn try_convert(
     destination_path: &Path,
     thumbnail_path: &Path,
     encoder: &Box<dyn Encoder>,
-) -> Result<Vec<MetadataLayer>> {
+) -> Result<(String, Vec<MetadataLayer>)> {
     // Open the image with a decoder.
     let Some(decoder) = decoders::export::get(source_extension, source_path) else {
         return Err(anyhow::anyhow!("No decoders found for image."));
@@ -97,7 +101,7 @@ pub fn try_convert(
             // Save thumbnail to disk.
             fs::write(thumbnail_path, thumbnail_jpeg)?;
 
-            Ok(metadata)
+            Ok((decoder.name().to_string(), metadata))
         }
         Err(e) => Err(anyhow::anyhow!("Failed to encode image: {e}")),
     }

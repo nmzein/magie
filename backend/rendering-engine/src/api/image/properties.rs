@@ -13,7 +13,6 @@ pub async fn properties(
     match crate::db::image::properties(store_id, image_id) {
         Ok(properties) => {
             logger.success(StatusCode::OK, "Retrieved asset properties successfully.");
-
             Json(properties).into_response()
         }
         Err(e) => {

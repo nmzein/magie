@@ -10,7 +10,7 @@ pub static UPLOADED_ANNOTATIONS_PATH: &str = "uploaded/annotations";
 pub static TRANSLATED_ANNOTATIONS_PATH: &str = "uploaded/annotations.json";
 pub static IMAGE_PATH: &str = "image.zarr";
 pub static THUMBNAIL_PATH: &str = "thumbnail.jpeg";
-pub static ANNOTATIONS_PATH: &str = "annotations/a";
+pub static ANNOTATIONS_PATH_PREFIX: &str = "annotations/a";
 
 pub static PRIVILEDGED: [u32; 2] = [ROOT_ID, BIN_ID];
 pub static ROOT_ID: u32 = 0;

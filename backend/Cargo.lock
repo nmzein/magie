@@ -649,7 +649,7 @@ checksum = "0e60eed09d8c01d3cee5b7d30acb059b76614c918fa0f992e0dd6eeb10daad6f"
 
 [[package]]
 name = "decoders"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "image",
@@ -715,7 +715,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
 name = "encoders"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "prettyplease",
@@ -913,7 +913,7 @@ dependencies = [
 
 [[package]]
 name = "generators"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "flate2",
@@ -1444,7 +1444,7 @@ dependencies = [
 
 [[package]]
 name = "macros"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "quote",
  "syn 2.0.98",
@@ -2185,7 +2185,7 @@ dependencies = [
 
 [[package]]
 name = "rendering_engine"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -2460,7 +2460,7 @@ dependencies = [
 
 [[package]]
 name = "shared"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "image",

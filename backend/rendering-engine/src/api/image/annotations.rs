@@ -1,5 +1,6 @@
 use crate::api::common::*;
 use axum::{body::Bytes, http::header};
+use shared::constants::ANNOTATIONS_PATH_PREFIX;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -17,7 +18,9 @@ pub async fn annotations(
     }): Path<Params>,
 ) -> Response {
     let path = match crate::db::image::path(store_id, image_id) {
-        Ok(path) => path.join(format!("/a{annotation_layer_id}")),
+        Ok(path) => path.join(format!(
+            "{ANNOTATIONS_PATH_PREFIX}{annotation_layer_id}.glb"
+        )),
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,

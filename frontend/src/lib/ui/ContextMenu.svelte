@@ -11,7 +11,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="pointer-events-auto absolute z-[1000]"
-	style={`transform: translate(${contextMenu.position.x}px, ${contextMenu.position.y}px)`}
+	style="transform: translate({contextMenu.position.x}px, {contextMenu.position.y}px)"
 	oncontextmenu={(e) => e.preventDefault()}
 >
 	<Dropdown.Root {classes} bind:show={contextMenu.show}>

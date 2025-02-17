@@ -21,7 +21,7 @@
 </script>
 
 <div
-	class={twMerge(`my-[15px] flex h-[5px] cursor-pointer items-center rounded-[10px] ${inputClass}`)}
+	class={twMerge('my-[15px] flex h-[5px] cursor-pointer items-center rounded-[10px]', inputClass)}
 >
 	<input type="range" {id} name={id} {min} {max} {step} bind:value class="flex-1" />
 </div>

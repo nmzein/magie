@@ -1,7 +1,7 @@
-import type { Directory, Image, Point } from '$types';
-import { repository, clipboard } from '$states';
+import { Context } from 'runed';
+import type { Directory, Image, Point, UploaderOptions } from '$types';
+import { registry, repository, clipboard } from '$states';
 import { http } from '$api';
-import { UploaderState } from './uploader.svelte';
 import { StateHistory } from 'runed';
 import { defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
@@ -9,18 +9,19 @@ import { SvelteSet } from 'svelte/reactivity';
 export const ROOT_ID = 0;
 export const BIN_ID = 1;
 
-export class ExplorerState {
-	position: Point = $state({ x: -1, y: -1 });
+export const context = new Context<Explorer>('');
+
+export class Explorer {
+	position: Point = $state({ x: -1, y: -1 }); // TODO: Put this in separate Window class.
 	#selected = new SvelteSet<number>();
 	#pinned = new SvelteSet<number>();
-	// TODO: This will be selected from a top level stores page.
-	#storeId: number = $state(1);
-	#store = $derived(repository.store(this.#storeId));
+	#storeId: number = $state(1); // TODO: This will be selected from a top level stores page.
+	#store = $derived(registry.store(this.#storeId));
 	#directoryId: number = $state(ROOT_ID); // TODO: Default to directory last opened by the user.
 	#directory: Directory = $derived(this.#store?.get(this.#directoryId) as Directory);
 	inBin: boolean = $derived(this.#directoryId === BIN_ID);
 	#history!: StateHistory<number>;
-	uploader = new UploaderState();
+	uploader = new Uploader();
 	directoryCreator = new DirectoryCreator();
 	path = $derived.by(() => {
 		const path: [string, number][] = [];
@@ -31,12 +32,16 @@ export class ExplorerState {
 			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
 		}
 
-		const storeName = repository.storeName(this.#storeId);
-		if (!defined(storeName)) return;
-		path.unshift([storeName, ROOT_ID]);
+		const properties = registry.storeProperties(this.#storeId);
+		if (!defined(properties)) return;
+		path.unshift([properties.name, ROOT_ID]);
 
 		return path;
 	});
+
+	async upload() {
+		await this.uploader.upload(this.#storeId, this.#directoryId);
+	}
 
 	get selected() {
 		return this.#selected;
@@ -86,11 +91,10 @@ export class ExplorerState {
 	up(levels: number = 1) {
 		if (this.#directoryId === ROOT_ID) return;
 
-		this.deselectAll();
-
 		const directory = this.#recurse(levels);
 		if (!defined(directory)) return;
 
+		this.deselectAll();
 		this.#directoryId = directory.id;
 		this.select(this.#directoryId);
 	}
@@ -107,14 +111,24 @@ export class ExplorerState {
 		this.select(this.#directoryId);
 	}
 
-	goto(id: number) {
-		if (id === this.#directoryId) return;
+	gotoStore(storeId: number) {
+		if (storeId === this.storeId && this.#directoryId === ROOT_ID) return;
+
+		const directory = this.#store?.get(ROOT_ID);
+		if (!defined(directory) || directory.type === 'File') return;
 
 		this.deselectAll();
+		this.#storeId = storeId;
+		this.#directoryId = directory.id;
+	}
+
+	goto(id: number) {
+		if (id === this.#directoryId) return;
 
 		const directory = this.#store?.get(id);
 		if (!defined(directory) || directory.type === 'File') return;
 
+		this.deselectAll();
 		this.#directoryId = directory.id;
 	}
 
@@ -207,6 +221,63 @@ export class ExplorerState {
 				break;
 			}
 		}
+	}
+}
+
+class Uploader {
+	image: File | undefined = $state();
+	annotations: File | undefined = $state();
+	options: UploaderOptions = $state({
+		name: '',
+		encoder: repository.encoders[0],
+		decoder: repository.decoders[0],
+		generator: repository.generators[0],
+		annotations: 'none'
+	});
+	imageSatisfied: boolean = $derived(defined(this.image) && this.options.name !== '');
+	annotationsSatisfied: boolean = $derived(
+		this.options.annotations === 'none' ||
+			(this.options.annotations === 'provide' && defined(this.annotations))
+	);
+	currentPage: number = $state(0);
+	#show = $state(false);
+
+	get show() {
+		return this.#show;
+	}
+
+	open() {
+		this.#show = true;
+	}
+
+	close() {
+		this.#show = false;
+	}
+
+	async upload(storeId: number, parentId: number) {
+		this.#show = false;
+
+		if (
+			!defined(this.image) ||
+			(['provide', 'generate'].includes(this.options.annotations) &&
+				!defined(this.options.generator))
+		)
+			return;
+
+		if (this.options.annotations === 'provide') {
+			await http.image.upload(storeId, parentId, this.image, this.annotations, this.options);
+		} else {
+			await http.image.upload(storeId, parentId, this.image, undefined, this.options);
+		}
+
+		this.reset();
+	}
+
+	reset() {
+		this.image = undefined;
+		this.annotations = undefined;
+		this.currentPage = 0;
+		this.options.name = '';
 	}
 }
 

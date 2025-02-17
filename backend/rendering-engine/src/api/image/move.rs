@@ -17,7 +17,10 @@ pub async fn r#move(
     Json(Body { destination_id }): Json<Body>,
 ) -> Response {
     match crate::db::image::r#move(store_id, image_id, destination_id) {
-        Ok(()) => (StatusCode::OK).into_response(),
+        Ok(()) => {
+            logger.success(StatusCode::OK, "Moved asset successfully.");
+            (StatusCode::OK).into_response()
+        }
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,

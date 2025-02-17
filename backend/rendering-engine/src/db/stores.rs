@@ -124,3 +124,34 @@ where
 
     Ok(result)
 }
+
+/// Fetches all directories and subdirectories starting from a given directory_id.
+#[wrap_with_store(get_images_below)]
+pub fn get_images_below_<C>(conn: C, directory_id: u32) -> Result<Vec<File>>
+where
+    C: Deref<Target = Connection>,
+{
+    let mut stmt = conn.prepare_cached(
+        "WITH RECURSIVE directory_tree AS (
+                SELECT id FROM directories WHERE id = ?1
+                UNION ALL
+                SELECT d.id FROM directories d
+                JOIN directory_tree dt ON d.parent_id = dt.id
+            )
+            SELECT f.id, f.name, f.parent_id
+            FROM images f
+            WHERE f.parent_id IN (SELECT id FROM directory_tree);",
+    )?;
+
+    let files = stmt
+        .query_map([directory_id], |row| {
+            Ok(File {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                parent_id: row.get::<_, Option<u32>>(2)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(files)
+}

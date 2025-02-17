@@ -15,8 +15,8 @@
 <label
 	id="switch"
 	for="switch"
-	style:height={`${thumbSize + 2 * thumbGap}px`}
-	style:width={`${sliderLength}px`}
+	style:height="{thumbSize + 2 * thumbGap}px"
+	style:width="{sliderLength}px"
 	class="relative"
 >
 	<input
@@ -31,11 +31,11 @@
 	>
 		<span
 			id="thumb"
-			style:height={`${thumbSize}px`}
-			style:width={`${thumbSize}px`}
-			style:bottom={`${thumbGap}px`}
-			style:left={`${thumbGap}px`}
-			style:--translate={`${sliderLength - thumbSize - 2 * thumbGap}px`}
+			style:height="{thumbSize}px"
+			style:width="{thumbSize}px"
+			style:bottom="{thumbGap}px"
+			style:left="{thumbGap}px"
+			style:--translate="{sliderLength - thumbSize - 2 * thumbGap}px"
 			class="bg-primary absolute rounded-full transition-transform duration-300"
 		></span>
 	</span>

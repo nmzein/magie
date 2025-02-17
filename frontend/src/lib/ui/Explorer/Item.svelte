@@ -1,12 +1,15 @@
 <script lang="ts">
 	import type { Bounds, Directory, Image } from '$types';
-	import { NewImageViewer, explorer, type SelectionBoxState, contextMenu } from '$states';
+	import { NewImageViewer, type SelectionBoxState, contextMenu } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
 	import { onMount } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import { BoundingClientRect } from '$actions';
+	import { context } from './context.svelte.ts';
+
+	const explorer = context.get();
 
 	let { item, selection }: { item: Directory | Image; selection: SelectionBoxState } = $props();
 
@@ -14,7 +17,7 @@
 
 	onMount(async () => {
 		if (item.type === 'File') {
-			thumbnail = await http.image.thumbnail(explorer!.storeId, item.id);
+			thumbnail = await http.image.thumbnail(explorer.storeId, item.id);
 		}
 	});
 
@@ -25,17 +28,17 @@
 		intersected = defined(itemBounds) && selection.intersecting(itemBounds, item.id);
 	});
 
-	const selected = $derived(explorer!.isSelected(item.id));
+	const selected = $derived(explorer.isSelected(item.id));
 
 	function onpointerdown(e: PointerEvent) {
 		// If control key is pressed, the user wants
 		// to select more than one item.
 		if (e.ctrlKey) {
 			// Toggle selection based on current item.
-			if (explorer!.isSelected(item.id)) {
-				explorer!.deselect(item.id);
+			if (explorer.isSelected(item.id)) {
+				explorer.deselect(item.id);
 			} else {
-				explorer!.select(item.id);
+				explorer.select(item.id);
 			}
 		} else {
 			// Only select if left click.
@@ -43,8 +46,8 @@
 			// Else the user only wants to select this item
 			// we deselect all other items and then only select
 			// the one we want.
-			explorer!.deselectAll();
-			explorer!.select(item.id);
+			explorer.deselectAll();
+			explorer.select(item.id);
 		}
 	}
 
@@ -57,10 +60,10 @@
 	function handleOpen() {
 		switch (item.type) {
 			case 'Directory':
-				explorer!.goto(item.id);
+				explorer.goto(item.id);
 				break;
 			case 'File':
-				NewImageViewer(explorer!.storeId, item);
+				NewImageViewer(explorer.storeId, item);
 				break;
 		}
 	}
@@ -78,41 +81,41 @@
 			e.preventDefault();
 
 			if (!selected) {
-				explorer!.deselectAll();
-				explorer!.select(item.id);
+				explorer.deselectAll();
+				explorer.select(item.id);
 			}
 
 			contextMenu.show = true;
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
-				{ name: 'Open', action: () => handleOpen(), hidden: explorer!.selected.size !== 1 },
+				{ name: 'Open', action: () => handleOpen(), hidden: explorer.selected.size !== 1 },
 				{
 					name: 'Pin',
-					action: () => explorer!.pinSelected(),
-					hidden: explorer!.isPinned(item.id) && explorer!.selected.size === 1
+					action: () => explorer.pinSelected(),
+					hidden: explorer.isPinned(item.id) && explorer.selected.size === 1
 				},
 				{
 					name: 'Unpin',
-					action: () => explorer!.unpinSelected(),
-					hidden: !explorer!.isPinned(item.id) || explorer!.selected.size !== 1
+					action: () => explorer.unpinSelected(),
+					hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1
 				},
-				{ name: 'Copy', action: () => explorer!.clipSelected('copy'), disabled: true },
-				{ name: 'Cut', action: () => explorer!.clipSelected('cut') },
+				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
+				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
 				{
 					name: 'Move to Bin',
-					action: () => explorer!.deleteSelected('soft'),
-					hidden: explorer!.inBin
+					action: () => explorer.deleteSelected('soft'),
+					hidden: explorer.inBin
 				},
 				{
 					name: 'Delete from Bin',
-					action: () => explorer!.deleteSelected('hard'),
-					hidden: !explorer!.inBin
+					action: () => explorer.deleteSelected('hard'),
+					hidden: !explorer.inBin
 				},
 				{
 					name: 'Recover from Bin',
 					action: () => {},
 					disabled: true,
-					hidden: !explorer!.inBin
+					hidden: !explorer.inBin
 				}
 			];
 		}}

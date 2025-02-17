@@ -42,7 +42,6 @@ impl Generator for Module {
 
         let mut layers = AnnotationLayers::default();
 
-        // TODO: Can this just be done with a GROUP BY in the database.
         annotations.filter_map(Result::ok).for_each(|annotation| {
             layers.insert(annotation.properties.tag, annotation.geometry);
         });

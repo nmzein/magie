@@ -33,49 +33,15 @@ where
 
 #[wrap_with_store(insert)]
 pub fn insert_<C>(
-    conn: C,
+    mut conn: C,
+    image_id: u32,
     parent_id: u32,
     name: &str,
-    decoder: Option<&str>,
+    decoder: &str,
     encoder: &str,
     generator: Option<&str>,
     uploaded_image_extension: &str,
     uploaded_annotations_extension: Option<&str>,
-) -> Result<u32>
-where
-    C: Deref<Target = Connection>,
-{
-    let id = counter(&conn)?;
-    let now = Utc::now().to_rfc3339();
-
-    let mut stmt = conn.prepare_cached(
-        "
-            INSERT INTO images (id, parent_id, name, created_at, updated_at, decoder, encoder, generator, uploaded_image_extension, uploaded_annotations_extension)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
-        ",
-    )?;
-
-    stmt.execute((
-        id,
-        parent_id,
-        name,
-        now.clone(),
-        now,
-        decoder,
-        encoder,
-        generator,
-        uploaded_image_extension,
-        uploaded_annotations_extension,
-    ))?;
-
-    Ok(conn.last_insert_rowid().try_into()?)
-}
-
-// TODO: Execute batch and prepare_cached
-#[wrap_with_store(insert_layers)]
-pub fn insert_layers_<C>(
-    mut conn: C,
-    image_id: u32,
     metadata_layers: Vec<MetadataLayer>,
     annotation_layers: Vec<AnnotationLayer>,
 ) -> Result<()>
@@ -84,24 +50,54 @@ where
 {
     let transaction = conn.transaction()?;
 
-    for m in metadata_layers {
-        transaction.execute(
-            "
-                INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6);
-            ",
-            (image_id, m.level, m.cols, m.rows, m.width, m.height),
-        )?;
+    {
+        let mut stmt =  transaction.prepare_cached(
+        "
+            INSERT INTO images (id, parent_id, name, created_at, updated_at, decoder, encoder, generator, uploaded_image_extension, uploaded_annotations_extension)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
+        ",
+    )?;
+
+        let now = Utc::now().to_rfc3339();
+
+        stmt.execute((
+            image_id,
+            parent_id,
+            name,
+            now.clone(),
+            now,
+            decoder,
+            encoder,
+            generator,
+            uploaded_image_extension,
+            uploaded_annotations_extension,
+        ))?;
     }
 
-    for a in annotation_layers {
-        transaction.execute(
+    {
+        let mut stmt = transaction.prepare_cached(
             "
-                INSERT INTO annotation_layer (image_id, tag, colour)
-                VALUES (?1, ?2, ?3);
-            ",
-            (image_id, a.tag, a.fill),
+            INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6);
+        ",
         )?;
+
+        for m in metadata_layers {
+            stmt.execute((image_id, m.level, m.cols, m.rows, m.width, m.height))?;
+        }
+    }
+
+    {
+        let mut stmt = transaction.prepare_cached(
+            "
+            INSERT INTO annotation_layer (id, image_id, tag, colour)
+            VALUES (?1, ?2, ?3, ?4);
+        ",
+        )?;
+
+        for a in annotation_layers {
+            stmt.execute((a.id, image_id, a.tag, a.fill))?;
+        }
     }
 
     transaction.commit()?;

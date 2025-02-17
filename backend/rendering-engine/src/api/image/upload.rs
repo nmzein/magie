@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use shared::{
     constants::{
-        ANNOTATIONS_PATH, IMAGE_PATH, THUMBNAIL_PATH, TRANSLATED_ANNOTATIONS_PATH,
+        ANNOTATIONS_PATH_PREFIX, IMAGE_PATH, THUMBNAIL_PATH, TRANSLATED_ANNOTATIONS_PATH,
         UPLOADED_ANNOTATIONS_PATH, UPLOADED_IMAGE_PATH,
     },
     traits::Encoder,
@@ -121,34 +121,14 @@ pub async fn upload(
         None => None,
     };
 
-    // FIXME: Decoder here will not be correct.
-    let image_id = match crate::db::image::insert(
-        store_id,
-        parent_id,
-        &name,
-        decoder.as_deref(),
-        &encoder,
-        generator.as_deref(),
-        &uploaded_image_extension,
-        uploaded_annotations_extension.as_deref(),
-    ) {
-        Ok(id) => {
-            // Image does not exist in database, continue.
-            logger.report(
-                Check::ResourceConflict,
-                "Asset with same name does not already exist in directory.",
-            );
-            id
-        }
-        Err(e) => {
-            return logger.error(
-                StatusCode::CONFLICT,
-                Error::ResourceConflict,
-                "IU-E04",
-                "Asset with same name already exists in directory.",
-                Some(e),
-            );
-        }
+    let Ok(image_id) = crate::db::common::counter(store_id) else {
+        return logger.error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ResourceCreation,
+            "IU-E04",
+            "Failed to generate image ID.",
+            None,
+        );
     };
 
     // Create a directory in local store for the image.
@@ -167,11 +147,11 @@ pub async fn upload(
 
     let mut annotation_layers = Vec::new();
     if let Some(generator_object) = generator_object {
-        if let Some(uploaded_annotations_extension) = uploaded_annotations_extension {
+        if let Some(uploaded_annotations_extension) = &uploaded_annotations_extension {
             annotation_layers = match handle_annotations(
                 &mut logger,
                 &path,
-                &uploaded_annotations_extension,
+                uploaded_annotations_extension,
                 annotations_file,
                 generator_object,
             ) {
@@ -181,7 +161,7 @@ pub async fn upload(
         }
     };
 
-    let metadata_layers = match handle_image(
+    let (decoder, metadata_layers) = match handle_image(
         &mut logger,
         image_file,
         &path,
@@ -192,19 +172,35 @@ pub async fn upload(
         Err(response) => return response,
     };
 
-    // Insert layers into database.
-    match crate::db::image::insert_layers(store_id, image_id, metadata_layers, annotation_layers) {
-        Ok(()) => logger.log("Successfully saved asset layers to database."),
+    match crate::db::image::insert(
+        store_id,
+        image_id,
+        parent_id,
+        &name,
+        &decoder,
+        &encoder,
+        generator.as_deref(),
+        &uploaded_image_extension,
+        uploaded_annotations_extension.as_deref(),
+        metadata_layers,
+        annotation_layers,
+    ) {
+        Ok(()) => {
+            logger.report(
+                Check::ResourceConflict,
+                "Successfully saved asset to database.",
+            );
+        }
         Err(e) => {
             return logger.error(
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::CONFLICT,
                 Error::ResourceCreation,
                 "IU-E06",
-                "Failed to save asset layers to database.",
+                "Failed to save asset to database.",
                 Some(e),
             );
         }
-    };
+    }
 
     logger.success(StatusCode::CREATED, "Successfully uploaded assets.");
 
@@ -217,7 +213,7 @@ fn handle_image(
     path: &std::path::Path,
     extension: &str,
     encoder: &Box<dyn Encoder>,
-) -> Result<Vec<MetadataLayer>, Response> {
+) -> Result<(String, Vec<MetadataLayer>), Response> {
     // Path where the uploaded image will be stored.
     let uploaded_image_path = path.join(UPLOADED_IMAGE_PATH);
 
@@ -249,10 +245,9 @@ fn handle_image(
         &thumbnail_path,
         encoder,
     ) {
-        Ok(metadata) => {
+        Ok((decoder, metadata)) => {
             logger.log("Successfully converted image to Zarr.");
-
-            Ok(metadata)
+            Ok((decoder, metadata))
         }
         Err(e) => {
             return Err(logger.error(
@@ -305,7 +300,7 @@ fn translate_annotations(
     let translated_annotations_path = path.join(TRANSLATED_ANNOTATIONS_PATH);
 
     // Path where the GLB annotations will be stored.
-    let final_annotations_path = path.join(ANNOTATIONS_PATH);
+    let final_annotations_path = path.join(ANNOTATIONS_PATH_PREFIX);
 
     // Save uploaded annotations file to disk.
     match crate::io::save_asset(file.contents, &uploaded_annotations_path) {
@@ -351,11 +346,7 @@ fn translate_annotations(
         ));
     };
 
-    fs::write(
-        translated_annotations_path.clone(),
-        serialized_annotation_layers,
-    )
-    .map_err(|e| {
+    fs::write(&translated_annotations_path, serialized_annotation_layers).map_err(|e| {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,

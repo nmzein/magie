@@ -5,23 +5,25 @@
 	import InnerBar from './InnerBar.svelte';
 	import Uploader from './Uploader';
 	import type { Bounds } from '$types';
-	import { explorer } from '$states';
 	import { defined } from '$helpers';
 	import { untrack } from 'svelte';
 	import { ResizeObserver } from '$actions';
+	import { context, Explorer } from './context.svelte.ts';
+
+	const explorer = context.set(new Explorer());
 
 	let { contentSpaceBounds }: { contentSpaceBounds: Bounds } = $props();
 
 	let explorerBounds: Bounds | undefined = $state();
 
 	$effect(() => {
-		if (!defined(explorer) || !defined(explorerBounds)) return;
+		if (!defined(explorerBounds)) return;
 
 		contentSpaceBounds.width;
 		contentSpaceBounds.height;
 
 		untrack(() => {
-			explorer!.position = {
+			explorer.position = {
 				x: 0.5 * (contentSpaceBounds.width - explorerBounds!.width),
 				y: 0.3 * (contentSpaceBounds.height - explorerBounds!.height)
 			};
@@ -29,27 +31,25 @@
 	});
 </script>
 
-{#if defined(explorer)}
-	<div
-		class="panel flex min-w-48 max-w-[800px] origin-center flex-col !border-none"
-		style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
-		use:ResizeObserver={(v) => (explorerBounds = v)}
-		onwheel={(e) => e.stopPropagation()}
-	>
-		<Uploader />
+<div
+	class="panel flex max-w-[800px] min-w-48 origin-center flex-col !border-none"
+	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
+	use:ResizeObserver={(v) => (explorerBounds = v)}
+	onwheel={(e) => e.stopPropagation()}
+>
+	<Uploader />
 
-		<TopBar
-			bind:offsetX={explorer.position.x}
-			bind:offsetY={explorer.position.y}
-			{contentSpaceBounds}
-			{explorerBounds}
-		/>
-		<div class="flex flex-1 flex-row rounded-[10px]">
-			<SidePanel />
-			<div class="relative flex flex-[8] flex-col">
-				<InnerBar />
-				<MainPanel />
-			</div>
+	<TopBar
+		bind:offsetX={explorer.position.x}
+		bind:offsetY={explorer.position.y}
+		{contentSpaceBounds}
+		{explorerBounds}
+	/>
+	<div class="flex flex-1 flex-row rounded-[10px]">
+		<SidePanel />
+		<div class="relative flex flex-8 flex-col">
+			<InnerBar />
+			<MainPanel />
 		</div>
 	</div>
-{/if}
+</div>

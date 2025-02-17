@@ -1,17 +1,17 @@
 [package]
 name = "encoders"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
 [build-dependencies]
-shared = { version = "0.1.0", path = "../shared" }
+shared = { version = "0.0.0", path = "../shared" }
 prettyplease = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { workspace = true }
 
 [dependencies]
-shared = { version = "0.1.0", path = "../shared" }
+shared = { version = "0.0.0", path = "../shared" }
 anyhow = { workspace = true }
 rayon = { workspace = true }
 zarrs = { workspace = true }

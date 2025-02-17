@@ -93,11 +93,46 @@ pub fn soft_delete(
     }
 }
 
+// TODO: Actually hard delete images by retrieving them from the database and deleting them.
 pub fn hard_delete(
     logger: &mut Logger<'_>,
     store_id: u32,
     directory_id: u32,
 ) -> Result<(), Response<Body>> {
+    // Remove the directory from the database.
+    let images = match crate::db::stores::get_images_below(store_id, directory_id) {
+        Ok(images) => {
+            logger.log("Directory deleted from the database.");
+            images
+        }
+        Err(e) => {
+            return Err(logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseDeletion,
+                "DDH-E00",
+                "Failed to hard delete directory from the database.",
+                Some(e),
+            ))
+        }
+    };
+
+    for image in images {
+        match crate::io::delete(store_id, image.id) {
+            Ok(()) => {}
+            Err(e) => {
+                return Err(logger.error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Error::DatabaseDeletion,
+                    "DDH-E01",
+                    "Failed to hard delete image from the database.",
+                    Some(e),
+                ))
+            }
+        }
+    }
+
+    logger.log("Child images deleted from the filesystem.");
+
     // Remove the directory from the database.
     match crate::db::directory::delete(store_id, directory_id) {
         Ok(()) => {

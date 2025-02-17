@@ -146,9 +146,17 @@ impl FromSql for DatabaseType {
     }
 }
 
-pub fn counter(conn: &Connection) -> Result<i64> {
+pub fn counter(store_id: u32) -> Result<u32> {
+    let conn = DB.store(store_id);
+    if let Some(conn) = conn {
+        return counter_(&conn.lock().unwrap());
+    };
+    Err(anyhow::anyhow!("Store not found"))
+}
+
+pub fn counter_(conn: &Connection) -> Result<u32> {
     let mut stmt =
         conn.prepare_cached("UPDATE id_counter SET next_id = next_id + 1 RETURNING next_id;")?;
     let id = stmt.query_row([], |row| row.get::<_, i64>(0))?;
-    Ok(id)
+    Ok(id as u32)
 }

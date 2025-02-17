@@ -70,7 +70,7 @@ impl AnnotationLayers {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationLayer {
-    id: usize,
+    pub id: usize,
     pub tag: String,
     pub visible: bool,
     pub opacity: f32,

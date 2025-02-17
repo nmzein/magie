@@ -1,33 +1,35 @@
 <script lang="ts">
-	import { explorer } from '$states';
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
 	import { defined } from '$helpers';
 	import { onClickOutside } from 'runed';
+	import { context } from './context.svelte.ts';
+
+	const explorer = context.get();
 
 	let button: HTMLButtonElement | undefined = $state();
 	let name = $state('');
 
-	explorer!.deselectAll();
+	explorer.deselectAll();
 
 	onClickOutside(
 		() => button,
 		() => {
 			if (name == '') {
 				// Clicked outside and no name was set, cancel creation.
-				explorer!.directoryCreator.close();
+				explorer.directoryCreator.close();
 			} else {
 				// Clicked anywhere and a name was set, create directory.
 				// FIX: I don't like this.
-				explorer!.directoryCreator.create(explorer!.storeId, explorer!.directory.id, name);
+				explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
 			}
 		}
 	);
 
 	function onkeypress(event: KeyboardEvent) {
-		if (event.key === 'Enter' && name !== '' && defined(explorer!.directory)) {
+		if (event.key === 'Enter' && name !== '' && defined(explorer.directory)) {
 			// FIX: I don't like this.
-			explorer!.directoryCreator.create(explorer!.storeId, explorer!.directory.id, name);
+			explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
 		}
 	}
 </script>
