@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { images } from '$states';
+	import { images, registry } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
 	import { Explorer } from './Explorer';
 	import Icon from '$icon';
@@ -40,9 +40,7 @@
 				bind:contentRect={contentSpaceBounds}
 			>
 				<Tabs.Content value="explorer">
-					{#if defined(contentSpaceBounds)}
-						<Explorer {contentSpaceBounds} />
-					{/if}
+					<Explorer {contentSpaceBounds} />
 				</Tabs.Content>
 				<Tabs.Content value="control" disabled={!images[0]?.initialised}>
 					<AnnotationControls />
@@ -65,7 +63,7 @@
 						onclick={() => {
 							if (images[0]?.initialised) images[0].transformer.resetScale();
 						}}
-						class="my-[5px] select-none text-center"
+						class="my-[5px] text-center select-none"
 						class:cursor-pointer={images[0]?.initialised}
 						class:opacity-30={!images[0]?.initialised}
 					>
@@ -82,7 +80,10 @@
 				</Tabs.TriggerList>
 
 				<Tabs.TriggerList id="applets">
-					<Tabs.Trigger value="explorer">
+					<Tabs.Trigger
+						value="explorer"
+						disabled={!defined(contentSpaceBounds) || !defined(registry.registry)}
+					>
 						<Icon name="explorer" class="h-9 w-9" />
 					</Tabs.Trigger>
 					<Tabs.Trigger
@@ -91,7 +92,7 @@
 					>
 						<Icon name="control" class="h-9 w-9" />
 					</Tabs.Trigger>
-					<Tabs.Trigger value="info" disabled={!images[0]?.initialised}>
+					<Tabs.Trigger value="info" disabled={true}>
 						<Icon name="info" class="h-9 w-9" />
 					</Tabs.Trigger>
 				</Tabs.TriggerList>

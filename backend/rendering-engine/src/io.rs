@@ -1,51 +1,41 @@
-use crate::types::TileRequest;
 use anyhow::Result;
 use image::RgbImage;
-use shared::constants::TILE_SPLIT_LENGTH;
-use shared::traits::Encoder;
 use shared::{
-    constants::TILE_SIZE,
-    structs::{MetadataLayer, Size},
+    constants::{ANNOTATIONS_DIRECTORY, TILE_SIZE, TILE_SPLIT_LENGTH, UPLOADED_DIRECTORY},
+    traits::Encoder,
+    types::{MetadataLayer, Size},
 };
-use std::fs;
-use std::path::Path;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use tempfile::NamedTempFile;
 
 static THUMBNAIL_WIDTH: u32 = 256;
 static THUMBNAIL_HEIGHT: u32 = 128;
 
-pub fn create(path: &Path) -> Result<()> {
-    // Create directory.
-    fs::create_dir_all(path)?;
+static LOCAL_STORE_BASE_PATH: &str = "../stores/";
 
-    Ok(())
+pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
+    let path = Path::new(LOCAL_STORE_BASE_PATH)
+        .join(format!("s{store_id}"))
+        .join(format!("i{image_id}"));
+
+    // Create directory.
+    fs::create_dir_all(&path)?;
+    fs::create_dir_all(path.join(UPLOADED_DIRECTORY))?;
+    fs::create_dir_all(path.join(ANNOTATIONS_DIRECTORY))?;
+
+    Ok(path)
 }
 
-pub fn delete(path: &Path) -> Result<()> {
+pub fn delete(store_id: u32, image_id: u32) -> Result<()> {
+    let path = Path::new(LOCAL_STORE_BASE_PATH)
+        .join(format!("s{store_id}"))
+        .join(format!("i{image_id}"));
+
     // Remove directory.
     fs::remove_dir_all(path)?;
-
-    Ok(())
-}
-
-pub fn r#move(source_path: &Path, destination_base: &Path) -> Result<()> {
-    // Extract the last segment of the source path
-    let Some(last_segment) = source_path.file_name() else {
-        return Err(anyhow::anyhow!(
-            "Could not extract last segment from source path."
-        ));
-    };
-
-    let destination_path = destination_base.join(last_segment);
-
-    // Check if the destination path already exists.
-    if destination_path.exists() {
-        return Err(anyhow::anyhow!(
-            "Directory with the same name already exists at the destination."
-        ));
-    }
-
-    fs::rename(source_path, destination_path)?;
 
     Ok(())
 }
@@ -57,7 +47,7 @@ pub fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
 }
 
 // TODO: Remove encoder hardcode.
-pub fn retrieve(path: &Path, &TileRequest { id: _, x, y, level }: &TileRequest) -> Result<Vec<u8>> {
+pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
     let Some(encoder) = encoders::export::get("OMEZarr") else {
         return Err(anyhow::anyhow!("Could not get encoder."));
     };
@@ -89,7 +79,7 @@ pub fn try_convert(
     destination_path: &Path,
     thumbnail_path: &Path,
     encoder: &Box<dyn Encoder>,
-) -> Result<Vec<MetadataLayer>> {
+) -> Result<(String, Vec<MetadataLayer>)> {
     // Open the image with a decoder.
     let Some(decoder) = decoders::export::get(source_extension, source_path) else {
         return Err(anyhow::anyhow!("No decoders found for image."));
@@ -111,7 +101,7 @@ pub fn try_convert(
             // Save thumbnail to disk.
             fs::write(thumbnail_path, thumbnail_jpeg)?;
 
-            Ok(metadata)
+            Ok((decoder.name().to_string(), metadata))
         }
         Err(e) => Err(anyhow::anyhow!("Failed to encode image: {e}")),
     }

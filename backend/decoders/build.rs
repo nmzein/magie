@@ -34,8 +34,8 @@ fn generate_common(decoders: &[String]) -> proc_macro2::TokenStream {
             pub use anyhow::Result;
             pub use image::{ImageBuffer, Rgb};
             pub use shared::{
-                structs::{Region, Size},
                 traits::Decoder,
+                types::{Region, Size},
             };
             pub use std::path::Path;
         }

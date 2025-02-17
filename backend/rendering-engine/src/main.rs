@@ -5,7 +5,6 @@ mod api;
 mod db;
 mod io;
 mod log;
-mod types;
 
 #[cfg(test)]
 mod tests;
@@ -17,16 +16,10 @@ use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
-use db::general::Database;
 use log::logging_middleware;
-use std::{env, sync::LazyLock};
+use std::env;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-
-static DATABASE_PATH: &str = "./state/registry.sqlite";
-static DATABASE_URL: &str = "sqlite://../state/registry.sqlite";
-
-pub static RDB: LazyLock<Database> = LazyLock::new(|| Database::init(DATABASE_PATH, DATABASE_URL));
 
 #[tokio::main]
 async fn main() {
@@ -59,25 +52,34 @@ async fn main() {
 
     let directory_routes = Router::new()
         .route("/{parent_id}/{name}", post(api::directory::create::create))
-        .route("/{id}", delete(api::directory::delete::delete))
+        .route("/{directory_id}", delete(api::directory::delete::delete))
         // TODO: Make this endpoint accept rename too
-        .route("/{id}", patch(api::directory::r#move::r#move));
+        .route("/{directory_id}", patch(api::directory::r#move::r#move));
 
     let image_routes = Router::new()
         .route("/{parent_id}/{name}", post(api::image::upload::upload))
-        .route("/{id}", delete(api::image::delete::delete))
+        .route("/{image_id}", delete(api::image::delete::delete))
         // TODO: Make this endpoint accept rename too
-        .route("/{id}", patch(api::image::r#move::r#move))
-        .route("/{id}/properties", get(api::image::properties::properties))
-        .route("/{id}/thumbnail", get(api::image::thumbnail::thumbnail))
+        .route("/{image_id}", patch(api::image::r#move::r#move))
+        .route(
+            "/{image_id}/properties",
+            get(api::image::properties::properties),
+        )
+        .route(
+            "/{image_id}/thumbnail",
+            get(api::image::thumbnail::thumbnail),
+        )
         .route(
             "/{image_id}/annotations/{annotation_layer_id}",
             get(api::image::annotations::annotations),
         );
 
+    let store_routes = Router::new().route("/{store_id}", get(api::store::get::get));
+
     let api_routes = Router::new()
-        .nest("/directory", directory_routes)
-        .nest("/image", image_routes)
+        .nest("/directory/{store_id}", directory_routes)
+        .nest("/image/{store_id}", image_routes)
+        .nest("/store", store_routes)
         .route("/registry", get(api::registry::registry))
         .route("/generators", get(api::generators::generators))
         .route("/websocket", get(api::websocket::websocket));

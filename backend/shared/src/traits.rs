@@ -1,4 +1,4 @@
-use crate::structs::{AnnotationLayer, MetadataLayer, Region, Size};
+use crate::types::{AnnotationLayer, MetadataLayer, Region, Size};
 use anyhow::Result;
 use image::{ImageBuffer, Rgb};
 use std::path::Path;

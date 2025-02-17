@@ -1,55 +1,47 @@
-use crate::api::common::*;
-use crate::types::TileRequest;
 use axum::extract::ws::{Message, Utf8Bytes};
+use serde::Deserialize;
 use tokio::sync::mpsc::Sender;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct TileRequest {
+    pub store_id: u32,
+    pub image_id: u32,
+    pub level: u32,
+    pub x: u32,
+    pub y: u32,
+}
 
 // TODO: Send error messages to frontend.
 // TODO: Capture large rectangles of selections rather than individual tiles.
 pub async fn tiles(message: Utf8Bytes, sender: Sender<Message>) {
-    let tile_request = match serde_json::from_str::<TileRequest>(&message) {
+    // TODO: Move to custom binary message format.
+    let TileRequest {
+        store_id,
+        image_id,
+        level,
+        x,
+        y,
+    } = match serde_json::from_str::<TileRequest>(&message) {
         Ok(tile_request) => tile_request,
         Err(e) => {
-            log(
-                StatusCode::BAD_REQUEST,
-                &format!("Failed to parse tile request: {message}."),
-                Some(e),
-            );
-
+            println!("WebSocket Error: Failed to parse tile request: {message}. {e}",);
             return;
         }
     };
 
     // TODO: Cache in an in-memory HashMap.
-    let (_, path) = match crate::db::image::get(tile_request.id) {
-        Ok(paths) => paths,
+    let path = match crate::db::image::path(store_id, image_id) {
+        Ok(path) => path.join("image.zarr"),
         Err(e) => {
-            log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "Failed to retrieve paths for image with id: {}.",
-                    tile_request.id
-                ),
-                Some(e),
-            );
-
+            println!("WebSocket Error: Failed to retrieve path for image with id: {image_id}. {e}",);
             return;
         }
     };
 
-    // TODO: Remove hardcoding, import from consts.
-    let encoded_img_path = path.join("image.zarr");
-    let tile = match crate::io::retrieve(&encoded_img_path, &tile_request) {
+    let tile = match crate::io::retrieve(&path, level, x, y) {
         Ok(tile) => tile,
         Err(e) => {
-            log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "Failed to retrieve tile for image with id: {}.",
-                    tile_request.id
-                ),
-                Some(e),
-            );
-
+            println!("WebSocket Error: Failed to retrieve tile for image with id: {image_id}. {e}",);
             return;
         }
     };
@@ -58,13 +50,6 @@ pub async fn tiles(message: Utf8Bytes, sender: Sender<Message>) {
         .send(Message::Binary(tile.into()))
         .await
         .map_err(|e| {
-            log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "Failed to send tile for image with id: {}.",
-                    tile_request.id
-                ),
-                Some(e),
-            );
+            println!("WebSocket Error: Failed to send tile for image with id: {image_id}. {e}",);
         });
 }

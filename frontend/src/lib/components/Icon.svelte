@@ -1,7 +1,7 @@
 <script lang="ts">
 	let {
 		name,
-		class: className = '',
+		class: classes = '',
 		onclick = undefined
 	}: {
 		name: string;
@@ -47,52 +47,52 @@
 
 {#snippet Icon()}
 	{#if name === 'directory'}
-		<Directory class={className} />
+		<Directory class={classes} />
 	{:else if name === 'image'}
-		<Image class={className} />
+		<Image class={classes} />
 	{:else if name === 'back'}
-		<Back class={className} />
+		<Back class={classes} />
 	{:else if name === 'forward'}
-		<Forward class={className} />
+		<Forward class={classes} />
 	{:else if name === 'up'}
-		<Up class={className} />
+		<Up class={classes} />
 	{:else if name === 'new'}
-		<New class={className} />
+		<New class={classes} />
 	{:else if name === 'view'}
-		<View class={className} />
+		<View class={classes} />
 	{:else if name === 'sort'}
-		<Sort class={className} />
+		<Sort class={classes} />
 	{:else if name === 'down-arrow'}
-		<DownArrow class={className} />
+		<DownArrow class={classes} />
 	{:else if name === 'new-image'}
-		<NewImage class={className} />
+		<NewImage class={classes} />
 	{:else if name === 'new-directory'}
-		<NewDirectory class={className} />
+		<NewDirectory class={classes} />
 	{:else if name === 'list-view'}
-		<ListView class={className} />
+		<ListView class={classes} />
 	{:else if name === 'grid-view'}
-		<GridView class={className} />
+		<GridView class={classes} />
 	{:else if name === 'trash'}
-		<Trash class={className} />
+		<Trash class={classes} />
 	{:else if name === 'close'}
-		<Close class={className} />
+		<Close class={classes} />
 	{:else if name === 'zoom-in'}
-		<ZoomIn class={className} />
+		<ZoomIn class={classes} />
 	{:else if name === 'zoom-out'}
-		<ZoomOut class={className} />
+		<ZoomOut class={classes} />
 	{:else if name === 'cursor'}
-		<Cursor class={className} />
+		<Cursor class={classes} />
 	{:else if name === 'freehand'}
-		<Freehand class={className} />
+		<Freehand class={classes} />
 	{:else if name === 'square'}
-		<Square class={className} />
+		<Square class={classes} />
 	{:else if name === 'explorer'}
-		<Explorer class={className} />
+		<Explorer class={classes} />
 	{:else if name === 'control'}
-		<Control class={className} />
+		<Control class={classes} />
 	{:else if name === 'info'}
-		<Info class={className} />
+		<Info class={classes} />
 	{:else if name === 'settings'}
-		<Settings class={className} />
+		<Settings class={classes} />
 	{/if}
 {/snippet}

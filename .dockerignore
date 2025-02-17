@@ -16,7 +16,8 @@ README.md
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-/backend/store/*
-/backend/state/*
-!/backend/state/schema.sql
-!/backend/state/dev.sql
+
+/stores/**
+/databases/**
+!/databases/registry.sql
+!/databases/store.sql

@@ -1,19 +1,21 @@
 <script lang="ts">
-	import { contextMenu, explorer, SelectionBoxState } from '$states';
-	import { type Directory, type Image } from '$types';
+	import { clipboard, contextMenu, SelectionBoxState } from '$states';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { BoundingClientRect } from '$actions';
 	import { defined } from '$helpers';
+	import { context, BIN_ID } from './context.svelte.ts';
 
-	const selection: SelectionBoxState<Directory | Image> = new SelectionBoxState();
+	const explorer = context.get();
+
+	const selection: SelectionBoxState<number> = new SelectionBoxState();
 	let mainPanel: HTMLElement | undefined = $state();
 
 	function autoscroll(e: PointerEvent) {
+		if (!selection.dragging || !defined(selection.parentBounds) || !defined(mainPanel)) return;
+
 		const SCROLL_SPEED = 10;
 		const SCROLL_THRESHOLD = 50; // # of pixels from edge to trigger scroll.
-
-		if (!selection.dragging || !defined(selection.parentBounds) || !defined(mainPanel)) return;
 
 		// Scroll down.
 		if (e.clientY > selection.parentBounds.bottom - SCROLL_THRESHOLD) {
@@ -31,7 +33,7 @@
 		// If main panel not clicked directly, return.
 		if ((e.target as HTMLElement)?.id !== 'main') return;
 
-		explorer!.deselectAll();
+		explorer.deselectAll();
 
 		// Return if not left click.
 		if (e.button !== 0) return;
@@ -48,7 +50,7 @@
 		if (!selection.dragging) return;
 
 		const selected = selection.finish();
-		explorer!.selectGroup(selected);
+		explorer.selectGroup(selected);
 	}
 
 	function onkeydown(e: KeyboardEvent) {
@@ -56,36 +58,36 @@
 			switch (e.key) {
 				case 'a':
 					e.preventDefault();
-					explorer!.selectAll();
+					explorer.selectAll();
 					break;
 				case 'p':
 					e.preventDefault();
-					explorer!.pinSelected();
+					explorer.pinSelected();
 					break;
 				case 'x':
 					e.preventDefault();
-					explorer!.clipSelected('cut');
+					explorer.clipSelected('cut');
 					break;
 				case 'c':
 					e.preventDefault();
-					explorer!.clipSelected('copy');
+					explorer.clipSelected('copy');
 					break;
 				case 'v':
 					e.preventDefault();
-					explorer!.paste();
+					explorer.paste();
 					break;
 			}
 		} else if (!e.shiftKey && e.key === 'Delete') {
 			e.preventDefault();
 			// If delete in bin then hard delete.
-			if (explorer!.directory.data.id === 1) {
-				explorer!.deleteSelected('hard');
+			if (explorer.inBin) {
+				explorer.deleteSelected('hard');
 			} else {
-				explorer!.deleteSelected('soft');
+				explorer.deleteSelected('soft');
 			}
 		} else if (e.shiftKey && e.key === 'Delete') {
 			e.preventDefault();
-			explorer!.deleteSelected('hard');
+			explorer.deleteSelected('hard');
 		}
 	}
 
@@ -94,10 +96,10 @@
 		contextMenu.show = true;
 		contextMenu.position = { x: e.clientX, y: e.clientY };
 		contextMenu.items = [
-			{ name: 'Select All', action: () => explorer!.selectAll() },
-			{ name: 'Paste', action: () => explorer!.paste(), disabled: explorer!.clipboardIsEmpty },
-			{ name: 'New Image', action: () => explorer!.uploader.open() },
-			{ name: 'New Directory', action: () => explorer!.directoryCreator.open() }
+			{ name: 'Select All', action: () => explorer.selectAll() },
+			{ name: 'Paste', action: () => explorer.paste(), disabled: clipboard.isEmpty },
+			{ name: 'New Image', action: () => explorer.uploader.open() },
+			{ name: 'New Directory', action: () => explorer.directoryCreator.open() }
 		];
 	}
 </script>
@@ -108,11 +110,11 @@
 <div
 	bind:this={mainPanel}
 	onscroll={(e) => {
+		let target = e.target as HTMLElement;
+
 		selection.parentScroll = {
-			// @ts-ignore
-			top: e.target?.scrollTop,
-			// @ts-ignore
-			left: e.target?.scrollLeft
+			top: target.scrollTop,
+			left: target.scrollLeft
 		};
 		selection.update();
 	}}
@@ -126,15 +128,17 @@
 		id="main"
 		class="relative grid min-h-full grid-cols-1 gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
 	>
-		{#if explorer!.directoryCreator.show}
+		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
-		{#each explorer!.directory.data.subdirectories as subdirectory}
-			<Item value={subdirectory} {selection} />
-		{/each}
-		{#each explorer!.directory.data.files as file}
-			<Item value={file} {selection} />
-		{/each}
+		{#key explorer.directoryId}
+			{#each explorer.directory.children as id}
+				{@const item = explorer.get(id)}
+				{#if id !== BIN_ID && defined(item)}
+					<Item {item} {selection} />
+				{/if}
+			{/each}
+		{/key}
 
 		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
 			<div

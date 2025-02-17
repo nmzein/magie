@@ -9,7 +9,7 @@
 </script>
 
 <Button
-	variant="primary"
+	colour="accent"
 	class="text-sm"
 	invisible={ctx.lastPage}
 	{disabled}

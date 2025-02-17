@@ -1,137 +1,127 @@
-use crate::db::common::*;
-use crate::types::{AnnotationLayer as OutAnnotationLayer, ImageProperties};
-use rusqlite::named_params;
-use shared::structs::{AnnotationLayer as InAnnotationLayer, MetadataLayer};
-use std::path::PathBuf;
+use super::common::*;
+use anyhow::anyhow;
+use chrono::Utc;
+use shared::types::{AnnotationLayer, ImageProperties, MetadataLayer};
 
-pub fn insert(
+/// Returns the path of an image given its id and store_id.
+pub fn path(store_id: u32, image_id: u32) -> Result<PathBuf> {
+    Ok(DB
+        .stores
+        .get(&store_id)
+        .ok_or(anyhow!("Requested store does not exist."))?
+        .properties
+        .image(image_id))
+}
+
+#[wrap_with_store(r#move)]
+pub fn r#move_<C>(conn: C, image_id: u32, destination_id: u32) -> Result<()>
+where
+    C: Deref<Target = Connection>,
+{
+    let mut stmt = conn.prepare_cached(
+        "
+            UPDATE images
+            SET parent_id = ?1
+            WHERE id = ?2;
+        ",
+    )?;
+
+    stmt.execute([destination_id, image_id])?;
+
+    Ok(())
+}
+
+#[wrap_with_store(insert)]
+pub fn insert_<C>(
+    mut conn: C,
+    image_id: u32,
     parent_id: u32,
     name: &str,
-    upl_img_ext: &str,
-    upl_img_fmt: &str,
-    enc_img_fmt: &str,
-    annotations_ext: Option<&str>,
+    decoder: &str,
+    encoder: &str,
+    generator: Option<&str>,
+    uploaded_image_extension: &str,
+    uploaded_annotations_extension: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
-    annotation_layers: Vec<InAnnotationLayer>,
-) -> Result<()> {
-    let mut conn = RDB.conn.lock().unwrap();
+    annotation_layers: Vec<AnnotationLayer>,
+) -> Result<()>
+where
+    C: DerefMut<Target = Connection>,
+{
     let transaction = conn.transaction()?;
 
-    // TODO: Remove hardcoding.
-    transaction.execute(
+    {
+        let mut stmt =  transaction.prepare_cached(
         "
-            INSERT INTO images (parent_id, name, upl_img_ext, upl_img_fmt, enc_img_ext, enc_img_fmt, upl_anno_ext)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);
+            INSERT INTO images (id, parent_id, name, created_at, updated_at, decoder, encoder, generator, uploaded_image_extension, uploaded_annotations_extension)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);
         ",
-        (parent_id, name, upl_img_ext,  upl_img_fmt, "zarr", enc_img_fmt, annotations_ext),
     )?;
 
-    let image_id = transaction.last_insert_rowid();
+        let now = Utc::now().to_rfc3339();
 
-    #[cfg(feature = "log.database")]
-    log::<()>(&format!("INSERT <Image: {image_id}>"), None);
-
-    for m in metadata_layers {
-        transaction.execute(
-            "
-                INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6);
-            ",
-            (image_id, m.level, m.cols, m.rows, m.width, m.height),
-        )?;
-
-        #[cfg(feature = "log.database")]
-        log::<()>(
-            &format!("INSERT <Metadata Layer: {image_id}:{}>", m.level),
-            None,
-        );
+        stmt.execute((
+            image_id,
+            parent_id,
+            name,
+            now.clone(),
+            now,
+            decoder,
+            encoder,
+            generator,
+            uploaded_image_extension,
+            uploaded_annotations_extension,
+        ))?;
     }
-
-    for a in annotation_layers {
-        transaction.execute(
-            "
-                INSERT INTO annotation_layer (image_id, tag)
-                VALUES (?1, ?2);
-            ",
-            (image_id, a.tag.clone()),
-        )?;
-
-        #[cfg(feature = "log.database")]
-        log::<()>(
-            &format!("INSERT <Annotation Layer: {image_id}:{}>", a.tag),
-            None,
-        );
-    }
-
-    let _ = transaction.commit();
-
-    Ok(())
-}
-
-pub fn delete(id: u32) -> Result<()> {
-    let conn = RDB.conn.lock().unwrap();
-    conn.execute(
-        "
-            DELETE FROM images WHERE id = ?1;
-        ",
-        [id],
-    )?;
-
-    #[cfg(feature = "log.database")]
-    log::<()>(&format!("DELETE <Image: {id}>"), None);
-
-    Ok(())
-}
-
-/// Returns true if an image with the given name is a child of directory with given id.
-pub fn exists(parent_id: u32, name: &str) -> Result<bool> {
-    let conn = RDB.conn.lock().unwrap();
-    let mut stmt = conn.prepare(
-        "
-            SELECT 1 FROM images WHERE name = ?1 AND parent_id = ?2;
-        ",
-    )?;
-
-    let exists = stmt.exists([name, &parent_id.to_string()])?;
-
-    #[cfg(feature = "log.database")]
-    log(
-        &format!("CONTAINS <Image: {parent_id}/{name}>"),
-        Some(&exists),
-    );
-
-    Ok(exists)
-}
-
-/// Returns the name and path of an image given its id.
-pub fn get(id: u32) -> Result<(String, PathBuf)> {
-    let returned: (String, u32);
 
     {
-        let conn = RDB.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
+        let mut stmt = transaction.prepare_cached(
             "
-            SELECT name, parent_id
-            FROM images
-            WHERE id = ?1;
+            INSERT INTO metadata_layer (image_id, level, cols, rows, width, height)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6);
         ",
         )?;
 
-        returned = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        for m in metadata_layers {
+            stmt.execute((image_id, m.level, m.cols, m.rows, m.width, m.height))?;
+        }
     }
 
-    let (name, parent_id) = returned;
-    let path = crate::db::directory::path(parent_id)?.join(&name);
+    {
+        let mut stmt = transaction.prepare_cached(
+            "
+            INSERT INTO annotation_layer (id, image_id, tag, colour)
+            VALUES (?1, ?2, ?3, ?4);
+        ",
+        )?;
 
-    #[cfg(feature = "log.database")]
-    log(&format!("GET <Image: {path:?}>"), Some(&path));
+        for a in annotation_layers {
+            stmt.execute((a.id, image_id, a.tag, a.fill))?;
+        }
+    }
 
-    Ok((name, path))
+    transaction.commit()?;
+
+    Ok(())
 }
 
-pub fn properties(id: u32) -> Result<ImageProperties> {
-    let conn = RDB.conn.lock().unwrap();
-    let mut stmt = conn.prepare(
+#[wrap_with_store(delete)]
+pub fn delete_<C>(conn: C, image_id: u32) -> Result<()>
+where
+    C: Deref<Target = Connection>,
+{
+    let mut stmt = conn.prepare_cached("DELETE FROM images WHERE id = ?1;")?;
+    stmt.execute([image_id])?;
+
+    Ok(())
+}
+
+#[wrap_with_store(properties)]
+pub fn properties_<C>(conn: C, image_id: u32) -> Result<ImageProperties>
+where
+    C: Deref<Target = Connection>,
+{
+    let mut stmt = conn.prepare_cached(
         "
             SELECT level, cols, rows, width, height
             FROM metadata_layer
@@ -141,7 +131,7 @@ pub fn properties(id: u32) -> Result<ImageProperties> {
     )?;
 
     let metadata_layers = stmt
-        .query_map([id], |row| {
+        .query_map([image_id], |row| {
             Ok(MetadataLayer {
                 level: row.get(0)?,
                 cols: row.get(1)?,
@@ -152,100 +142,22 @@ pub fn properties(id: u32) -> Result<ImageProperties> {
         })?
         .collect::<Result<Vec<_>, _>>()?;
 
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "
-                SELECT id, tag
-                FROM annotation_layer
-                WHERE image_id = ?1;
-            ",
+            SELECT id, tag, colour
+            FROM annotation_layer
+            WHERE image_id = ?1;
+        ",
     )?;
 
     let annotation_layers = stmt
-        .query_map([id], |row| {
-            Ok(OutAnnotationLayer::new(row.get(0)?, row.get(1)?))
+        .query_map([image_id], |row| {
+            Ok(AnnotationLayer::new(row.get(0)?, row.get(1)?, row.get(2)?))
         })?
         .collect::<Result<Vec<_>, _>>()?;
-
-    #[cfg(feature = "log.database")]
-    log(&format!("GET <Metadata: {id}>"), Some(&metadata_layer));
 
     Ok(ImageProperties {
         metadata: metadata_layers,
         annotations: annotation_layers,
     })
-}
-
-pub fn get_annotation_layer_path(image_id: u32, annotation_layer_id: u32) -> Result<PathBuf> {
-    let parent_directory_path = get(image_id)?.1;
-    let conn = RDB.conn.lock().unwrap();
-
-    let mut stmt = conn.prepare(
-        "
-            SELECT tag
-            FROM annotation_layer
-            WHERE image_id = :image_id
-            AND id = :annotation_layer_id;
-        ",
-    )?;
-
-    let path = stmt.query_row(
-        named_params! { ":image_id": image_id, ":annotation_layer_id": annotation_layer_id },
-        |row| {
-            let tag = row.get::<_, String>(0)?;
-            Ok(parent_directory_path.join(tag + ".glb"))
-        },
-    )?;
-
-    #[cfg(feature = "log.database")]
-    log(
-        &format!("GET <Annotation Layer Path: {image_id}:{path}>"),
-        Some(&layer),
-    );
-
-    Ok(path)
-}
-
-pub fn r#move(id: u32, destination_id: u32) -> Result<()> {
-    let conn = RDB.conn.lock().unwrap();
-    let mut stmt = conn.prepare(
-        "
-            UPDATE images
-            SET parent_id = ?1
-            WHERE id = ?2;
-        ",
-    )?;
-
-    stmt.execute([destination_id, id])?;
-
-    #[cfg(feature = "log.database")]
-    log(
-        &format!("MOVE <Image: {id}> to <Directory: {destination_id}>"),
-        None,
-    );
-
-    Ok(())
-}
-
-pub fn path(id: u32) -> Result<PathBuf> {
-    let (parent_id, name): (u32, String);
-    {
-        let conn = RDB.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "
-            SELECT parent_id, name
-            FROM images
-            WHERE id = ?1;
-            ",
-        )?;
-
-        (parent_id, name) = stmt.query_row([id], |row| Ok((row.get(0)?, row.get(1)?)))?;
-    }
-
-    let parent_directory_path = crate::db::directory::path(parent_id)?;
-    let path = parent_directory_path.join(name);
-
-    #[cfg(feature = "log.database")]
-    log(&format!("GET <Image Path: {id}>"), Some(&path));
-
-    Ok(path)
 }

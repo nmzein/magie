@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { explorer } from '$states';
 	import Icon from '$icon';
 	import * as Dropdown from '$components/dropdown/index.ts';
+	import { context } from './context.svelte.ts';
+
+	const explorer = context.get();
 
 	const classes = {
 		trigger:
@@ -22,10 +24,10 @@
 			{@render DownArrow()}
 		</Dropdown.Trigger>
 		<Dropdown.List>
-			<Dropdown.Item onclick={() => explorer!.uploader.open()}>
+			<Dropdown.Item onclick={() => explorer.uploader.open()}>
 				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
 			</Dropdown.Item>
-			<Dropdown.Item onclick={() => explorer!.directoryCreator.open()}>
+			<Dropdown.Item onclick={() => explorer.directoryCreator.open()}>
 				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Directory
 			</Dropdown.Item>
 		</Dropdown.List>

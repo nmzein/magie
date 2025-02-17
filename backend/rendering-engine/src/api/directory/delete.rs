@@ -1,16 +1,25 @@
 use crate::api::common::*;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
+    store_id: u32,
+    directory_id: u32,
+}
+
+#[derive(Deserialize)]
+pub struct QueryParams {
     mode: DeleteMode,
 }
 
 pub async fn delete(
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(id): Path<u32>,
-    Query(Params { mode }): Query<Params>,
+    Path(PathParams {
+        store_id,
+        directory_id,
+    }): Path<PathParams>,
+    Query(QueryParams { mode }): Query<QueryParams>,
 ) -> Response {
-    if PRIVILEDGED.contains(&id) {
+    if PRIVILEDGED.contains(&directory_id) {
         return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
@@ -25,176 +34,115 @@ pub async fn delete(
         "Specified directory is not a priviledged directory.",
     );
 
-    if STORES.contains(&id) {
-        return logger.error(
-            StatusCode::FORBIDDEN,
-            Error::RequestIntegrity,
-            "DD-E01",
-            "Invalid way to delete a store, use DELETE /api/stores/:id instead.",
-            None,
-        );
-    }
-
-    logger.report(
-        Check::RequestIntegrity,
-        "Specified directory is not a store.",
-    );
-
-    // Retrieve directory path.
-    let directory_path = match crate::db::directory::path(id) {
-        Ok(path) => {
-            logger.report(
-                Check::ResourceExistence,
-                "Directory exists in the database and its path was successfully retrieved.",
-            );
-
-            path
-        }
-        Err(e) => {
-            return logger.error(
-                StatusCode::NOT_FOUND,
-                Error::DatabaseQuery,
-                "DD-E02",
-                "Failed to retrieve directory path from the database. There is a chance that the directory does not exist.",
-                Some(e),
-            );
-        }
-    };
-
-    // Retrieve Bin path.
-    let bin_path = match crate::db::directory::path(BIN_ID) {
-        Ok(path) => {
-            logger.report(
-                Check::ResourceExistence,
-                "Bin directory exists in the database and its path was successfully retrieved.",
-            );
-
-            path
-        }
+    // TODO: Unnecessary?
+    let inside_bin = match crate::db::directory::is_within(store_id, directory_id, BIN_ID) {
+        Ok(b) => b,
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
-                "DD-E03",
-                "Bin directory was not found in the database.",
+                "DD-E01",
+                "Failed to check if directory is in the Bin.",
                 Some(e),
             );
         }
     };
 
-    if directory_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
+    if mode == DeleteMode::Soft && inside_bin {
         return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
-            "DD-E04",
+            "DD-E02",
             "Cannot soft delete a directory that is already in the Bin.",
             None,
         );
     }
 
     let result = match mode {
-        DeleteMode::Soft => soft_delete(&mut logger, id, &directory_path, &bin_path),
-        DeleteMode::Hard => hard_delete(&mut logger, id, &directory_path),
+        DeleteMode::Soft => soft_delete(&mut logger, store_id, directory_id),
+        DeleteMode::Hard => hard_delete(&mut logger, store_id, directory_id),
     };
 
     if let Err(response) = result {
         return response;
     }
 
-    let registry = match crate::db::general::get_registry() {
-        Ok(registry) => {
-            logger.log("Registry retrieved from the database.");
-
-            registry
-        }
-        Err(e) => {
-            return logger.error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseQuery,
-                "DD-E05",
-                "Failed to retrieve registry from the database.",
-                Some(e),
-            )
-        }
-    };
-
     logger.success(StatusCode::OK, "Directory deleted successfully.");
 
-    (StatusCode::OK, Json(registry)).into_response()
+    (StatusCode::OK).into_response()
 }
 
 pub fn soft_delete(
     logger: &mut Logger<'_>,
-    id: u32,
-    directory_path: &std::path::Path,
-    bin_path: &std::path::Path,
+    store_id: u32,
+    directory_id: u32,
 ) -> Result<(), Response> {
-    // TODO: Not sure if returning here actually ends this function.
-    // Move the directory to the "Bin" in the filesystem.
-    match crate::io::r#move(directory_path, bin_path) {
-        Ok(()) => {
-            logger.log("Directory moved to the Bin in the filesystem.");
-        }
-        Err(e) => {
-            return Err(logger.error(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceDeletion,
-                "DDS-E00",
-                "Failed to soft delete directory from the filesystem.",
-                Some(e),
-            ));
-        }
-    }
-
     // Move the directory to the "Bin" in the database.
-    match crate::db::directory::r#move(id, BIN_ID, &MoveMode::SoftDelete) {
+    match crate::db::directory::r#move(store_id, directory_id, BIN_ID, &MoveMode::SoftDelete) {
         Ok(()) => {
             logger.log("Directory moved to the Bin in the database.");
-
             Ok(())
         }
         Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletion,
-            "DDS-E01",
+            "DDS-E00",
             "Failed to soft delete directory from the database.",
             Some(e),
         )),
     }
 }
 
+// TODO: Actually hard delete images by retrieving them from the database and deleting them.
 pub fn hard_delete(
     logger: &mut Logger<'_>,
-    id: u32,
-    directory_path: &std::path::Path,
+    store_id: u32,
+    directory_id: u32,
 ) -> Result<(), Response<Body>> {
-    // Remove the directory from the filesystem.
-    match crate::io::delete(directory_path) {
-        Ok(()) => {
-            logger.log("Directory deleted from the filesystem.");
+    // Remove the directory from the database.
+    let images = match crate::db::stores::get_images_below(store_id, directory_id) {
+        Ok(images) => {
+            logger.log("Directory deleted from the database.");
+            images
         }
         Err(e) => {
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::ResourceDeletion,
+                Error::DatabaseDeletion,
                 "DDH-E00",
-                "Failed to hard delete directory from the filesystem.",
+                "Failed to hard delete directory from the database.",
                 Some(e),
-            ));
+            ))
         }
     };
 
+    for image in images {
+        match crate::io::delete(store_id, image.id) {
+            Ok(()) => {}
+            Err(e) => {
+                return Err(logger.error(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Error::DatabaseDeletion,
+                    "DDH-E01",
+                    "Failed to hard delete image from the database.",
+                    Some(e),
+                ))
+            }
+        }
+    }
+
+    logger.log("Child images deleted from the filesystem.");
+
     // Remove the directory from the database.
-    match crate::db::directory::delete(id) {
+    match crate::db::directory::delete(store_id, directory_id) {
         Ok(()) => {
             logger.log("Directory deleted from the database.");
-
             Ok(())
         }
         Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletion,
-            "DDH-E01",
+            "DDH-E00",
             "Failed to hard delete directory from the database.",
             Some(e),
         )),

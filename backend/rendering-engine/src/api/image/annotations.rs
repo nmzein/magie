@@ -1,8 +1,10 @@
 use crate::api::common::*;
 use axum::{body::Bytes, http::header};
+use shared::constants::ANNOTATIONS_PATH_PREFIX;
 
 #[derive(Deserialize)]
 pub struct Params {
+    store_id: u32,
     image_id: u32,
     annotation_layer_id: u32,
 }
@@ -10,12 +12,15 @@ pub struct Params {
 pub async fn annotations(
     Extension(mut logger): Extension<Logger<'_>>,
     Path(Params {
+        store_id,
         image_id,
         annotation_layer_id,
     }): Path<Params>,
 ) -> Response {
-    let path = match crate::db::image::get_annotation_layer_path(image_id, annotation_layer_id) {
-        Ok(layers) => layers,
+    let path = match crate::db::image::path(store_id, image_id) {
+        Ok(path) => path.join(format!(
+            "{ANNOTATIONS_PATH_PREFIX}{annotation_layer_id}.glb"
+        )),
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -28,7 +33,7 @@ pub async fn annotations(
     };
 
     // Read the binary content of the GLB file.
-    match std::fs::read(&path) {
+    match std::fs::read(path) {
         Ok(file_data) => {
             logger.success(StatusCode::OK, "Annotation layer retrieved successfully.");
 
@@ -37,7 +42,7 @@ pub async fn annotations(
                     (header::CONTENT_TYPE, "model/gltf-binary"),
                     (
                         header::CONTENT_DISPOSITION,
-                        "attachment; filename=\"file.glb\"",
+                        &format!("attachment; filename=\"a{annotation_layer_id}.glb\""),
                     ),
                 ]),
                 Bytes::from(file_data),

@@ -10,6 +10,7 @@ impl Encoder for Module {
         "OMEZarr"
     }
 
+    // TODO: Don't fill up memory.
     fn convert(
         &self,
         output_path: &Path,

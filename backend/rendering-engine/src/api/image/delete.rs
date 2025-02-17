@@ -1,125 +1,103 @@
-use crate::{api::common::*, types::DeleteMode};
+use crate::api::common::*;
+use shared::types::DeleteMode;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
+    store_id: u32,
+    image_id: u32,
+}
+
+#[derive(Deserialize)]
+pub struct QueryParams {
     mode: DeleteMode,
 }
 
-pub async fn delete(Path(id): Path<u32>, Query(Params { mode }): Query<Params>) -> Response {
-    #[cfg(feature = "log.request")]
-    log::<()>(
-        StatusCode::ACCEPTED,
-        &format!(
-            "[ID/M00]: Received request to delete image with id `{id}` using mode `{mode:?}`."
-        ),
-        None,
-    );
-
-    let image_path = match crate::db::image::path(id) {
+pub async fn delete(
+    Extension(mut logger): Extension<Logger<'_>>,
+    Path(PathParams { store_id, image_id }): Path<PathParams>,
+    Query(QueryParams { mode }): Query<QueryParams>,
+) -> Response {
+    // TODO: Again unnecessary?
+    let image_path = match crate::db::image::path(store_id, image_id) {
         Ok(path) => path,
         Err(e) => {
-            return log(
+            return logger.error(
                 StatusCode::NOT_FOUND,
-                &format!("[ID/E00]: Image with id `{id}` does not exist in the database."),
+                Error::ResourceExistence,
+                "ID-E00",
+                "Image doesn't exist in the database.",
                 Some(e),
             );
         }
     };
 
-    let bin_path = match crate::db::directory::path(BIN_ID) {
+    let bin_path = match crate::db::stores::bin(store_id) {
         Ok(path) => path,
         Err(e) => {
-            return log(
+            return logger.error(
                 StatusCode::NOT_FOUND,
-                "[ID/E01]: Bin directory was not found in the database.",
+                Error::ResourceExistence,
+                "ID-E01",
+                "Bin not found in the database.",
                 Some(e),
             );
         }
     };
 
     if image_path.starts_with(&bin_path) && mode == DeleteMode::Soft {
-        return log::<()>(
+        return logger.error(
             StatusCode::BAD_REQUEST,
-            "[ID/E02]: Cannot soft delete an image that is already in the Bin.",
+            Error::RequestIntegrity,
+            "ID-E02",
+            "Cannot soft delete an image that is already in the Bin.",
             None,
         );
     }
 
-    let result = match mode {
-        DeleteMode::Soft => soft_delete(id, &image_path, &bin_path),
-        DeleteMode::Hard => hard_delete(id, &image_path),
+    if let Err(error) = match mode {
+        DeleteMode::Soft => soft_delete(&mut logger, store_id, image_id),
+        DeleteMode::Hard => hard_delete(&mut logger, store_id, image_id),
+    } {
+        return error;
     };
 
-    if let Err(error) = result {
-        return error;
-    }
-
-    match crate::db::general::get_registry() {
-        Ok(registry) => {
-            #[cfg(feature = "log.success")]
-            log::<()>(
-                StatusCode::OK,
-                "[ID/M01]: Successfully retrieved registry from the database.",
-                None,
-            );
-
-            Json(registry).into_response()
-        }
-        Err(e) => log(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "[ID/E03]: Failed to retrieve registry from the database.",
-            Some(e),
-        ),
-    }
+    (StatusCode::OK).into_response()
 }
 
-pub fn hard_delete(id: u32, image_path: &std::path::Path) -> Result<(), Response> {
-    match crate::io::delete(image_path) {
-        Ok(()) => {}
-        Err(e) => {
-            return Err(log(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "[ID-H/E00]: Failed to hard delete image with id `{id}` from the filesystem."
-                ),
-                Some(e),
-            ));
-        }
-    }
-
-    match crate::db::image::delete(id) {
+pub fn soft_delete(logger: &mut Logger<'_>, store_id: u32, image_id: u32) -> Result<(), Response> {
+    match crate::db::image::r#move(store_id, image_id, BIN_ID) {
         Ok(()) => Ok(()),
-        Err(e) => Err(log(
+        Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("[ID-H/E01]: Failed to hard delete image with id `{id}` from the database."),
+            Error::DatabaseDeletion,
+            "IDS-E00",
+            "Failed to soft delete image from the database.",
             Some(e),
         )),
     }
 }
 
-pub fn soft_delete(
-    id: u32,
-    image_path: &std::path::Path,
-    bin_path: &std::path::Path,
-) -> Result<(), Response> {
-    match crate::io::r#move(image_path, bin_path) {
+pub fn hard_delete(logger: &mut Logger<'_>, store_id: u32, image_id: u32) -> Result<(), Response> {
+    match crate::io::delete(store_id, image_id) {
         Ok(()) => {}
         Err(e) => {
-            return Err(log(
+            return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                &format!(
-                    "[ID-S/E00]: Failed to soft delete image with id `{id}` from the filesystem."
-                ),
+                Error::ResourceDeletion,
+                "IDH-E00",
+                "Failed to hard delete image from the filesystem.",
                 Some(e),
             ));
         }
     }
 
-    match crate::db::image::r#move(id, BIN_ID) {
+    match crate::db::image::delete(store_id, image_id) {
         Ok(()) => Ok(()),
-        Err(e) => Err(log(
+        Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            &format!("[ID-S/E01]: Failed to soft delete image with id `{id}` from the database."),
+            Error::DatabaseDeletion,
+            "IDH-E01",
+            "Failed to hard delete image from the database.",
             Some(e),
         )),
     }

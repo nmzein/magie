@@ -8,6 +8,6 @@
 	const ctx = context.get();
 </script>
 
-<Button variant="primary" class="text-sm" invisible={ctx.firstPage} onclick={() => ctx.back()}>
+<Button colour="accent" class="text-sm" invisible={ctx.firstPage} onclick={() => ctx.back()}>
 	{@render children()}
 </Button>

@@ -25,8 +25,8 @@ fn generate_common() -> proc_macro2::TokenStream {
         pub use anyhow::Result;
         pub use shared::{
             constants::*,
-            structs::{Address, MetadataLayer, Region, Size},
             traits::{Decoder, Encoder},
+            types::{Address, MetadataLayer, Region, Size},
         };
         pub use std::{path::Path, sync::Arc};
         pub use zarrs::{

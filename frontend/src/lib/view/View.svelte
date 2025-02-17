@@ -28,18 +28,16 @@
 		});
 	});
 
-	let scene: Scene | undefined = $state();
+	const scene: Scene | undefined = $derived.by(() => {
+		if (!defined(canvas)) return;
 
-	$effect(() => {
-		if (defined(canvas)) {
-			scene = new Scene();
-		}
+		return new Scene();
 	});
 
 	const camera: OrthographicCamera | undefined = $derived.by(() => {
 		if (!images[0]?.initialised) return;
 
-		const camera = new OrthographicCamera(0, images[0].width!, 0, -1 * images[0].height!, 0.1, 10);
+		const camera = new OrthographicCamera(0, images[0].width, 0, -1 * images[0].height, 0.1, 10);
 		camera.position.z = 1;
 
 		return camera;
@@ -73,8 +71,7 @@
 
 		// Logic for calculating the coordinates of the mouse pointer.
 		if (!images[0].transformer.isDragging) {
-			const imageDOMRect = canvas?.getBoundingClientRect();
-
+			const imageDOMRect = document.getElementById('image-layer-0')?.getBoundingClientRect();
 			if (!defined(imageDOMRect)) return;
 
 			const xTemp = Math.floor(
@@ -169,7 +166,12 @@
 					{/if}
 					{#if defined(camera) && defined(renderer) && defined(scene)}
 						{#each images[0].properties.annotations as layer}
-							<AnnotationLayer imageId={images[0].info.id} {layer} {render} />
+							<AnnotationLayer
+								storeId={images[0].storeId}
+								imageId={images[0].info.id}
+								{layer}
+								{render}
+							/>
 						{/each}
 					{/if}
 				</div>
@@ -186,7 +188,7 @@
 		</div>
 		<div
 			id="coordinates-panel"
-			class="panel absolute bottom-[10px] left-[10px] select-none px-[7px] py-[3px]"
+			class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px] select-none"
 		>
 			<span class="font-bold">x:</span>
 			{x},

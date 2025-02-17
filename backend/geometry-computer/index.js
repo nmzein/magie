@@ -25,11 +25,11 @@ fs.readFile(sourceFile, "utf8", async (err, data) => {
   for (const annotationLayer of annotationLayers) {
     console.log(annotationLayer.tag);
     const arrays = draw(annotationLayer);
-    await gltf(annotationLayer.tag, arrays);
+    await gltf(annotationLayer.id, arrays);
   }
 });
 
-async function gltf(tag, { indicesArray, positionArray, uvArray }) {
+async function gltf(id, { indicesArray, positionArray, uvArray }) {
   const document = new Document();
   const buffer = document.createBuffer();
 
@@ -74,7 +74,7 @@ async function gltf(tag, { indicesArray, positionArray, uvArray }) {
   const scene = document.createScene("MyScene").addChild(node);
 
   const io = new NodeIO();
-  await io.write(`${outputDirectory}/${tag}.glb`, document);
+  await io.write(`${outputDirectory}${id}.glb`, document);
 }
 
 function draw(annotationLayer) {
