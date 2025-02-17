@@ -47,7 +47,7 @@
 	/>
 	<div class="flex flex-1 flex-row rounded-[10px]">
 		<SidePanel />
-		<div class="relative flex flex-8 flex-col">
+		<div class="relative flex w-3/4 flex-col">
 			<InnerBar />
 			<MainPanel />
 		</div>

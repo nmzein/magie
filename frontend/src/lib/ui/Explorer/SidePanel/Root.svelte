@@ -6,7 +6,7 @@
 </script>
 
 <div
-	class="border-secondary/20 bg-primary/15 flex-2 flex flex-col gap-3 rounded-bl-[inherit] border-r px-5 py-4"
+	class="border-secondary/20 bg-primary/15 flex w-1/4 flex-col gap-3 rounded-bl-[inherit] border-r px-5 py-4"
 >
 	<PinnedSection />
 	<Separator />

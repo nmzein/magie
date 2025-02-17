@@ -8,16 +8,17 @@
 	import { twMerge } from 'tailwind-merge';
 	import { BoundingClientRect } from '$actions';
 	import { context } from './context.svelte.ts';
+	import { PersistedState } from 'runed';
 
 	const explorer = context.get();
 
 	let { item, selection }: { item: Directory | Image; selection: SelectionBoxState } = $props();
 
-	let thumbnail: HTMLImageElement | undefined = $state();
+	const thumbnail = new PersistedState<HTMLImageElement | undefined>('thumbnail', undefined);
 
 	onMount(async () => {
 		if (item.type === 'File') {
-			thumbnail = await http.image.thumbnail(explorer.storeId, item.id);
+			thumbnail.current = await http.image.thumbnail(explorer.storeId, item.id);
 		}
 	});
 
@@ -79,6 +80,7 @@
 		{onkeypress}
 		oncontextmenu={(e) => {
 			e.preventDefault();
+			e.stopPropagation();
 
 			if (!selected) {
 				explorer.deselectAll();
@@ -120,8 +122,8 @@
 			];
 		}}
 	>
-		{#if defined(thumbnail)}
-			<img src={thumbnail.src} alt={item.name} class="h-16 rounded-md" />
+		{#if item.type === 'File' && defined(thumbnail.current)}
+			<img src={thumbnail.current.src} alt="" class="h-16 rounded-md" />
 		{:else}
 			<Icon
 				name={item.type === 'Directory' ? 'directory' : 'image'}

@@ -5,6 +5,6 @@
 </script>
 
 <span class="text-secondary text-sm uppercase select-none"> {title} </span>
-<div class="flex flex-2 flex-col gap-[6px] overflow-y-auto pr-[10px] select-none">
+<div class="flex flex-2 flex-col gap-[6px] overflow-x-clip overflow-y-scroll select-none">
 	{@render children()}
 </div>

@@ -9,6 +9,6 @@
 	const ctx = context.get();
 </script>
 
-<Button colour="accent" class="text-sm" hidden={!ctx.lastPage} disabled={!enabled} onclick={done}>
+<Button variant="accent" class="text-sm" hidden={!ctx.lastPage} disabled={!enabled} onclick={done}>
 	{@render children()}
 </Button>

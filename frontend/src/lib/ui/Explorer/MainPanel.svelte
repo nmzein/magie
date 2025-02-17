@@ -126,7 +126,7 @@
 >
 	<div
 		id="main"
-		class="relative grid min-h-full grid-cols-1 gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
+		class="relative grid min-h-full w-full grid-cols-1 content-start gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
 	>
 		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
