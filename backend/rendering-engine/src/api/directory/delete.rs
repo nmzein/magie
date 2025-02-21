@@ -112,7 +112,7 @@ pub fn hard_delete(
                 "DDH-E00",
                 "Failed to hard delete directory from the database.",
                 Some(e),
-            ))
+            ));
         }
     };
 
@@ -126,7 +126,7 @@ pub fn hard_delete(
                     "DDH-E01",
                     "Failed to hard delete image from the database.",
                     Some(e),
-                ))
+                ));
             }
         }
     }

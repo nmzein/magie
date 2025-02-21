@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ws::Message, WebSocketUpgrade},
+    extract::{WebSocketUpgrade, ws::Message},
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};

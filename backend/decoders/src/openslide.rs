@@ -1,5 +1,5 @@
 use crate::common::*;
-use openslide_rs::{traits::Slide, OpenSlide};
+use openslide_rs::{OpenSlide, traits::Slide};
 
 pub struct Module {
     image: OpenSlide,

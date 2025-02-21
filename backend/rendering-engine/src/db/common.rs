@@ -8,7 +8,7 @@ pub use std::{
 };
 
 use rusqlite::types::{FromSql, ToSql, ToSqlOutput, ValueRef};
-use rusqlite_migration::{Migrations, M};
+use rusqlite_migration::{M, Migrations};
 use std::sync::MutexGuard;
 use std::{collections::HashMap, sync::LazyLock};
 use std::{

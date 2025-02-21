@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Ident, ItemFn};
+use syn::{Ident, ItemFn, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn wrap_with_store(attr: TokenStream, item: TokenStream) -> TokenStream {

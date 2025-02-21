@@ -10,11 +10,11 @@ mod log;
 mod tests;
 
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
-    http::{header::CONTENT_TYPE, HeaderValue, Method},
+    http::{HeaderValue, Method, header::CONTENT_TYPE},
     middleware::{self},
     routing::{delete, get, patch, post},
-    Router,
 };
 use log::logging_middleware;
 use std::env;
@@ -23,9 +23,10 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
+    // SAFETY: Environment access only happens in single-threaded code.
     // Override the temporary directory to get around issue
     // of crossing mount points on some Linux distros.
-    env::set_var("TMPDIR", "./tmp");
+    unsafe { env::set_var("TMPDIR", "./tmp") };
 
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");

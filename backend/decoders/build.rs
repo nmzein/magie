@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
     fs::{self, File},
 };
-use syn::{parse2, parse_file, Expr, Ident, ImplItem, Item, Lit, LitStr, Stmt};
+use syn::{Expr, Ident, ImplItem, Item, Lit, LitStr, Stmt, parse_file, parse2};
 
 fn main() {
     let decoders = find_modules();

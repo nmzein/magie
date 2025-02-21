@@ -56,7 +56,7 @@ pub async fn annotations(
                 "IA-E01",
                 "Failed to retrieve GLB annotation layer file.",
                 Some(e.into()),
-            )
+            );
         }
     }
 }

@@ -1,6 +1,6 @@
 use super::common::*;
 use anyhow::anyhow;
-use rusqlite_migration::{Migrations, M};
+use rusqlite_migration::{M, Migrations};
 use shared::{
     constants::{BIN_ID, ROOT_ID},
     types::{Directory, File, FileSystemEntry},

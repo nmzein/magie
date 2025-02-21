@@ -18,7 +18,7 @@ pub trait Decoder: Send + Sync {
 pub trait Encoder: Send + Sync {
     fn name(&self) -> &'static str;
     fn convert(&self, output_path: &Path, decoder: &Box<dyn Decoder>)
-        -> Result<Vec<MetadataLayer>>;
+    -> Result<Vec<MetadataLayer>>;
     fn retrieve(
         &self,
         buf: &mut Box<[u8]>,
