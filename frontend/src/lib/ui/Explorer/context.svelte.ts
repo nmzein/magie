@@ -39,7 +39,7 @@ export class Explorer {
 		return path;
 	});
 	searchQuery: string = $state('');
-	filteredChildren = $derived.by(() => {
+	items = $derived.by(() => {
 		let children = this.directory.children;
 
 		const query = this.searchQuery.toLowerCase();

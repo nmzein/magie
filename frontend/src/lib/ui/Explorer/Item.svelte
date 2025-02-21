@@ -4,23 +4,13 @@
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
-	import { onMount } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 	import { BoundingClientRect } from '$actions';
 	import { context } from './context.svelte.ts';
-	import { PersistedState } from 'runed';
 
 	const explorer = context.get();
 
 	let { item, selection }: { item: Directory | Image; selection: SelectionBoxState } = $props();
-
-	const thumbnail = new PersistedState<HTMLImageElement | undefined>('thumbnail', undefined);
-
-	onMount(async () => {
-		if (item.type === 'File') {
-			thumbnail.current = await http.image.thumbnail(explorer.storeId, item.id);
-		}
-	});
 
 	let itemBounds: Bounds | undefined = $state();
 	let intersected = $state(false);
@@ -54,11 +44,11 @@
 
 	function onkeypress(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
-			handleOpen();
+			open();
 		}
 	}
 
-	function handleOpen() {
+	function open() {
 		switch (item.type) {
 			case 'Directory':
 				explorer.goto(item.id);
@@ -76,7 +66,7 @@
 			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
 		)}
 		{onpointerdown}
-		ondblclick={handleOpen}
+		ondblclick={open}
 		{onkeypress}
 		oncontextmenu={(e) => {
 			e.preventDefault();
@@ -90,7 +80,7 @@
 			contextMenu.show = true;
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
-				{ name: 'Open', action: () => handleOpen(), hidden: explorer.selected.size !== 1 },
+				{ name: 'Open', action: () => open(), hidden: explorer.selected.size !== 1 },
 				{
 					name: 'Pin',
 					action: () => explorer.pinSelected(),
@@ -115,20 +105,25 @@
 				},
 				{
 					name: 'Recover from Bin',
-					action: () => {},
 					disabled: true,
 					hidden: !explorer.inBin
 				}
 			];
 		}}
 	>
-		{#if item.type === 'File' && defined(thumbnail.current)}
-			<img src={thumbnail.current.src} alt="" class="h-16 rounded-md" />
+		{#if item.type === 'File'}
+			{#await http.image.thumbnail(explorer.storeId, item.id)}
+				<div class="h-16"></div>
+			{:then thumbnail}
+				{#if thumbnail}
+					<!-- svelte-ignore a11y_missing_attribute -->
+					<img src={thumbnail.src} class="h-16 rounded-md" />
+				{:else}
+					<Icon name="image" class="my-[-13px] h-[90px] w-[90px]" />
+				{/if}
+			{/await}
 		{:else}
-			<Icon
-				name={item.type === 'Directory' ? 'directory' : 'image'}
-				class="my-[-13px] h-[90px] w-[90px]"
-			/>
+			<Icon name="directory" class="my-[-13px] h-[90px] w-[90px]" />
 		{/if}
 		<span class="line-clamp-2 break-all">
 			{item.name}

@@ -1,5 +1,8 @@
 use crate::api::common::*;
-use axum::{body::Bytes, http::header::CONTENT_TYPE};
+use axum::{
+    body::Bytes,
+    http::header::{CACHE_CONTROL, CONTENT_TYPE},
+};
 use std::{fs::File, io::Read};
 
 #[derive(Deserialize)]
@@ -37,7 +40,10 @@ pub async fn thumbnail(
                     // Create a response with the binary content of the image.
                     (
                         StatusCode::OK,
-                        [(CONTENT_TYPE, "image/jpeg")],
+                        [
+                            (CONTENT_TYPE, "image/jpeg"),
+                            (CACHE_CONTROL, "public, max-age=86400"),
+                        ],
                         Bytes::from(buffer),
                     )
                         .into_response()

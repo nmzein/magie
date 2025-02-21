@@ -19,6 +19,7 @@ README.md
 /backend/tmp/**
 
 /stores/**
+!/stores/tmp
 /databases/**
 !/databases/registry.sql
 !/databases/store.sql

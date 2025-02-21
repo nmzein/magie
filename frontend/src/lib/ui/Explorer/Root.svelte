@@ -45,9 +45,9 @@
 		{contentSpaceBounds}
 		{explorerBounds}
 	/>
-	<div class="flex flex-1 flex-row rounded-[10px]">
+	<div class="@container flex flex-1 flex-row rounded-[10px]">
 		<SidePanel />
-		<div class="relative flex w-3/4 flex-col">
+		<div class="relative flex w-full flex-col">
 			<InnerBar />
 			<MainPanel />
 		</div>

@@ -131,7 +131,7 @@
 		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
-		{#each explorer.filteredChildren as id (id)}
+		{#each explorer.items as id (id)}
 			{@const item = explorer.get(id)}
 			{#if id !== BIN_ID && defined(item)}
 				<Item {item} {selection} />

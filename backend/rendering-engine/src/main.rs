@@ -26,7 +26,7 @@ async fn main() {
     // SAFETY: Environment access only happens in single-threaded code.
     // Override the temporary directory to get around issue
     // of crossing mount points on some Linux distros.
-    unsafe { env::set_var("TMPDIR", "./tmp") };
+    unsafe { env::set_var("TMPDIR", "../stores/tmp") };
 
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
