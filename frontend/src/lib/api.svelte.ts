@@ -1,9 +1,4 @@
-import {
-	PUBLIC_HTTP_SCHEME,
-	PUBLIC_WS_SCHEME,
-	PUBLIC_DOMAIN,
-	PUBLIC_BACKEND_PORT
-} from '$env/static/public';
+import { PUBLIC_HTTP_SCHEME, PUBLIC_WS_SCHEME, PUBLIC_BACKEND_URL } from '$env/static/public';
 import { request, defined } from '$helpers';
 import { images } from '$states';
 import type {
@@ -16,7 +11,7 @@ import type {
 } from '$types';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
-const BASE_URL = '://' + PUBLIC_DOMAIN + ':' + PUBLIC_BACKEND_PORT;
+const BASE_URL = '://' + PUBLIC_BACKEND_URL;
 const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
 const DIRECTORY_URL = new URL(HTTP_URL + '/directory');
 const IMAGE_URL = new URL(HTTP_URL + '/image');

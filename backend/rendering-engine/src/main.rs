@@ -30,17 +30,15 @@ async fn main() {
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
-    let domain = &fetch_env_var("PUBLIC_DOMAIN");
-    let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
-    let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
+    let frontend_url = &fetch_env_var("PUBLIC_FRONTEND_URL");
+    let backend_url = &fetch_env_var("PUBLIC_BACKEND_URL");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
 
-    let backend_url = format!("{domain}:{backend_port}");
     let listener = TcpListener::bind(backend_url)
         .await
         .expect("Could not bind a TcpListener to the backend port.");
 
-    let frontend_url = format!("{http_scheme}://{domain}:{frontend_port}");
+    let frontend_url = format!("{http_scheme}://{frontend_url}");
     let cors: CorsLayer = CorsLayer::new()
         .allow_origin(
             frontend_url

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { images } from '$states';
 	import type { ImageLayer } from '$types';
+	import { onMount } from 'svelte';
 
 	let {
 		layerIndex,
@@ -37,7 +38,7 @@
 
 	let observer = new IntersectionObserver(callback, options);
 
-	$effect(() => {
+	onMount(() => {
 		document.querySelectorAll('[data-level="' + layerIndex + '"]').forEach((tile) => {
 			observer.observe(tile);
 		});
