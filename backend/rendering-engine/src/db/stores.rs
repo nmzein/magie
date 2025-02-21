@@ -5,7 +5,7 @@ use shared::{
     constants::{BIN_ID, ROOT_ID},
     types::{Directory, File, FileSystemEntry},
 };
-use std::fs;
+use std::{fs, path::Path};
 
 pub fn bin(store_id: u32) -> Result<PathBuf> {
     Ok(DB
@@ -17,7 +17,7 @@ pub fn bin(store_id: u32) -> Result<PathBuf> {
 }
 
 #[wrap_with_store(create)]
-pub fn create_<C>(registry_conn: C, r#type: DatabaseType, name: &str, path: PathBuf) -> Result<()>
+pub fn create_<C>(registry_conn: C, r#type: &DatabaseType, name: &str, path: &Path) -> Result<()>
 where
     C: Deref<Target = Connection>,
 {
@@ -32,7 +32,7 @@ where
         return Ok(());
     };
 
-    let store_id = registry_conn.last_insert_rowid() as u32;
+    let store_id = u32::try_from(registry_conn.last_insert_rowid())?;
     let location = format!("{STORES_DATABASE_PATH_PREFIX}{store_id}.sqlite");
     let path = path.join(format!("s{store_id}"));
     let url = format!("{STORES_DATABASE_URL_PREFIX}{store_id}.sqlite");

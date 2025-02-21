@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use chrono::Utc;
 use shared::types::{AnnotationLayer, ImageProperties, MetadataLayer};
 
-/// Returns the path of an image given its id and store_id.
+/// Returns the path of an image given its id and store id.
 pub fn path(store_id: u32, image_id: u32) -> Result<PathBuf> {
     Ok(DB
         .stores

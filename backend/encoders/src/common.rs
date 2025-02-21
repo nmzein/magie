@@ -1,16 +1,13 @@
 /// Auto-generated file. Any changes will be overwritten.
 pub use anyhow::Result;
 pub use shared::{
-    constants::*,
-    traits::{Decoder, Encoder},
+    constants::*, traits::{Decoder, Encoder},
     types::{Address, MetadataLayer, Region, Size},
 };
 pub use std::{path::Path, sync::Arc};
 pub use zarrs::{
-    array::{Array, ArrayBuilder, DataType, FillValue, codec::GzipCodec},
-    array_subset::ArraySubset,
-    filesystem::FilesystemStore,
-    group::GroupBuilder,
+    array::{codec::GzipCodec, Array, ArrayBuilder, DataType, FillValue},
+    array_subset::ArraySubset, filesystem::FilesystemStore, group::GroupBuilder,
 };
 pub fn interleave(channels: &[u8], output: &mut Box<[u8]>) {
     let rs = &channels[..TILE_LENGTH];

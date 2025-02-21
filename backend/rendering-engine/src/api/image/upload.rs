@@ -30,7 +30,7 @@ pub struct Multipart {
     annotations_file: Option<FieldData<NamedTempFile>>,
 }
 
-fn extract_extension(filename: Option<String>) -> Option<String> {
+fn extract_extension(filename: &Option<String>) -> Option<String> {
     let extension = filename
         .as_ref()
         .map(std::path::Path::new)
@@ -60,7 +60,7 @@ pub async fn upload(
     }): TypedMultipart<Multipart>,
 ) -> Response {
     // Extract image extension from metadata request body.
-    let Some(uploaded_image_extension) = extract_extension(image_file.metadata.file_name.clone())
+    let Some(uploaded_image_extension) = extract_extension(&image_file.metadata.file_name.clone())
     else {
         return logger.error(
             StatusCode::BAD_REQUEST,
@@ -74,7 +74,7 @@ pub async fn upload(
     // Extract annotations extension from metadata request body.
     let uploaded_annotations_extension = annotations_file
         .as_ref()
-        .and_then(|f| extract_extension(f.metadata.file_name.clone()));
+        .and_then(|f| extract_extension(&f.metadata.file_name.clone()));
 
     if annotations_file.is_some() && uploaded_annotations_extension.is_none() {
         return logger.error(

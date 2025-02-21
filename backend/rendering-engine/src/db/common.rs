@@ -22,7 +22,7 @@ pub static REGISTRY_URL: &str = "sqlite://../../databases/registry.sqlite";
 pub static STORES_DATABASE_PATH_PREFIX: &str = "../databases/s";
 pub static STORES_DATABASE_URL_PREFIX: &str = "sqlite://../../databases/s";
 
-pub static DB: LazyLock<Databases> = LazyLock::new(|| Databases::connect());
+pub static DB: LazyLock<Databases> = LazyLock::new(Databases::connect);
 
 pub struct Databases {
     pub registry: Arc<Mutex<Connection>>,
@@ -47,9 +47,9 @@ impl Databases {
 
         crate::db::stores::create_(
             &conn,
-            DatabaseType::Local,
+            &DatabaseType::Local,
             "Local",
-            PathBuf::from("../stores"),
+            &PathBuf::from("../stores"),
         )
         .unwrap();
 
@@ -158,5 +158,5 @@ pub fn counter_(conn: &Connection) -> Result<u32> {
     let mut stmt =
         conn.prepare_cached("UPDATE id_counter SET next_id = next_id + 1 RETURNING next_id;")?;
     let id = stmt.query_row([], |row| row.get::<_, i64>(0))?;
-    Ok(id as u32)
+    Ok(u32::try_from(id)?)
 }
