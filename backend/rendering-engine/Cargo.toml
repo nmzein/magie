@@ -18,6 +18,7 @@ anyhow = { workspace = true }
 axum = { workspace = true }
 axum_typed_multipart = { workspace = true }
 chrono = { workspace = true }
+dashmap = { workspace = true }
 dotenvy = { workspace = true }
 futures-util = { workspace = true }
 image = { workspace = true }

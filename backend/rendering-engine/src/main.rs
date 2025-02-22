@@ -10,16 +10,61 @@ mod log;
 mod tests;
 
 use axum::{
-    Router,
-    extract::DefaultBodyLimit,
+    Extension, Router,
+    extract::{DefaultBodyLimit, ws::Message},
     http::{HeaderValue, Method, header::CONTENT_TYPE},
     middleware::{self},
     routing::{delete, get, patch, post},
 };
+use dashmap::DashMap;
 use log::logging_middleware;
-use std::env;
-use tokio::net::TcpListener;
+use std::{env, sync::Arc};
+use tokio::{
+    net::TcpListener,
+    sync::{broadcast, mpsc},
+};
 use tower_http::cors::CorsLayer;
+
+type AppState = Arc<State>;
+type Broadcast = broadcast::Sender<Message>;
+type Connections = DashMap<u32, mpsc::Sender<Message>>;
+
+#[derive(Debug, Clone)]
+struct State {
+    broadcast: Broadcast,
+    connections: Connections,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            broadcast: broadcast::channel(1024).0,
+            connections: DashMap::new(),
+        }
+    }
+}
+
+impl State {
+    fn add_connection(&self, user_id: u32, sender: mpsc::Sender<Message>) {
+        self.connections.insert(user_id, sender);
+    }
+
+    fn remove_connection(&self, user_id: u32) {
+        self.connections.remove(&user_id);
+    }
+
+    // Send to specific user.
+    async fn send(&self, user_id: u32, message: Message) {
+        if let Some(sender) = self.connections.get(&user_id) {
+            let _ = sender.send(message).await;
+        }
+    }
+
+    // Broadcast to all users.
+    async fn broadcast(&self, msg: Message) {
+        let _ = self.broadcast.send(msg);
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -87,7 +132,8 @@ async fn main() {
         .nest("/api", api_routes)
         .layer(cors)
         .layer(middleware::from_fn(logging_middleware))
-        .layer(DefaultBodyLimit::disable());
+        .layer(DefaultBodyLimit::disable())
+        .layer(Extension(AppState::default()));
 
     axum::serve(listener, app)
         .await

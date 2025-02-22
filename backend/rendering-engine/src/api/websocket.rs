@@ -1,32 +1,62 @@
+use crate::AppState;
 use axum::{
+    Extension,
     extract::{WebSocketUpgrade, ws::Message},
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
-pub async fn websocket(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.on_upgrade(|socket| async {
-        let (mut sink, mut stream) = socket.split();
-        // Credit: https://gist.github.com/hexcowboy/8ebcf13a5d3b681aa6c684ad51dd6e0c
-        // Create an mpsc channel so we can send messages to the sink from multiple threads.
-        let (sender, mut receiver) = mpsc::channel::<Message>(4);
+// TODO: Have auth layer provide the user id.
+const USER_ID: u32 = 0;
 
-        // Spawn a task that forwards messages from the mpsc receiver to the websocket sink.
+pub async fn websocket(
+    Extension(state): Extension<AppState>,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    let state = Arc::clone(&state);
+
+    ws.on_upgrade(move |socket| async move {
+        let (mut sink, mut stream) = socket.split();
+        let (sender, mut receiver) = mpsc::channel::<Message>(8);
+
+        // Insert the sender into connections for usage across other endpoints.
+        state.add_connection(USER_ID, sender.clone());
+
+        let mut broadcast_receiver = state.broadcast.subscribe();
+
         tokio::spawn(async move {
-            while let Some(message) = receiver.recv().await {
-                if sink.send(message).await.is_err() {
-                    break;
+            loop {
+                tokio::select! {
+                    // Send direct messages to user.
+                    msg = receiver.recv() => {
+                        if let Some(msg) = msg {
+                            sink.send(msg).await.ok();
+                        } else {
+                            break;
+                        }
+                    }
+                    // Send broadcasts to user.
+                    Ok(msg) = broadcast_receiver.recv() => {
+                        sink.send(msg).await.ok();
+                    }
                 }
             }
+
+            // Cleanup on disconnect.
+            sink.close().await.ok();
         });
 
+        // Handle incoming messages.
         while let Some(Ok(Message::Text(message))) = stream.next().await {
-            let sender = sender.clone();
+            let state = Arc::clone(&state);
 
             tokio::spawn(async move {
-                // TODO: Check message type and call relevant functions.
-                crate::api::image::tiles::tiles(message, sender).await;
+                // TODO: Send errors to frontend.
+                if let Ok(tile) = crate::api::image::tiles::tiles(message) {
+                    state.send(USER_ID, tile.into()).await;
+                }
             });
         }
     })
