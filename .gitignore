@@ -6,10 +6,8 @@ node_modules/
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-/backend/tmp/**
+/backend/_stores/**
+!/backend/_stores/tmp
+/backend/_databases/**
 
-/stores/**
-!/stores/tmp
-/databases/**
-!/databases/registry.sql
-!/databases/store.sql
+!.gitkeep

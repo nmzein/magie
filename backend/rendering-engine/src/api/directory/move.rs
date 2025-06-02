@@ -1,7 +1,7 @@
 use crate::api::common::*;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
     store_id: u32,
     directory_id: u32,
 }
@@ -12,11 +12,13 @@ pub struct Body {
 }
 
 pub async fn r#move(
+    Extension(db): Extension<Arc<DatabaseManager>>,
+    Extension(csm): Extension<Arc<ClientSocketManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(Params {
+    Path(PathParams {
         store_id,
         directory_id,
-    }): Path<Params>,
+    }): Path<PathParams>,
     Json(Body { destination_id }): Json<Body>,
 ) -> Response {
     if directory_id == destination_id {
@@ -27,6 +29,8 @@ pub async fn r#move(
             "Cannot move directory into itself.",
             None,
         );
+    } else {
+        logger.report(Check::RequestIntegrity, "Not moving directory into itself.");
     }
 
     // Check if the directory we're trying to move is priviledged.
@@ -38,15 +42,15 @@ pub async fn r#move(
             "Cannot move priviledged directories.",
             None,
         );
+    } else {
+        logger.report(
+            Check::RequestIntegrity,
+            "Specified parent directory is not a priviledged directory.",
+        );
     }
 
-    logger.report(
-        Check::RequestIntegrity,
-        "Specified parent directory is not a priviledged directory.",
-    );
-
     // Check if the destination is a child of the directory we're trying to move.
-    match crate::db::directory::is_within(store_id, destination_id, directory_id) {
+    match crate::db::directory::is_within(&db, store_id, destination_id, directory_id) {
         Ok(false) => {
             logger.report(
                 Check::RequestIntegrity,
@@ -74,7 +78,13 @@ pub async fn r#move(
     };
 
     // Move the directory in the database.
-    match crate::db::directory::r#move(store_id, directory_id, destination_id, &MoveMode::Regular) {
+    match crate::db::directory::r#move(
+        &db,
+        store_id,
+        directory_id,
+        destination_id,
+        &MoveMode::Regular,
+    ) {
         Ok(()) => logger.log("Directory moved in the database."),
         Err(e) => {
             return logger.error(
@@ -87,7 +97,22 @@ pub async fn r#move(
         }
     }
 
-    logger.success(StatusCode::OK, "Directory moved successfully.");
-
-    (StatusCode::OK).into_response()
+    // Broadcast directory move.
+    match csm
+        .broadcast(ServerMsg::Directory(DirectoryServerMsg::Move {
+            store_id,
+            id: directory_id,
+            destination_id,
+        }))
+        .await
+    {
+        Ok(()) => logger.success(StatusCode::OK, "Directory moved successfully."),
+        Err(e) => logger.error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Error::ResponseIntegrity,
+            "DM-E05",
+            "Failed to encode directory move message.",
+            Some(e),
+        ),
+    }
 }

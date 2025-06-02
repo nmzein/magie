@@ -1,0 +1,19 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "geometry-computer",
+      "dependencies": {
+        "@gltf-transform/core": "4.1.3",
+        "three": "0.176.0",
+      },
+    },
+  },
+  "packages": {
+    "@gltf-transform/core": ["@gltf-transform/core@4.1.3", "", { "dependencies": { "property-graph": "^3.0.0" } }, "sha512-N+73Vo9DTXV2QmsnetLRY4q3z0Q0oyH0i/ymvzEkgpgNEAq+RP73ZLY0HK+Ia0rTUMgFwQHFNyHDyFiENToBZA=="],
+
+    "property-graph": ["property-graph@3.0.0", "", {}, "sha512-TnzxUsttmGtw+OiU0LDw+0FlMbJ8vV8pOjyDI7+Kdni4Tj0hW5BFh7TatQu7Y68hcvvFmiFOHilKShsA4R82fA=="],
+
+    "three": ["three@0.176.0", "", {}, "sha512-PWRKYWQo23ojf9oZSlRGH8K09q7nRSWx6LY/HF/UUrMdYgN9i1e2OwJYHoQjwc6HF/4lvvYLC5YC1X8UJL2ZpA=="],
+  }
+}

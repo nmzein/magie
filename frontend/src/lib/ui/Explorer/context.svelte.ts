@@ -1,5 +1,5 @@
 import { Context } from 'runed';
-import type { Directory, Image, Point, UploaderOptions } from '$types';
+import type { Directory, Asset, Point, UploaderOptions } from '$types';
 import { registry, repository, clipboard } from '$states';
 import { http } from '$api';
 import { StateHistory } from 'runed';
@@ -40,12 +40,12 @@ export class Explorer {
 	});
 	searchQuery: string = $state('');
 	items = $derived.by(() => {
-		let children = this.directory.children;
+		let children = this.#directory.children;
 
 		const query = this.searchQuery.toLowerCase();
 		if (!query) return children;
 
-		children = this.directory.children?.filter((child) =>
+		children = this.#directory.children?.filter((child) =>
 			this.#store?.get(child)?.name.toLowerCase().includes(query)
 		);
 
@@ -96,7 +96,7 @@ export class Explorer {
 		return currentDirectory;
 	}
 
-	get(id: number): Directory | Image | undefined {
+	get(id: number): Directory | Asset | undefined {
 		return this.#store?.get(id);
 	}
 
@@ -128,7 +128,7 @@ export class Explorer {
 		if (storeId === this.storeId && this.#directoryId === ROOT_ID) return;
 
 		const directory = this.#store?.get(ROOT_ID);
-		if (!defined(directory) || directory.type === 'File') return;
+		if (!defined(directory) || directory.type === 'Asset') return;
 
 		this.deselectAll();
 		this.#storeId = storeId;
@@ -139,7 +139,7 @@ export class Explorer {
 		if (id === this.#directoryId) return;
 
 		const directory = this.#store?.get(id);
-		if (!defined(directory) || directory.type === 'File') return;
+		if (!defined(directory) || directory.type === 'Asset') return;
 
 		this.deselectAll();
 		this.#directoryId = directory.id;
@@ -195,8 +195,8 @@ export class Explorer {
 				case 'Directory':
 					http.directory.remove(this.#storeId, id, mode);
 					break;
-				case 'File':
-					http.image.remove(this.#storeId, id, mode);
+				case 'Asset':
+					http.asset.remove(this.#storeId, id, mode);
 					break;
 			}
 		});
@@ -220,8 +220,8 @@ export class Explorer {
 						case 'Directory':
 							http.directory.move(this.#storeId, id, this.#directoryId);
 							break;
-						case 'File':
-							http.image.move(this.#storeId, id, this.#directoryId);
+						case 'Asset':
+							http.asset.move(this.#storeId, id, this.#directoryId);
 							break;
 					}
 				});
@@ -230,7 +230,7 @@ export class Explorer {
 				break;
 			}
 			case 'copy': {
-				console.log('TODO!');
+				console.log('TODO: Implement copy.');
 				break;
 			}
 		}
@@ -278,9 +278,9 @@ class Uploader {
 			return;
 
 		if (this.options.annotations === 'provide') {
-			await http.image.upload(storeId, parentId, this.image, this.annotations, this.options);
+			await http.asset.upload(storeId, parentId, this.image, this.annotations, this.options);
 		} else {
-			await http.image.upload(storeId, parentId, this.image, undefined, this.options);
+			await http.asset.upload(storeId, parentId, this.image, undefined, this.options);
 		}
 
 		this.reset();

@@ -1,4 +1,4 @@
-import type { MetadataLayer } from '$types';
+import type { Image2DLayer } from './types.ts';
 
 /// Handles zoom and offset calculations.
 export class Transformer {
@@ -17,7 +17,7 @@ export class Transformer {
 	atMinScale: boolean = $derived(this.#scale === this.MIN_SCALE);
 	atMaxScale: boolean = $derived(this.#scale === this.MAX_SCALE);
 
-	constructor(metadata: MetadataLayer[]) {
+	constructor(metadata: Image2DLayer[]) {
 		// TODO: FIX
 		for (let i = 0; i < metadata.length; i++) {
 			if (metadata[i].cols <= 4 || metadata[i].rows <= 4) {
@@ -48,6 +48,26 @@ export class Transformer {
 		this.offsetX = 0;
 		this.offsetY = 0;
 		this.#scale = 1;
+	}
+
+	panStart(x: number, y: number) {
+		this.isDragging = true;
+		this.panStartX = x;
+		this.panStartY = y;
+	}
+
+	pan(x: number, y: number) {
+		if (!this.isDragging) return;
+
+		this.offsetX += x - this.panStartX;
+		this.offsetY += y - this.panStartY;
+
+		this.panStartX = x;
+		this.panStartY = y;
+	}
+
+	panStop() {
+		this.isDragging = false;
 	}
 
 	zoom(

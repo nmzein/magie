@@ -13,7 +13,7 @@ use std::{fs, process::Command};
 use tempfile::NamedTempFile;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
     store_id: u32,
     parent_id: u32,
     name: String,
@@ -45,12 +45,13 @@ fn extract_extension(filename: &Option<String>) -> Option<String> {
 // TODO: Perform checks on files before saving them to avoid malware.
 // TODO: Sanitise file name
 pub async fn upload(
+    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(Params {
+    Path(PathParams {
         store_id,
         parent_id,
         name,
-    }): Path<Params>,
+    }): Path<PathParams>,
     TypedMultipart(Multipart {
         decoder,
         encoder,
@@ -121,7 +122,7 @@ pub async fn upload(
         None => None,
     };
 
-    let Ok(image_id) = crate::db::common::counter(store_id) else {
+    let Ok(image_id) = crate::db::common::counter(&db, store_id) else {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
@@ -173,6 +174,7 @@ pub async fn upload(
     };
 
     match crate::db::image::insert(
+        &db,
         store_id,
         image_id,
         parent_id,
@@ -238,7 +240,7 @@ fn handle_image(
     }
 
     // Encode image to Zarr derivative format.
-    match crate::io::try_convert(
+    match crate::io::convert(
         &uploaded_image_path,
         extension,
         &final_image_path,

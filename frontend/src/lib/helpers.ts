@@ -47,7 +47,7 @@ class FetchHandler {
 		}
 	}
 
-	async #request<T>(req: Req): Promise<T | undefined> {
+	async #request<T>(req: Req): Promise<T | null> {
 		const url = this.#url(req);
 		const content = this.#content(req);
 
@@ -56,7 +56,7 @@ class FetchHandler {
 		).then(([error, response]) => {
 			if (error) {
 				console.error(`Fetch Error [${url.pathname}${url.search}]:`, error);
-				return;
+				return null;
 			}
 
 			if (!response.ok) {
@@ -65,7 +65,7 @@ class FetchHandler {
 					response.status,
 					response.statusText
 				);
-				return;
+				return null;
 			}
 
 			return this.#response<T>(response).then(([error, result]) => {
@@ -73,7 +73,7 @@ class FetchHandler {
 					console.error(
 						`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${error}`
 					);
-					return;
+					return null;
 				}
 
 				return result;
@@ -81,19 +81,19 @@ class FetchHandler {
 		});
 	}
 
-	get<T>({ url, query }: Omit<Req, 'method' | 'body' | 'content_type'>): Promise<T | undefined> {
+	get<T>({ url, query }: Omit<Req, 'method' | 'body' | 'content_type'>): Promise<T | null> {
 		return this.#request({ method: 'GET', url, query });
 	}
 
-	post<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
+	post<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | null> {
 		return this.#request({ method: 'POST', url, query, body, type });
 	}
 
-	patch<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
+	patch<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | null> {
 		return this.#request({ method: 'PATCH', url, query, body, type });
 	}
 
-	delete<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | undefined> {
+	delete<T>({ url, query, body, type }: Omit<Req, 'method'>): Promise<T | null> {
 		return this.#request({ method: 'DELETE', url, query, body, type });
 	}
 }
@@ -108,7 +108,7 @@ export function appendPx<T extends Record<string, number>>(values: T): T {
 	return result;
 }
 
-export function attempt<T>(fn: Promise<T>): Promise<[Error | null, T]> {
+export async function attempt<T>(fn: Promise<T>): Promise<[Error | null, T]> {
 	return fn
 		.then((data) => [null, data] as [null, T])
 		.catch((error) => [

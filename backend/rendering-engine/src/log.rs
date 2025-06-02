@@ -1,29 +1,12 @@
 use axum::{
     body::Body,
-    http::{Method, Request, StatusCode},
-    middleware::Next,
+    http::{Method, StatusCode},
     response::{IntoResponse, Response},
 };
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
 };
-
-pub async fn logging_middleware(mut req: Request<Body>, next: Next) -> impl IntoResponse {
-    // Extract information from the request.
-    let method = req.method().clone();
-    let uri = req.uri();
-    let path = uri.path().to_string();
-    let query = uri.query().unwrap_or_default().to_string();
-
-    let logger = Logger::start(method, path, query);
-
-    // Pass the request information to the next middleware/handler.
-    req.extensions_mut().insert(logger);
-
-    // Call the next middleware/handler.
-    next.run(req).await
-}
 
 #[derive(Clone)]
 pub struct Logger<'a> {
@@ -69,19 +52,25 @@ pub enum Check {
 #[derive(Clone, Debug)]
 pub enum Error {
     RequestIntegrity,
+    ResponseIntegrity,
+
     // ResourceConflict,
     ResourceCreation,
     ResourceDeletion,
     ResourceExistence,
     ResourceMove,
     ResourceRead,
+
     DatabaseQuery,
     DatabaseInsertion,
     DatabaseDeletion,
+
+    WebSocketParse,
+    WebSocketSend,
 }
 
 impl<'a> Logger<'a> {
-    fn start(method: Method, path: String, query: String) -> Self {
+    pub fn start(method: Method, path: String, query: String) -> Self {
         let time = Instant::now();
 
         Self {
@@ -131,12 +120,18 @@ impl<'a> Logger<'a> {
         details: Option<anyhow::Error>,
     ) -> Response<Body> {
         self.logs.push(Log::Error {
-            error,
+            error: error.clone(),
             id,
             message,
             details: details.map(|x| x.to_string()),
         });
-        self.end(status_code);
+
+        // Only end on error if not websocket related.
+        match error {
+            Error::WebSocketSend => {}
+            Error::WebSocketParse => {}
+            _ => self.end(status_code),
+        }
 
         (status_code, message.to_string()).into_response()
     }

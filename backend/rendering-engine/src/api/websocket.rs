@@ -1,30 +1,40 @@
-use crate::AppState;
+use crate::{
+    // api::common::*,
+    // log::Logger,
+    types::{
+        database::DatabaseManager,
+        messages::{ClientMsg, ServerMsg},
+        socket::ClientSocketManager,
+        user::User,
+    },
+};
 use axum::{
     Extension,
     extract::{WebSocketUpgrade, ws::Message},
+    // http::StatusCode,
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-// TODO: Have auth layer provide the user id.
-const USER_ID: u32 = 0;
-
 pub async fn websocket(
-    Extension(state): Extension<AppState>,
+    Extension(user): Extension<User>,
+    Extension(db): Extension<Arc<DatabaseManager>>,
+    // Extension(mut logger): Extension<Logger<'_>>,
+    Extension(csm): Extension<Arc<ClientSocketManager>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
-    let state = Arc::clone(&state);
+    let csm = Arc::clone(&csm);
 
     ws.on_upgrade(move |socket| async move {
         let (mut sink, mut stream) = socket.split();
         let (sender, mut receiver) = mpsc::channel::<Message>(8);
 
         // Insert the sender into connections for usage across other endpoints.
-        state.add_connection(USER_ID, sender.clone());
+        csm.add_connection(user.id, sender.clone());
 
-        let mut broadcast_receiver = state.broadcast.subscribe();
+        let mut broadcast_receiver = csm.broadcast.subscribe();
 
         tokio::spawn(async move {
             loop {
@@ -49,13 +59,58 @@ pub async fn websocket(
         });
 
         // Handle incoming messages.
-        while let Some(Ok(Message::Text(message))) = stream.next().await {
-            let state = Arc::clone(&state);
+        while let Some(message) = stream.next().await {
+            let csm = Arc::clone(&csm);
+            let db = Arc::clone(&db);
 
             tokio::spawn(async move {
-                // TODO: Send errors to frontend.
-                if let Ok(tile) = crate::api::image::tiles::tiles(message) {
-                    state.send(USER_ID, tile.into()).await;
+                let message = match message {
+                    Ok(Message::Binary(message)) => message,
+                    Ok(Message::Text(_)) => return,
+                    Ok(Message::Ping(_)) => return,
+                    Ok(Message::Pong(_)) => return,
+                    _ => {
+                        csm.remove_connection(user.id);
+                        //logger.success(StatusCode::OK, "Client disconnected");
+                        return;
+                    }
+                };
+
+                let message = match ClientMsg::try_from(message) {
+                    Ok(message) => message,
+                    Err(_) => {
+                        // logger.error(
+                        //     StatusCode::BAD_REQUEST,
+                        //     Error::WebSocketParse,
+                        //     "WS-E00",
+                        //     "Failed to parse client message.",
+                        //     Some(e.into()),
+                        // );
+                        return;
+                    }
+                };
+
+                match message {
+                    ClientMsg::Tile(tile_request) => {
+                        match crate::api::image::tiles::tiles(&db, tile_request) {
+                            Ok(tile_response) => {
+                                let _ = csm.send(user.id, ServerMsg::Tile(tile_response)).await;
+                                // else {
+                                //     logger.error(
+                                //         StatusCode::INTERNAL_SERVER_ERROR,
+                                //         Error::WebSocketSend,
+                                //         "WS-E01",
+                                //         "Failed to send message.",
+                                //         None,
+                                //     );
+                                //     return;
+                                // };
+                            }
+                            Err(e) => {
+                                let _ = csm.send(user.id, ServerMsg::Error(e)).await;
+                            }
+                        }
+                    }
                 }
             });
         }

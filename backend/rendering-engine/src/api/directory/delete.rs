@@ -12,6 +12,8 @@ pub struct QueryParams {
 }
 
 pub async fn delete(
+    Extension(csm): Extension<Arc<ClientSocketManager>>,
+    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
     Path(PathParams {
         store_id,
@@ -27,22 +29,21 @@ pub async fn delete(
             "Cannot delete priviledged directories.",
             None,
         );
+    } else {
+        logger.report(
+            Check::RequestIntegrity,
+            "Specified directory is not a priviledged directory.",
+        );
     }
 
-    logger.report(
-        Check::RequestIntegrity,
-        "Specified directory is not a priviledged directory.",
-    );
-
-    // TODO: Unnecessary?
-    let inside_bin = match crate::db::directory::is_within(store_id, directory_id, BIN_ID) {
+    let inside_bin = match crate::db::directory::is_within(&db, store_id, directory_id, BIN_ID) {
         Ok(b) => b,
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
                 "DD-E01",
-                "Failed to check if directory is in the Bin.",
+                "Failed to check if directory is in the bin.",
                 Some(e),
             );
         }
@@ -50,35 +51,76 @@ pub async fn delete(
 
     if mode == DeleteMode::Soft && inside_bin {
         return logger.error(
-            StatusCode::BAD_REQUEST,
+            StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
             "DD-E02",
-            "Cannot soft delete a directory that is already in the Bin.",
+            "Cannot soft delete a directory that is already in the bin.",
             None,
+        );
+    } else {
+        logger.report(
+            Check::RequestIntegrity,
+            "Not soft deleting a directory that is already in the bin.",
         );
     }
 
     let result = match mode {
-        DeleteMode::Soft => soft_delete(&mut logger, store_id, directory_id),
-        DeleteMode::Hard => hard_delete(&mut logger, store_id, directory_id),
+        DeleteMode::Soft => soft_delete(&db, &mut logger, store_id, directory_id),
+        DeleteMode::Hard => hard_delete(&db, &mut logger, store_id, directory_id),
     };
 
     if let Err(response) = result {
         return response;
     }
 
-    logger.success(StatusCode::OK, "Directory deleted successfully.");
-
-    (StatusCode::OK).into_response()
+    // Broadcast directory move if soft delete.
+    if mode == DeleteMode::Soft {
+        match csm
+            .broadcast(ServerMsg::Directory(DirectoryServerMsg::Move {
+                store_id,
+                id: directory_id,
+                destination_id: BIN_ID,
+            }))
+            .await
+        {
+            Ok(()) => logger.success(StatusCode::OK, "Directory soft deleted successfully."),
+            Err(e) => logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResponseIntegrity,
+                "DD-E03",
+                "Failed to encode directory move message.",
+                Some(e),
+            ),
+        }
+    } else {
+        // Broadcast directory deletion.
+        match csm
+            .broadcast(ServerMsg::Directory(DirectoryServerMsg::Delete {
+                store_id,
+                id: directory_id,
+            }))
+            .await
+        {
+            Ok(()) => logger.success(StatusCode::OK, "Directory hard deleted successfully."),
+            Err(e) => logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResponseIntegrity,
+                "DD-E04",
+                "Failed to encode directory delete message.",
+                Some(e),
+            ),
+        }
+    }
 }
 
 pub fn soft_delete(
+    db: &DatabaseManager,
     logger: &mut Logger<'_>,
     store_id: u32,
     directory_id: u32,
 ) -> Result<(), Response> {
-    // Move the directory to the "Bin" in the database.
-    match crate::db::directory::r#move(store_id, directory_id, BIN_ID, &MoveMode::SoftDelete) {
+    // Move the directory to the bin in the database.
+    match crate::db::directory::r#move(&db, store_id, directory_id, BIN_ID, &MoveMode::SoftDelete) {
         Ok(()) => {
             logger.log("Directory moved to the Bin in the database.");
             Ok(())
@@ -93,24 +135,24 @@ pub fn soft_delete(
     }
 }
 
-// TODO: Actually hard delete images by retrieving them from the database and deleting them.
 pub fn hard_delete(
+    db: &DatabaseManager,
     logger: &mut Logger<'_>,
     store_id: u32,
     directory_id: u32,
 ) -> Result<(), Response<Body>> {
-    // Remove the directory from the database.
-    let images = match crate::db::stores::get_images_below(store_id, directory_id) {
+    // Fetch child images from the database.
+    let images = match crate::db::stores::get_images_below(db, store_id, directory_id) {
         Ok(images) => {
-            logger.log("Directory deleted from the database.");
+            logger.log("Child images fetched from database.");
             images
         }
         Err(e) => {
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Error::DatabaseDeletion,
+                Error::DatabaseQuery,
                 "DDH-E00",
-                "Failed to hard delete directory from the database.",
+                "Failed to fetch child images from the database.",
                 Some(e),
             ));
         }
@@ -122,9 +164,9 @@ pub fn hard_delete(
             Err(e) => {
                 return Err(logger.error(
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Error::DatabaseDeletion,
+                    Error::ResourceDeletion,
                     "DDH-E01",
-                    "Failed to hard delete image from the database.",
+                    "Failed to hard delete image from the filesystem.",
                     Some(e),
                 ));
             }
@@ -134,7 +176,7 @@ pub fn hard_delete(
     logger.log("Child images deleted from the filesystem.");
 
     // Remove the directory from the database.
-    match crate::db::directory::delete(store_id, directory_id) {
+    match crate::db::directory::delete(&db, store_id, directory_id) {
         Ok(()) => {
             logger.log("Directory deleted from the database.");
             Ok(())
@@ -142,7 +184,7 @@ pub fn hard_delete(
         Err(e) => Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::DatabaseDeletion,
-            "DDH-E00",
+            "DDH-E02",
             "Failed to hard delete directory from the database.",
             Some(e),
         )),

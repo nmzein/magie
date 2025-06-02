@@ -1,7 +1,7 @@
 use crate::api::common::*;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
     store_id: u32,
     image_id: u32,
 }
@@ -12,15 +12,13 @@ pub struct Body {
 }
 
 pub async fn r#move(
+    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(Params { store_id, image_id }): Path<Params>,
+    Path(PathParams { store_id, image_id }): Path<PathParams>,
     Json(Body { destination_id }): Json<Body>,
 ) -> Response {
-    match crate::db::image::r#move(store_id, image_id, destination_id) {
-        Ok(()) => {
-            logger.success(StatusCode::OK, "Moved asset successfully.");
-            (StatusCode::OK).into_response()
-        }
+    match crate::db::image::r#move(&db, store_id, image_id, destination_id) {
+        Ok(()) => logger.success(StatusCode::OK, "Moved asset successfully."),
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,

@@ -6,10 +6,11 @@ pub struct Params {
 }
 
 pub async fn get(
+    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
     Path(Params { store_id }): Path<Params>,
 ) -> Response {
-    match crate::db::stores::get(store_id) {
+    match crate::db::stores::get(&db, store_id) {
         Ok(store) => Json(store).into_response(),
         Err(e) => {
             return logger.error(

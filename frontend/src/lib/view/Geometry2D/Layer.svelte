@@ -1,25 +1,19 @@
 <script lang="ts">
-	import { http } from '$api';
-	import { defined } from '$helpers';
-	import type { AnnotationLayer } from '$types';
-	import { onMount } from 'svelte';
 	import { MeshBasicMaterial, type Mesh } from 'three';
+	import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+	import type { Geometry2DLayer } from './types.ts';
+	import { defined } from '$helpers';
+	import { onMount } from 'svelte';
 
-	let {
-		storeId,
-		imageId,
-		layer,
-		render
-	}: {
-		storeId: number;
-		imageId: number;
-		layer: AnnotationLayer;
+	type Props = {
+		layer: Geometry2DLayer;
+		fetch: (id: number) => Promise<GLTF>;
 		render: (tag: string, mesh: Mesh) => void;
-	} = $props();
+	};
+
+	let { layer, fetch, render }: Props = $props();
 
 	let mesh: Mesh | undefined = $state();
-
-	console.log('Got layer with id', layer.id, layer.tag);
 
 	// Materials for this annotation layer.
 	const fillMaterial = $derived(
@@ -31,7 +25,7 @@
 	);
 
 	onMount(async () => {
-		const data = await http.image.annotations(storeId, imageId, layer.id);
+		const data = await fetch(layer.id);
 		const node = data.scene.children[0];
 
 		if (node.type === 'Mesh') {

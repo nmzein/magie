@@ -109,8 +109,8 @@ pub struct MetadataLayer {
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]
 pub enum FileSystemEntry {
-    File(File),
     Directory(Directory),
+    Asset(Asset),
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -124,7 +124,7 @@ pub struct Directory {
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct File {
+pub struct Asset {
     pub id: u32,
     pub name: String,
     pub parent_id: Option<u32>,

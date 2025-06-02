@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { NewImageViewer } from '$states';
+	import { load as loadImage2D } from '$view/Image2D/state.svelte.ts';
 	import Button from '$components/Button.svelte';
 	import Section from './Section.svelte';
 	import { defined } from '$helpers';
@@ -18,8 +18,8 @@
 						case 'Directory':
 							explorer.goto(item.id);
 							break;
-						case 'File':
-							NewImageViewer(explorer.storeId, item);
+						case 'Asset':
+							loadImage2D(explorer.storeId, item.parentId, item.id, item.name);
 							break;
 					}
 				}}

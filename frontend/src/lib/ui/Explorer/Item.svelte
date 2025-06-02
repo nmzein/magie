@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Bounds, Directory, Image } from '$types';
-	import { NewImageViewer, type SelectionBoxState, contextMenu } from '$states';
+	import type { Bounds, Directory, Asset } from '$types';
+	import { type SelectionBoxState, contextMenu } from '$states';
+	import { load as createImage2DView } from '$view/Image2D/state.svelte.ts';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
@@ -10,7 +11,7 @@
 
 	const explorer = context.get();
 
-	let { item, selection }: { item: Directory | Image; selection: SelectionBoxState } = $props();
+	let { item, selection }: { item: Directory | Asset; selection: SelectionBoxState } = $props();
 
 	let itemBounds: Bounds | undefined = $state();
 	let intersected = $state(false);
@@ -48,13 +49,13 @@
 		}
 	}
 
-	function open() {
+	async function open() {
 		switch (item.type) {
 			case 'Directory':
 				explorer.goto(item.id);
 				break;
-			case 'File':
-				NewImageViewer(explorer.storeId, item);
+			case 'Asset':
+				await createImage2DView(explorer.storeId, item.parentId, item.id, item.name);
 				break;
 		}
 	}
@@ -111,8 +112,8 @@
 			];
 		}}
 	>
-		{#if item.type === 'File'}
-			{#await http.image.thumbnail(explorer.storeId, item.id)}
+		{#if item.type === 'Asset'}
+			{#await http.asset.thumbnail(explorer.storeId, item.id)}
 				<div class="h-16"></div>
 			{:then thumbnail}
 				{#if thumbnail}

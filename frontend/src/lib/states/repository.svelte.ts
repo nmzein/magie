@@ -19,9 +19,13 @@ export class Repository {
 	}
 
 	constructor() {
-		http.generators().then((generators) => {
-			if (!defined(generators)) return;
-			this.#generators = generators;
+		$effect.root(() => {
+			$effect(() => {
+				http.generators().then((generators) => {
+					if (!defined(generators)) return;
+					this.#generators = generators;
+				});
+			});
 		});
 	}
 }
