@@ -48,9 +48,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
 
 COPY --from=start .env ./
 
-WORKDIR /databases
-COPY ./databases ./
-
 WORKDIR /backend
 COPY ./backend ./
 RUN cargo build
@@ -74,10 +71,6 @@ COPY ./frontend ./
 # ---
 WORKDIR /app/backend/geometry-computer
 COPY --from=frontend /backend/geometry-computer ./
-
-# ---
-WORKDIR /app/databases
-COPY --from=backend /databases ./
 
 # ---
 WORKDIR /app/backend
