@@ -75,7 +75,7 @@ COPY --from=frontend /backend/geometry-computer ./
 
 # ---
 WORKDIR /app/backend
-COPY --from=backend /backend/target/release/rendering_engine ./
+COPY --from=backend /backend/target/release/core ./
 
 # ---
 WORKDIR /app
@@ -83,4 +83,4 @@ WORKDIR /app
 EXPOSE 3000
 EXPOSE 4000
 
-CMD /bin/bash -c "cd backend && ./rendering_engine & cd frontend && bun preview -- --host"
+CMD /bin/bash -c "cd backend && ./core & cd frontend && bun preview -- --host"

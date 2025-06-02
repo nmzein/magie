@@ -129,7 +129,7 @@
           buildInputs = buildDeps;
           env = env;
 
-          cargoHash = "sha256-upRZywIvC/dnxSA1gAiteafqpdjha5smA23fHtoe57M=";
+          cargoHash = "sha256-4Pvkj32JcEVQwGbMalZWyY/8JVJWXUALL/3YvAb8wFI=";
         };
       in
       {
