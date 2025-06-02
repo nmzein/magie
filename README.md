@@ -30,7 +30,7 @@ MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and ba
 
 ---
 
-### Docker (recommended)
+### Containerised
 
 1. Install [Docker Engine](https://docs.docker.com/engine/install/).
 2. Ensure the Docker daemon is [running](https://docs.docker.com/config/daemon/start/).
@@ -50,24 +50,16 @@ The application can now be accessed at `http://0.0.0.0:4000`.
 
 ### Bare Metal
 
-Install dependencies:
-
-| OS     | Command               | Verified Supported Version(s) |
-| ------ | --------------------- | ----------------------------- |
-| Debian | `./install.sh debian` | 12                            |
-| Fedora | `./install.sh fedora` | 40, 41                        |
-| Ubuntu | `./install.sh ubuntu` | -                             |
-
-Build and run:
+Install the [Nix package manager](https://nixos.org/download/).
 
 ```
 🛠️ Production
-./build.sh prod
-./run.sh prod
+nix build
+nix run
 
 🏗️ Development
-./build.sh dev
-./run.sh dev
+nix develop
+./dev.sh
 ```
 
 The application can now be accessed at `http://localhost:4000`.
