@@ -39,9 +39,6 @@ async fn main() {
     // of crossing mount points on some Linux distros.
     unsafe { env::set_var("TMPDIR", &tmp_dir) };
 
-    // Load environment variables from .env file.
-    dotenvy::dotenv().expect("Could not load .env file.");
-
     let frontend_url = &fetch_env_var("PUBLIC_FRONTEND_URL");
     let backend_url = &fetch_env_var("PUBLIC_BACKEND_URL");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");

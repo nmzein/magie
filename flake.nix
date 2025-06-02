@@ -8,10 +8,12 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
+        config = builtins.fromTOML (builtins.readFile ./config.toml);
+
         env = {
           PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-        };
+        } // config;
 
         devDeps = with pkgs; [
           bun
@@ -82,6 +84,7 @@
           version = "0.0.0";
           src = ./frontend;
 
+          env = env;
           nativeBuildInputs = [
               pkgs.bun
               pkgs.nodejs-slim_latest
@@ -125,9 +128,9 @@
           version = "0.0.0";
           src = ./backend;
 
+          env = env;
           nativeBuildInputs = buildDeps;
           buildInputs = buildDeps;
-          env = env;
 
           cargoHash = "sha256-4Pvkj32JcEVQwGbMalZWyY/8JVJWXUALL/3YvAb8wFI=";
         };
@@ -135,8 +138,8 @@
       {
         # nix develop
         devShells.default = pkgs.mkShell {
-          buildInputs = devDeps ++ buildDeps;
           env = env;
+          buildInputs = devDeps ++ buildDeps;
 
           shellHook = ''
             echo "Environment ready."

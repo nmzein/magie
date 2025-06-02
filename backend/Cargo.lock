@@ -573,7 +573,6 @@ dependencies = [
  "chrono",
  "dashmap",
  "decoders",
- "dotenvy",
  "encoders",
  "futures-util",
  "generators",
@@ -779,12 +778,6 @@ checksum = "95249b50c6c185bee49034bcb378a49dc2b5dff0be90ff6616d31d64febab05d"
 dependencies = [
  "litrs",
 ]
-
-[[package]]
-name = "dotenvy"
-version = "0.15.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
 name = "either"
