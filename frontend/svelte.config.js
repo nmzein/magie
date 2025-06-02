@@ -7,9 +7,11 @@ const config = {
 
 	kit: {
 		adapter: adapter({
-  		fallback: '200.html',
-  		precompress: false,
-  		strict: true
+			pages: 'build',
+			assets: 'build',
+			fallback: '200.html',
+			precompress: false,
+			strict: true
 		}),
 		alias: {
 			$actions: './src/lib/actions',
