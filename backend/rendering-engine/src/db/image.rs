@@ -1,23 +1,36 @@
 use super::common::*;
-use anyhow::anyhow;
 use chrono::Utc;
 use shared::types::{AnnotationLayer, ImageProperties, MetadataLayer};
 
-/// Returns the path of an image given its id and store_id.
-pub fn path(store_id: u32, image_id: u32) -> Result<PathBuf> {
-    Ok(DB
-        .stores
-        .get(&store_id)
-        .ok_or(anyhow!("Requested store does not exist."))?
-        .properties
-        .image(image_id))
+/// Returns the path of an image given its id and store id.
+pub fn path(db: &DatabaseManager, store_id: u32, image_id: u32) -> Result<PathBuf> {
+    Ok(db.store_properties(store_id)?.image(image_id))
 }
 
-#[wrap_with_store(r#move)]
-pub fn r#move_<C>(conn: C, image_id: u32, destination_id: u32) -> Result<()>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn get_parent(db: &DatabaseManager, store_id: u32, image_id: u32) -> Result<u32> {
+    let conn = db.store(store_id)?;
+
+    let mut stmt = conn.prepare_cached(
+        "
+            SELECT parent_id
+            FROM images
+            WHERE id = ?1;
+        ",
+    )?;
+
+    let parent_id = stmt.query_row([image_id], |row| row.get(0))?;
+
+    Ok(parent_id)
+}
+
+pub fn r#move(
+    db: &DatabaseManager,
+    store_id: u32,
+    image_id: u32,
+    destination_id: u32,
+) -> Result<()> {
+    let conn = db.store(store_id)?;
+
     let mut stmt = conn.prepare_cached(
         "
             UPDATE images
@@ -31,9 +44,9 @@ where
     Ok(())
 }
 
-#[wrap_with_store(insert)]
-pub fn insert_<C>(
-    mut conn: C,
+pub fn insert(
+    db: &DatabaseManager,
+    store_id: u32,
     image_id: u32,
     parent_id: u32,
     name: &str,
@@ -44,10 +57,9 @@ pub fn insert_<C>(
     uploaded_annotations_extension: Option<&str>,
     metadata_layers: Vec<MetadataLayer>,
     annotation_layers: Vec<AnnotationLayer>,
-) -> Result<()>
-where
-    C: DerefMut<Target = Connection>,
-{
+) -> Result<()> {
+    let mut conn = db.store(store_id)?;
+
     let transaction = conn.transaction()?;
 
     {
@@ -105,22 +117,18 @@ where
     Ok(())
 }
 
-#[wrap_with_store(delete)]
-pub fn delete_<C>(conn: C, image_id: u32) -> Result<()>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn delete(db: &DatabaseManager, store_id: u32, image_id: u32) -> Result<()> {
+    let conn = db.store(store_id)?;
+
     let mut stmt = conn.prepare_cached("DELETE FROM images WHERE id = ?1;")?;
     stmt.execute([image_id])?;
 
     Ok(())
 }
 
-#[wrap_with_store(properties)]
-pub fn properties_<C>(conn: C, image_id: u32) -> Result<ImageProperties>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn properties(db: &DatabaseManager, store_id: u32, image_id: u32) -> Result<ImageProperties> {
+    let conn = db.store(store_id)?;
+
     let mut stmt = conn.prepare_cached(
         "
             SELECT level, cols, rows, width, height

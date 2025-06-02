@@ -3,21 +3,22 @@ use axum::{body::Bytes, http::header};
 use shared::constants::ANNOTATIONS_PATH_PREFIX;
 
 #[derive(Deserialize)]
-pub struct Params {
+pub struct PathParams {
     store_id: u32,
     image_id: u32,
     annotation_layer_id: u32,
 }
 
 pub async fn annotations(
+    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(Params {
+    Path(PathParams {
         store_id,
         image_id,
         annotation_layer_id,
-    }): Path<Params>,
+    }): Path<PathParams>,
 ) -> Response {
-    let path = match crate::db::image::path(store_id, image_id) {
+    let path = match crate::db::image::path(&db, store_id, image_id) {
         Ok(path) => path.join(format!(
             "{ANNOTATIONS_PATH_PREFIX}{annotation_layer_id}.glb"
         )),
@@ -56,7 +57,7 @@ pub async fn annotations(
                 "IA-E01",
                 "Failed to retrieve GLB annotation layer file.",
                 Some(e.into()),
-            )
+            );
         }
     }
 }

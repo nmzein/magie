@@ -1,6 +1,7 @@
 .git
 .github
 .gitignore
+.gitkeep
 .DS_Store
 README.md
 
@@ -16,9 +17,7 @@ README.md
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-/backend/tmp/**
 
 /stores/**
+!/stores/tmp
 /databases/**
-!/databases/registry.sql
-!/databases/store.sql

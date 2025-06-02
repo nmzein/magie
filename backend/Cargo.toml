@@ -1,6 +1,13 @@
 [workspace]
-members = ["decoders", "encoders", "generators", "macros", "rendering-engine", "shared"]
-resolver = "2"
+members = [
+    "decoders",
+    "encoders",
+    "generators",
+    "macros",
+    "rendering-engine",
+    "shared",
+]
+resolver = "3"
 
 [profile.dev]
 opt-level = 1
@@ -12,24 +19,25 @@ strip = "symbols"
 opt-level = 3     # TODO: Check speed compared to 2.
 
 [workspace.dependencies]
-anyhow = "1.0.95"
-axum = { version = "0.8.1", features = ["ws", "json"] }
-axum_typed_multipart = "0.15.1"
-chrono = "0.4.39"
+anyhow = "1.0.98"
+axum = { version = "0.8.4", features = ["ws", "json"] }
+axum_typed_multipart = "0.16.2"
+bincode = "2.0.1"
+chrono = "0.4.41"
+dashmap = "6.1.0"
 dotenvy = "0.15.7"
 futures-util = "0.3.31"
-image = "0.25.5"
-prettyplease = "0.2.29"
-proc-macro2 = "1.0.93"
-quote = "1.0.38"
+image = "0.25.6"
+prettyplease = "0.2.33"
+proc-macro2 = "1.0.95"
+quote = "1.0.40"
 rayon = "1.10.0"
-rusqlite = { version = "0.32.1", features = ["bundled"] }
-rusqlite_migration = "1.3.1"
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.138"
-syn = "2.0.98"
-tempfile = "3.17.1"
-tokio = { version = "1.43.0", features = ["full"] }
-tower-http = { version = "0.6.2", features = ["cors"] }
-turbojpeg = { version = "1.2.2", features = ["image"] }
-zarrs = { version = "0.19.2", features = ["filesystem", "gzip"] }
+rusqlite = { version = "0.36.0", features = ["bundled"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+syn = "2.0.101"
+tempfile = "3.20.0"
+tokio = { version = "1.45.1", features = ["full"] }
+tower-http = { version = "0.6.4", features = ["cors"] }
+turbojpeg = { version = "1.3.3", features = ["image"] }
+zarrs = { version = "0.20.1", features = ["filesystem", "gzip"] }

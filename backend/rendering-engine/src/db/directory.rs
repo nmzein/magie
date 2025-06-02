@@ -1,36 +1,35 @@
 use super::common::*;
 use shared::{constants::BIN_ID, types::MoveMode};
 
-#[wrap_with_store(insert)]
-pub fn insert_<C>(conn: C, parent_id: u32, name: &str) -> Result<()>
-where
-    C: Deref<Target = Connection>,
-{
-    let id = counter_(&conn)?;
+pub fn insert(db: &DatabaseManager, store_id: u32, parent_id: u32, name: &str) -> Result<u32> {
+    let id = counter(&db, store_id)?;
+    let conn = db.store(store_id)?;
 
     let mut stmt =
         conn.prepare_cached("INSERT INTO directories (id, name, parent_id) VALUES (?1, ?2, ?3);")?;
     stmt.execute((id, name, parent_id))?;
 
-    Ok(())
+    Ok(id)
 }
 
-#[wrap_with_store(delete)]
-pub fn delete_<C>(conn: C, directory_id: u32) -> Result<()>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn delete(db: &DatabaseManager, store_id: u32, directory_id: u32) -> Result<()> {
+    let conn = db.store(store_id)?;
+
     let mut stmt = conn.prepare_cached("DELETE FROM directories WHERE id = ?1;")?;
     stmt.execute([directory_id])?;
 
     Ok(())
 }
 
-#[wrap_with_store(r#move)]
-pub fn r#move_<C>(conn: C, directory_id: u32, destination_id: u32, mode: &MoveMode) -> Result<()>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn r#move(
+    db: &DatabaseManager,
+    store_id: u32,
+    directory_id: u32,
+    destination_id: u32,
+    mode: &MoveMode,
+) -> Result<()> {
+    let conn = db.store(store_id)?;
+
     match mode {
         MoveMode::Regular => {
             let mut stmt = conn.prepare_cached(
@@ -58,11 +57,14 @@ where
     Ok(())
 }
 
-#[wrap_with_store(is_within)]
-pub fn is_within_<C>(conn: C, descendant_id: u32, ancestor_id: u32) -> Result<bool>
-where
-    C: Deref<Target = Connection>,
-{
+pub fn is_within(
+    db: &DatabaseManager,
+    store_id: u32,
+    descendant_id: u32,
+    ancestor_id: u32,
+) -> Result<bool> {
+    let conn = db.store(store_id)?;
+
     let mut stmt = conn.prepare_cached(
         "
             WITH RECURSIVE parent_chain AS (

@@ -1,5 +1,5 @@
-FROM oven/bun:1.2.2 AS bun
-FROM rust:1.84.1-slim-bookworm AS rust
+FROM oven/bun:1.2.8 AS bun
+FROM rust:1.85.1-slim-bookworm AS rust
 FROM debian:bookworm-slim AS debian
 
 # =======================================
@@ -7,8 +7,7 @@ FROM debian:bookworm-slim AS debian
 FROM debian AS start
 
 COPY .env ./
-# Change the value of PUBLIC_DOMAIN to 0.0.0.0 if left set to localhost.
-RUN sed -i 's/PUBLIC_DOMAIN = localhost/PUBLIC_DOMAIN = 0.0.0.0/g' ./.env
+RUN sed -i 's/localhost/0.0.0.0/g' ./.env
 
 # =======================================
 
@@ -27,7 +26,7 @@ RUN bun run build
 WORKDIR /backend/geometry-computer
 
 COPY ./backend/geometry-computer/package.json ./
-COPY ./backend/geometry-computer/bun.lockb ./
+COPY ./backend/geometry-computer/bun.lock ./
 
 RUN bun install --frozen-lockfile
 
@@ -48,9 +47,6 @@ RUN --mount=type=cache,target=/var/cache/apt \
     libssl-dev
 
 COPY --from=start .env ./
-
-WORKDIR /databases
-COPY ./databases ./
 
 WORKDIR /backend
 COPY ./backend ./
@@ -76,10 +72,6 @@ COPY ./frontend ./
 # ---
 WORKDIR /app/backend/geometry-computer
 COPY --from=frontend /backend/geometry-computer ./
-
-# ---
-WORKDIR /app/databases
-COPY --from=backend /databases ./
 
 # ---
 WORKDIR /app/backend

@@ -1,3 +1,7 @@
+use crate::{
+    constants::{LOCAL_DATABASES_PATH, LOCAL_STORES_PATH, MAX_THUMBNAIL_SIZE},
+    types::messages::TileServerMsg,
+};
 use anyhow::Result;
 use image::RgbImage;
 use shared::{
@@ -11,13 +15,27 @@ use std::{
 };
 use tempfile::NamedTempFile;
 
-static THUMBNAIL_WIDTH: u32 = 256;
-static THUMBNAIL_HEIGHT: u32 = 128;
+pub fn create_store_database(store_id: u32) -> Result<String> {
+    let path = Path::new(LOCAL_DATABASES_PATH).join(format!("s{store_id}.sqlite"));
 
-static LOCAL_STORE_BASE_PATH: &str = "../stores/";
+    fs::File::create(&path)?;
+
+    // FIXME: Dont prefix with "../".
+    Ok(format!(
+        "sqlite://../{}",
+        path.to_str()
+            .ok_or(anyhow::anyhow!("Failed to convert path to string"))?
+    ))
+}
+
+pub fn create_store(store_id: u32) -> Result<PathBuf> {
+    let path = Path::new(LOCAL_STORES_PATH).join(format!("s{store_id}"));
+    fs::create_dir_all(&path)?;
+    Ok(path)
+}
 
 pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
-    let path = Path::new(LOCAL_STORE_BASE_PATH)
+    let path = Path::new(LOCAL_STORES_PATH)
         .join(format!("s{store_id}"))
         .join(format!("i{image_id}"));
 
@@ -30,7 +48,7 @@ pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
 }
 
 pub fn delete(store_id: u32, image_id: u32) -> Result<()> {
-    let path = Path::new(LOCAL_STORE_BASE_PATH)
+    let path = Path::new(LOCAL_STORES_PATH)
         .join(format!("s{store_id}"))
         .join(format!("i{image_id}"));
 
@@ -47,7 +65,7 @@ pub fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
 }
 
 // TODO: Remove encoder hardcode.
-pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
+pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<TileServerMsg> {
     let Some(encoder) = encoders::export::get("OMEZarr") else {
         return Err(anyhow::anyhow!("Could not get encoder."));
     };
@@ -61,19 +79,18 @@ pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<Vec<u8>> {
 
     let jpeg_buffer = turbojpeg::compress_image(&bmp_buffer, 70, turbojpeg::Subsamp::Sub2x2)?;
 
-    // Prepend tile level and position (will be in this form [level, x, y, jpeg]).
-    let res = [
-        level.to_be_bytes().as_slice(),
-        x.to_be_bytes().as_slice(),
-        y.to_be_bytes().as_slice(),
-        jpeg_buffer.as_ref(),
-    ]
-    .concat();
-
-    Ok(res)
+    // TODO: Fix hardcoding
+    Ok(TileServerMsg {
+        store_id: 0,
+        id: 0,
+        level,
+        x,
+        y,
+        buffer: jpeg_buffer.to_vec(),
+    })
 }
 
-pub fn try_convert(
+pub fn convert(
     source_path: &Path,
     source_extension: &str,
     destination_path: &Path,
@@ -88,9 +105,11 @@ pub fn try_convert(
     match encoder.convert(destination_path, &decoder) {
         Ok(metadata) => {
             // Create thumbnail.
+            let larger_dim = metadata[0].width.max(metadata[0].height);
+
             let thumbnail_buffer = decoder.thumbnail(&Size {
-                width: THUMBNAIL_WIDTH,
-                height: THUMBNAIL_HEIGHT,
+                width: metadata[0].width / larger_dim * MAX_THUMBNAIL_SIZE,
+                height: metadata[0].height / larger_dim * MAX_THUMBNAIL_SIZE,
             })?;
 
             // Convert thumbnail buffer to JPEG.

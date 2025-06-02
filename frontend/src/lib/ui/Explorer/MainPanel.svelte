@@ -126,19 +126,17 @@
 >
 	<div
 		id="main"
-		class="relative grid min-h-full grid-cols-1 gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
+		class="relative grid min-h-full w-full grid-cols-1 content-start gap-3 p-3 @sm:grid-cols-2 @md:grid-cols-3 @lg:grid-cols-4"
 	>
 		{#if explorer.directoryCreator.show}
 			<DirectoryCreator />
 		{/if}
-		{#key explorer.directoryId}
-			{#each explorer.directory.children as id}
-				{@const item = explorer.get(id)}
-				{#if id !== BIN_ID && defined(item)}
-					<Item {item} {selection} />
-				{/if}
-			{/each}
-		{/key}
+		{#each explorer.items as id (id)}
+			{@const item = explorer.get(id)}
+			{#if id !== BIN_ID && defined(item)}
+				<Item {item} {selection} />
+			{/if}
+		{/each}
 
 		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
 			<div

@@ -2,45 +2,74 @@
 #![allow(clippy::wildcard_imports, clippy::too_many_lines)]
 
 mod api;
+mod constants;
 mod db;
 mod io;
 mod log;
+mod middleware;
+mod types;
 
 #[cfg(test)]
 mod tests;
 
-use axum::{
-    extract::DefaultBodyLimit,
-    http::{header::CONTENT_TYPE, HeaderValue, Method},
-    middleware::{self},
-    routing::{delete, get, patch, post},
-    Router,
+use crate::{
+    constants::{LOCAL_DATABASES_PATH, LOCAL_STORES_PATH, REGISTRY_PATH},
+    types::{database::DatabaseManager, socket::ClientSocketManager},
 };
-use log::logging_middleware;
-use std::env;
+use axum::{
+    Extension, Router,
+    extract::DefaultBodyLimit,
+    http::{HeaderValue, Method, header::CONTENT_TYPE},
+    routing::{delete, get, patch, post},
+};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
+    let tmp_dir = PathBuf::from(LOCAL_STORES_PATH).join("tmp");
+
+    // SAFETY: Environment access only happens in single-threaded code.
     // Override the temporary directory to get around issue
     // of crossing mount points on some Linux distros.
-    env::set_var("TMPDIR", "./tmp");
+    unsafe { env::set_var("TMPDIR", &tmp_dir) };
 
     // Load environment variables from .env file.
     dotenvy::dotenv().expect("Could not load .env file.");
 
-    let domain = &fetch_env_var("PUBLIC_DOMAIN");
-    let frontend_port = &fetch_env_var("PUBLIC_FRONTEND_PORT");
-    let backend_port = &fetch_env_var("PUBLIC_BACKEND_PORT");
+    let frontend_url = &fetch_env_var("PUBLIC_FRONTEND_URL");
+    let backend_url = &fetch_env_var("PUBLIC_BACKEND_URL");
     let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
 
-    let backend_url = format!("{domain}:{backend_port}");
+    // Create the necessary directories.
+    if !Path::new(LOCAL_STORES_PATH).exists() {
+        println!("Creating local stores directory at: {LOCAL_STORES_PATH}");
+        fs::create_dir_all(LOCAL_STORES_PATH).expect("Could not create local stores directory");
+        println!("Creating local temporary file directory at: {tmp_dir:#?}");
+        fs::create_dir_all(&tmp_dir).expect("Could not create local temporary file directory");
+    }
+
+    if !Path::new(LOCAL_DATABASES_PATH).exists() {
+        println!("Creating local databases directory at: {LOCAL_DATABASES_PATH}");
+        fs::create_dir_all(LOCAL_DATABASES_PATH)
+            .expect("Could not create local databases directory");
+    }
+
+    if !Path::new(REGISTRY_PATH).exists() {
+        println!("Creating registry database at: {REGISTRY_PATH}");
+        fs::File::create(REGISTRY_PATH).expect("Could not create registry database file");
+    }
+
     let listener = TcpListener::bind(backend_url)
         .await
         .expect("Could not bind a TcpListener to the backend port.");
 
-    let frontend_url = format!("{http_scheme}://{domain}:{frontend_port}");
+    let frontend_url = format!("{http_scheme}://{frontend_url}");
     let cors: CorsLayer = CorsLayer::new()
         .allow_origin(
             frontend_url
@@ -87,8 +116,13 @@ async fn main() {
     let app = Router::new()
         .nest("/api", api_routes)
         .layer(cors)
-        .layer(middleware::from_fn(logging_middleware))
-        .layer(DefaultBodyLimit::disable());
+        .layer(axum::middleware::from_fn(crate::middleware::logging))
+        .layer(axum::middleware::from_fn(crate::middleware::authentication))
+        .layer(DefaultBodyLimit::disable())
+        .layer(Extension(Arc::new(
+            DatabaseManager::connect().expect("Could not connect to the databases."),
+        )))
+        .layer(Extension(Arc::new(ClientSocketManager::default())));
 
     axum::serve(listener, app)
         .await

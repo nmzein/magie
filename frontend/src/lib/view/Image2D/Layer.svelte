@@ -1,41 +1,33 @@
 <script lang="ts">
-	import { images } from '$states';
-	import type { ImageLayer } from '$types';
+	import type { Image2DView, Image2DLayer } from './types.ts';
+	import { onMount } from 'svelte';
 
-	let {
-		layerIndex,
-		layer,
-		display
-	}: {
+	type Props = {
+		layer: Image2DLayer;
 		layerIndex: number;
-		layer: ImageLayer;
+		fetch: (level: number, x: number, y: number) => Promise<boolean>;
 		display: boolean;
-	} = $props();
+		zIndex: number;
+	};
+
+	let { layer, layerIndex, fetch, display, zIndex }: Props = $props();
 
 	function callback(entries: IntersectionObserverEntry[], observer: IntersectionObserver) {
 		entries.forEach(async (entry) => {
-			if (!entry.isIntersecting || !images[0]?.initialised) return;
+			if (!entry.isIntersecting) return;
 
 			const target = entry.target as HTMLElement;
 			const level = parseInt(target.dataset.level!);
 			const x = parseInt(target.dataset.x!);
 			const y = parseInt(target.dataset.y!);
 
-			images[0].getTile({
-				store_id: images[0].storeId,
-				image_id: images[0].info.id,
-				level,
-				x,
-				y
-			});
+			const sent = await fetch(level, x, y);
 
-			observer.unobserve(entry.target);
+			if (sent) observer.unobserve(entry.target);
 		});
 	}
 
-	const options = { rootMargin: '150px' };
-
-	let observer = new IntersectionObserver(callback, options);
+	const observer = new IntersectionObserver(callback, { rootMargin: '150px' });
 
 	$effect(() => {
 		document.querySelectorAll('[data-level="' + layerIndex + '"]').forEach((tile) => {
@@ -51,11 +43,11 @@
 <div
 	id="image-layer-{layerIndex}"
 	class="absolute grid w-full"
-	style:grid-template-columns="repeat({images[0].properties.metadata[layerIndex].cols}, 1fr)"
-	style:grid-template-rows="repeat({images[0].properties.metadata[layerIndex].rows}, 1fr)"
-	style:z-index={images[0].levels - layerIndex}
+	style:grid-template-columns="repeat({layer.cols}, 1fr)"
+	style:grid-template-rows="repeat({layer.rows}, 1fr)"
+	style:z-index={zIndex}
 >
-	{#each layer as row, rowIndex (rowIndex)}
+	{#each layer.tiles as row, rowIndex (rowIndex)}
 		{#each row as tile, colIndex (colIndex)}
 			<!--
 					We want this to always be mounted, however, it should only
@@ -64,13 +56,14 @@
 					1) This layer is the current layer (i.e. display == true).
 					2) The tile has been loaded (i.e. tile.src != '').
 				-->
+			<!-- svelte-ignore a11y_missing_attribute -->
 			<img
 				src={tile.src || 'placeholder.png'}
 				style="display: {display || tile.src !== '' ? 'block' : 'none'};"
 				data-level={layerIndex}
 				data-x={colIndex}
 				data-y={rowIndex}
-				alt="Tile ({layerIndex}: {colIndex}, {rowIndex})"
+				alt="Tile <{layerIndex}: {colIndex}, {rowIndex}>"
 				onerror={() => console.error(`Tile Load Error <${layerIndex}: ${colIndex}, ${rowIndex}>`)}
 			/>
 
