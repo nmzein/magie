@@ -54,8 +54,7 @@ Install the [Nix package manager](https://nixos.org/download/).
 
 ```
 🛠️ Production
-nix build
-nix run
+[Coming Soon]
 
 🏗️ Development
 nix develop

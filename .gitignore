@@ -2,12 +2,12 @@
 node_modules/
 
 /frontend/.svelte-kit
+/frontend/build
 /frontend/vite.config.js.timestamp-*
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-/backend/_stores/**
-!/backend/_stores/tmp
-/backend/_databases/**
+/backend/_stores
+/backend/_databases
 
 !.gitkeep
