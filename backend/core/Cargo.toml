@@ -1,0 +1,40 @@
+[package]
+name = "core"
+version = "0.0.0"
+edition = "2024"
+
+[[bin]]
+name = "core"
+path = "src/main.rs"
+
+[dependencies]
+shared = { version = "0.0.0", path = "../shared" }
+decoders = { version = "0.0.0", path = "../decoders" }
+encoders = { version = "0.0.0", path = "../encoders" }
+generators = { version = "0.0.0", path = "../generators" }
+
+anyhow = { workspace = true }
+axum = { workspace = true }
+axum_typed_multipart = { workspace = true }
+bincode = { workspace = true }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+dotenvy = { workspace = true }
+futures-util = { workspace = true }
+image = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+turbojpeg = { workspace = true }
+
+[features]
+default = [
+    # "time",
+    "log.console",
+]
+
+time = []
+"log.console" = []

@@ -24,7 +24,7 @@ fn generate_common() -> proc_macro2::TokenStream {
         /// Auto-generated file. Any changes will be overwritten.
         pub use anyhow::Result;
         pub use shared::{
-            constants::*,
+            constants::{RGB_CHANNELS, TILE_LENGTH, TILE_SIZE},
             traits::{Decoder, Encoder},
             types::{Address, MetadataLayer, Region, Size},
         };

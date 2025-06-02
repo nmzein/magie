@@ -4,8 +4,8 @@
     "": {
       "name": "geometry-computer",
       "dependencies": {
-        "@gltf-transform/core": "latest",
-        "three": "latest",
+        "@gltf-transform/core": "4.1.4",
+        "three": "0.177.0",
       },
     },
   },

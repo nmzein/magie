@@ -1,7 +1,8 @@
 /// Auto-generated file. Any changes will be overwritten.
 pub use anyhow::Result;
 pub use shared::{
-    constants::*, traits::{Decoder, Encoder},
+    constants::{RGB_CHANNELS, TILE_LENGTH, TILE_SIZE},
+    traits::{Decoder, Encoder},
     types::{Address, MetadataLayer, Region, Size},
 };
 pub use std::{path::Path, sync::Arc};

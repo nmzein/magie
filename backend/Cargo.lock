@@ -563,6 +563,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "core"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum_typed_multipart",
+ "bincode",
+ "chrono",
+ "dashmap",
+ "decoders",
+ "dotenvy",
+ "encoders",
+ "futures-util",
+ "generators",
+ "image",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "shared",
+ "tempfile",
+ "tokio",
+ "tower-http",
+ "turbojpeg",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1023,9 +1049,9 @@ dependencies = [
 
 [[package]]
 name = "geo-traits"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b018fc19fa58202b03f1c809aebe654f7d70fd3887dace34c3d05c11aeb474b5"
+checksum = "2e7c353d12a704ccfab1ba8bfb1a7fe6cb18b665bf89d37f4f7890edcd260206"
 dependencies = [
  "geo-types",
 ]
@@ -1520,14 +1546,6 @@ checksum = "6bd8c0d6c6ed0cd30b3652886bb8711dc4bb01d637a68105a3d5158039b418e6"
 dependencies = [
  "cc",
  "libc",
-]
-
-[[package]]
-name = "macros"
-version = "0.0.0"
-dependencies = [
- "quote",
- "syn 2.0.101",
 ]
 
 [[package]]
@@ -2305,33 +2323,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rendering_engine"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum_typed_multipart",
- "bincode",
- "chrono",
- "dashmap",
- "decoders",
- "dotenvy",
- "encoders",
- "futures-util",
- "generators",
- "image",
- "macros",
- "rusqlite",
- "serde",
- "serde_json",
- "shared",
- "tempfile",
- "tokio",
- "tower-http",
- "turbojpeg",
-]
-
-[[package]]
 name = "rgb"
 version = "0.8.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2903,9 +2894,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fdb0c213ca27a9f57ab69ddb290fd80d970922355b83ae380b395d3986b8a2e"
+checksum = "5cc2d9e086a412a451384326f521c8123a99a466b329941a9403696bff9b0da2"
 dependencies = [
  "bitflags 2.9.1",
  "bytes",
@@ -3510,9 +3501,9 @@ dependencies = [
 
 [[package]]
 name = "wkb"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1e2c084338d6407d24c5a43208aca32128a5d62107eab5ca18314395c4aa3f0"
+checksum = "ff9eff6aebac4c64f9c7c057a68f6359284e2a80acf102dffe041fe219b3a082"
 dependencies = [
  "byteorder",
  "geo-traits",

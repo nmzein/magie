@@ -171,7 +171,7 @@
         # nix run
         apps.default = {
           type = "app";
-          program = "${self.packages.${system}.backend}/bin/rendering_engine";
+          program = "${self.packages.${system}.backend}/bin/core";
         };
       }
     );
