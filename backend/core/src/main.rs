@@ -28,7 +28,8 @@ use std::{
     sync::Arc,
 };
 use tokio::net::TcpListener;
-use tower_http::cors::CorsLayer;
+use tower::builder::ServiceBuilder;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 #[tokio::main]
 async fn main() {
@@ -110,7 +111,10 @@ async fn main() {
         .route("/generators", get(api::generators::generators))
         .route("/websocket", get(api::websocket::websocket));
 
+    let static_routes = ServiceBuilder::new().service(ServeDir::new("_static"));
+
     let app = Router::new()
+        .fallback_service(static_routes)
         .nest("/api", api_routes)
         .layer(cors)
         .layer(axum::middleware::from_fn(crate::middleware::logging))

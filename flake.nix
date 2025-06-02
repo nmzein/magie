@@ -22,7 +22,7 @@
           rustfmt
         ];
 
-        buildDeps = with pkgs; [
+        buildDeps =  [
           # Direct dependencies.
           libjpeg
           openslide
@@ -113,13 +113,14 @@
 
           installPhase = ''
             runHook preInstall
-            echo "OUT IS $out"
-            eval ls -al
             mkdir -p $out
-            ln -s ${node_modules}/node_modules $out
             mv ./build $out
             runHook postInstall
           '';
+
+          outputHash = "sha256-gZj1SUelNyd650+WH4k0qkhbPjXU/Kerlu6jQwVjXgw=";
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
         };
 
         # Backend build.
@@ -132,7 +133,7 @@
           nativeBuildInputs = buildDeps;
           buildInputs = buildDeps;
 
-          cargoHash = "sha256-4Pvkj32JcEVQwGbMalZWyY/8JVJWXUALL/3YvAb8wFI=";
+          cargoHash = "sha256-2hjStRGO83euf6OW0qQgzon6DBIrg1O8FbyH+Lw9bPk=";
         };
       in
       {
@@ -142,39 +143,26 @@
           buildInputs = devDeps ++ buildDeps;
 
           shellHook = ''
-            echo "Environment ready."
-            echo "Run: nix build"
+            echo "Development environment ready."
           '';
         };
 
         # nix build
-        packages = {
-          # Separate packages.
-          frontend = frontend;
-          backend = backend;
-
-          # Combined package (default).
-          default = pkgs.stdenv.mkDerivation {
-            pname = "full";
+        packages.default = pkgs.stdenv.mkDerivation {
+            pname = "MAGIE";
             version = "0.0.0";
-
             buildCommand = ''
-              mkdir -p $out/bin
-              mkdir -p $out/share/frontend
-
-              # Copy backend binary
-              cp ${backend}/bin/* $out/bin/
-
-              # Copy frontend assets
-              cp -r ${frontend}/* $out/share/frontend/
+              mkdir -p $out
+              mkdir -p $out/_static/
+              cp ${backend}/bin/* $out
+              cp -r ${frontend}/build/* $out/_static/
             '';
-          };
         };
 
         # nix run
         apps.default = {
           type = "app";
-          program = "${self.packages.${system}.backend}/bin/core";
+          program = "${self.packages.${system}.default}/core";
         };
       }
     );

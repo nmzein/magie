@@ -54,8 +54,13 @@ Install the [Nix package manager](https://nixos.org/download/).
 
 ```
 🛠️ Production
-[Coming Soon]
+nix build
+nix run
+```
 
+The application can now be accessed at `http://localhost:3000`.
+
+```
 🏗️ Development
 nix develop
 ./dev.sh
