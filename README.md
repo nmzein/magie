@@ -28,42 +28,27 @@ MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and ba
 1. Download the source code: `git clone https://github.com/nmzein/magie.git`
 2. Navigate to main directory: `cd magie`
 
----
-
 ### Containerised
 
-1. Install [Docker Engine](https://docs.docker.com/engine/install/).
-2. Ensure the Docker daemon is [running](https://docs.docker.com/config/daemon/start/).
-3. Run the following commands (note that you may need to run them with `sudo`):
+Install [Docker Engine](https://docs.docker.com/engine/install/) and ensure the [daemon is running](https://docs.docker.com/config/daemon/start/).
 
 ```
-🛠️ Production [1.25GB]
+# Production [http://localhost:4000]
 docker compose up prod
 
-🏗️ Development [1.43GB]
+# Development [http://localhost:4000]
 docker compose up --build dev
 ```
-
-The application can now be accessed at `http://0.0.0.0:4000`.
-
----
 
 ### Bare Metal
 
 Install the [Nix package manager](https://nixos.org/download/).
 
 ```
-🛠️ Production
-nix build
+# Production [http://localhost:3000]
 nix run
-```
 
-The application can now be accessed at `http://localhost:3000`.
-
-```
-🏗️ Development
+# Development [http://localhost:4000]
 nix develop
 ./dev.sh
 ```
-
-The application can now be accessed at `http://localhost:4000`.

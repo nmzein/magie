@@ -22,7 +22,7 @@
           rustfmt
         ];
 
-        buildDeps =  [
+        buildDeps = with pkgs; [
           # Direct dependencies.
           libjpeg
           openslide
@@ -73,7 +73,7 @@
             runHook postInstall
           '';
 
-          outputHash = "sha256-hLnFv2niHuu4ZMsp5qHwQgdosv5B90l9587UgEXcw4s=";
+          outputHash = "sha256-we7dYfDZ/v1uzmCtTlVFtudZ4EGsKEx8itUv4AF1dFA=";
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
         };
@@ -118,7 +118,7 @@
             runHook postInstall
           '';
 
-          outputHash = "sha256-gZj1SUelNyd650+WH4k0qkhbPjXU/Kerlu6jQwVjXgw=";
+          outputHash = "sha256-2U1ceggvOJfP4MSOVcx6NvDBobtLrp80mETFjBvoHJ4=";
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
         };
@@ -135,6 +135,13 @@
 
           cargoHash = "sha256-2hjStRGO83euf6OW0qQgzon6DBIrg1O8FbyH+Lw9bPk=";
         };
+
+        wrappedScript = pkgs.writeShellScriptBin "core-wrapped" ''
+          rm -rf ./_static
+          ln -s ${self.packages.${system}.default}/_static ./_static
+          ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
+          exec ${self.packages.${system}.default}/core "$@"
+        '';
       in
       {
         # nix develop
@@ -162,7 +169,7 @@
         # nix run
         apps.default = {
           type = "app";
-          program = "${self.packages.${system}.default}/core";
+          program = "${wrappedScript}/bin/core-wrapped";
         };
       }
     );

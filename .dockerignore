@@ -5,6 +5,12 @@
 .DS_Store
 README.md
 
+/result/
+
+_databases/
+_static/
+_stores/
+
 **/node_modules/
 
 /frontend/.svelte-kit
@@ -17,7 +23,3 @@ README.md
 /frontend/vite.config.ts.timestamp-*
 
 /backend/target
-
-/stores/**
-!/stores/tmp
-/databases/**
