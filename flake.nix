@@ -140,6 +140,10 @@
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
           ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
+          echo ""
+          echo "============ RUNNING ============"
+          echo "     $PUBLIC_HTTP_SCHEME://$PUBLIC_BACKEND_URL"
+          echo "================================="
           exec ${self.packages.${system}.default}/core "$@"
         '';
       in
@@ -151,6 +155,7 @@
 
           shellHook = ''
             echo "Development environment ready."
+            echo "Run: ./dev.sh"
           '';
         };
 
