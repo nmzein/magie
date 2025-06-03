@@ -154,6 +154,7 @@
           buildInputs = devDeps ++ buildDeps;
 
           shellHook = ''
+            echo ""
             echo "Development environment ready."
             echo "Run: ./dev.sh"
           '';
