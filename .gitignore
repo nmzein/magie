@@ -2,7 +2,7 @@ _databases/
 _static/
 _static
 _stores/
-
+/result
 /result/
 
 .DS_Store

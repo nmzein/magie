@@ -1,11 +1,15 @@
-import { PUBLIC_HTTP_SCHEME, PUBLIC_WS_SCHEME, PUBLIC_BACKEND_URL } from '$env/static/public';
+import { PUBLIC_PORT } from '$env/static/public';
 
-export const BASE_URL = '://' + PUBLIC_BACKEND_URL;
-export const HTTP_URL = PUBLIC_HTTP_SCHEME + BASE_URL + '/api';
-export const DIRECTORY_URL = new URL(HTTP_URL + '/directory');
-export const ASSET_URL = new URL(HTTP_URL + '/image');
-export const STORE_URL = new URL(HTTP_URL + '/store');
-export const WEBSOCKET_URL = new URL(PUBLIC_WS_SCHEME + BASE_URL + '/api/websocket');
+export const HTTP_BASE_URL =
+	import.meta.env.MODE === 'development' ? `http://localhost:${PUBLIC_PORT}` : '';
+
+const WEBSOCKET_BASE_URL =
+	import.meta.env.MODE === 'development' ? `ws://localhost:${PUBLIC_PORT}` : '';
+
+export const DIRECTORY_URL = new URL(HTTP_BASE_URL + '/api/directory');
+export const ASSET_URL = new URL(HTTP_BASE_URL + '/api/image');
+export const STORE_URL = new URL(HTTP_BASE_URL + '/api/store');
+export const WEBSOCKET_URL = new URL(WEBSOCKET_BASE_URL + '/api/websocket');
 
 export const C_TILE_TAG = 0;
 

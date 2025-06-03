@@ -1,4 +1,6 @@
-PUBLIC_FRONTEND_URL = "localhost:4000"
-PUBLIC_BACKEND_URL = "localhost:3000"
-PUBLIC_HTTP_SCHEME = "http"
-PUBLIC_WS_SCHEME = "ws"
+PUBLIC_PORT = "3000"
+
+LOCAL_STORES_PATH = "./_stores/"
+LOCAL_DATABASES_PATH = "./_databases/"
+
+DEV_FRONTEND_PORT = "4000" # Used in development only to allow CORS.

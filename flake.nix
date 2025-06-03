@@ -22,16 +22,19 @@
           rustfmt
         ];
 
+        nativeBuildDeps = with pkgs; [
+          clang
+          cmake
+          nasm
+        ];
+
         buildDeps = with pkgs; [
-          # Direct dependencies.
           libjpeg
-          openslide
           pkg-config
+          openslide
           sqlite
           # OpenSlide dependencies.
           cairo
-          clang
-          cmake
           expat
           gdk-pixbuf
           glib
@@ -41,13 +44,13 @@
           libsepol
           libsysprof-capture
           libxml2
-          nasm
           openjpeg
           pcre2
           util-linux.dev
           xorg.libXdmcp
         ];
 
+        # Install node_modules.
         node_modules = pkgs.stdenv.mkDerivation {
           pname = "frontend-node-modules";
           version = "0.0.0";
@@ -130,52 +133,107 @@
           src = ./backend;
 
           env = env;
-          nativeBuildInputs = buildDeps;
+          nativeBuildInputs = nativeBuildDeps ++ buildDeps;
           buildInputs = buildDeps;
 
           cargoHash = "sha256-2hjStRGO83euf6OW0qQgzon6DBIrg1O8FbyH+Lw9bPk=";
         };
 
-        wrappedScript = pkgs.writeShellScriptBin "core-wrapped" ''
+        runScript = pkgs.writeShellScriptBin "run" ''
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
           ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
           echo ""
-          echo "============ RUNNING ============"
-          echo "     $PUBLIC_HTTP_SCHEME://$PUBLIC_BACKEND_URL"
-          echo "================================="
+          if [ -n "$FRONTEND_PORT" ]; then
+            echo "> Frontend ............. http://localhost:$FRONTEND_PORT"
+            echo "> Backend  ............. http://localhost:$PUBLIC_PORT"
+          else
+            echo "> Running ............. http://localhost:$PUBLIC_PORT"
+          fi
           exec ${self.packages.${system}.default}/core "$@"
+        '';
+
+        podmanRunScript = pkgs.writeShellScriptBin "podman" ''
+          echo "Loading podman container..."
+          podman load < result
+          podman run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+        '';
+
+        dockerRunScript = pkgs.writeShellScriptBin "docker" ''
+          echo "Loading docker container..."
+          docker load < result
+          docker run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+        '';
+
+        devRunScript = pkgs.writeShellScriptBin "dev" ''
+          cd backend && cargo run & \
+          cd backend/geometry-computer && bun install & \
+          cd frontend && bun install && bun run dev
         '';
       in
       {
         # nix develop
         devShells.default = pkgs.mkShell {
           env = env;
-          buildInputs = devDeps ++ buildDeps;
+          buildInputs = devDeps ++ nativeBuildDeps ++ buildDeps;
 
           shellHook = ''
             echo ""
             echo "Development environment ready."
-            echo "Run: ./dev.sh"
+            echo "Run: nix run .#dev"
           '';
         };
 
         # nix build
         packages.default = pkgs.stdenv.mkDerivation {
-            pname = "MAGIE";
-            version = "0.0.0";
-            buildCommand = ''
-              mkdir -p $out
-              mkdir -p $out/_static/
-              cp ${backend}/bin/* $out
-              cp -r ${frontend}/build/* $out/_static/
-            '';
+          pname = "magie";
+          version = "0.0.0";
+          buildCommand = ''
+            mkdir -p $out
+            mkdir -p $out/_static/
+            cp ${backend}/bin/* $out
+            cp -r ${frontend}/build/* $out/_static/
+          '';
         };
 
-        # nix run
-        apps.default = {
-          type = "app";
-          program = "${wrappedScript}/bin/core-wrapped";
+        # nix build .#container
+        packages.container = pkgs.dockerTools.buildLayeredImage {
+          name = "magie";
+          tag = "latest";
+          contents = [pkgs.coreutils];
+          config = {
+            Cmd = ["${runScript}/bin/run"];
+            ExposedPorts = {
+              "3000/tcp" = {};
+            };
+            Volumes = {
+              "/_databases" = { };
+              "/_stores" = { };
+            };
+          };
+        };
+
+        apps = {
+          # nix run
+          default = {
+            type = "app";
+            program = "${runScript}/bin/run";
+          };
+          # nix run .#podman
+          podman = {
+            type = "app";
+            program = "${podmanRunScript}/bin/podman";
+          };
+          # nix run .#docker
+          docker = {
+            type = "app";
+            program = "${dockerRunScript}/bin/docker";
+          };
+          # nix run .#dev
+          dev = {
+            type = "app";
+            program = "${devRunScript}/bin/dev";
+          };
         };
       }
     );

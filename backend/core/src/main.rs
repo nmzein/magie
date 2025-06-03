@@ -9,9 +9,6 @@ mod log;
 mod middleware;
 mod types;
 
-// #[cfg(test)]
-// mod tests;
-
 use crate::{
     constants::{LOCAL_DATABASES_PATH, LOCAL_STORES_PATH, REGISTRY_PATH},
     types::{database::DatabaseManager, socket::ClientSocketManager},
@@ -29,25 +26,33 @@ use std::{
 };
 use tokio::net::TcpListener;
 use tower::builder::ServiceBuilder;
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
+    let port: &str = &env::var("PUBLIC_PORT").expect("PUBLIC_PORT environment variable not set");
+    let container: bool = env::var("CONTAINER").unwrap_or("false".into()) == "true";
+
+    let backend_url: &str = if container {
+        &format!("0.0.0.0:{port}")
+    } else {
+        &format!("localhost:{port}")
+    };
+
     let tmp_dir = PathBuf::from(LOCAL_STORES_PATH).join("tmp");
 
+    // TODO: Move to Nix flake.
     // SAFETY: Environment access only happens in single-threaded code.
     // Override the temporary directory to get around issue
     // of crossing mount points on some Linux distros.
     unsafe { env::set_var("TMPDIR", &tmp_dir) };
 
-    let frontend_url = &fetch_env_var("PUBLIC_FRONTEND_URL");
-    let backend_url = &fetch_env_var("PUBLIC_BACKEND_URL");
-    let http_scheme = &fetch_env_var("PUBLIC_HTTP_SCHEME");
-
+    // TODO: Move to Nix flake.
     // Create the necessary directories.
     if !Path::new(LOCAL_STORES_PATH).exists() {
         println!("Creating local stores directory at: {LOCAL_STORES_PATH}");
         fs::create_dir_all(LOCAL_STORES_PATH).expect("Could not create local stores directory");
+
         println!("Creating local temporary file directory at: {tmp_dir:#?}");
         fs::create_dir_all(&tmp_dir).expect("Could not create local temporary file directory");
     }
@@ -66,16 +71,6 @@ async fn main() {
     let listener = TcpListener::bind(backend_url)
         .await
         .expect("Could not bind a TcpListener to the backend port.");
-
-    let frontend_url = format!("{http_scheme}://{frontend_url}");
-    let cors: CorsLayer = CorsLayer::new()
-        .allow_origin(
-            frontend_url
-                .parse::<HeaderValue>()
-                .expect("Could not parse frontend url."),
-        )
-        .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PATCH])
-        .allow_headers([CONTENT_TYPE]);
 
     let directory_routes = Router::new()
         .route("/{parent_id}/{name}", post(api::directory::create::create))
@@ -113,10 +108,9 @@ async fn main() {
 
     let static_routes = ServiceBuilder::new().service(ServeDir::new("_static"));
 
-    let app = Router::new()
+    let mut app = Router::new()
         .fallback_service(static_routes)
         .nest("/api", api_routes)
-        .layer(cors)
         .layer(axum::middleware::from_fn(crate::middleware::logging))
         .layer(axum::middleware::from_fn(crate::middleware::authentication))
         .layer(DefaultBodyLimit::disable())
@@ -125,11 +119,29 @@ async fn main() {
         )))
         .layer(Extension(Arc::new(ClientSocketManager::default())));
 
+    // Allow CORS from dev frontend server.
+    #[cfg(debug_assertions)]
+    {
+        use tower_http::cors::CorsLayer;
+
+        let frontend_port: &str =
+            &env::var("DEV_FRONTEND_PORT").expect("DEV_FRONTEND_PORT environment variable not set");
+
+        let frontend_url: &str = &format!("http://localhost:{frontend_port}");
+
+        let cors = CorsLayer::new()
+            .allow_origin(
+                frontend_url
+                    .parse::<HeaderValue>()
+                    .expect("Could not parse frontend url."),
+            )
+            .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PATCH])
+            .allow_headers([CONTENT_TYPE]);
+
+        app = app.layer(cors);
+    }
+
     axum::serve(listener, app)
         .await
         .expect("Could not serve the backend.");
-}
-
-fn fetch_env_var(name: &str) -> String {
-    env::var(name).unwrap_or_else(|_| panic!("{name} is not set."))
 }
