@@ -1,4 +1,4 @@
-use super::common::*;
+use crate::db::prelude::*;
 use crate::types::database::StoreProperties;
 
 pub fn get(dbm: &DatabaseManager) -> Result<Vec<StoreProperties>> {

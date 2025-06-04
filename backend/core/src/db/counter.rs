@@ -1,7 +1,4 @@
-pub use crate::types::database::DatabaseManager;
-pub use anyhow::Result;
-pub use rusqlite::Connection;
-pub use std::path::PathBuf;
+use crate::db::prelude::*;
 
 pub fn counter(dbm: &DatabaseManager, store_id: u32) -> Result<u32> {
     let conn = dbm.store(store_id)?;

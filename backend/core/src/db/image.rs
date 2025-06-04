@@ -1,15 +1,7 @@
 use crate::constants::{BIN_ID, IMAGE_NAME, THUMBNAIL_NAME};
-use crate::db::common::*;
+use crate::db::prelude::*;
 use chrono::Utc;
 use shared::types::{AnnotationLayer, ImageProperties, MetadataLayer};
-
-/// Returns the path of an image given its id and store id.
-// pub fn path(dbm: &DatabaseManager, store_id: u32, image_id: u32) -> Result<PathBuf> {
-//     Ok(dbm
-//         .store_properties(store_id)?
-//         .path
-//         .join(format!("i{image_id}")))
-// }
 
 pub fn image_path(dbm: &DatabaseManager, store_id: u32, image_id: u32) -> Result<PathBuf> {
     Ok(dbm

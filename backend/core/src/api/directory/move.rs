@@ -1,4 +1,4 @@
-use crate::api::common::*;
+use crate::api::prelude::*;
 use crate::constants::PRIVILEGED;
 
 #[derive(Deserialize)]

@@ -1,4 +1,4 @@
-use crate::api::common::*;
+use crate::api::prelude::*;
 
 #[derive(Deserialize)]
 pub struct Params {

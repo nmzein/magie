@@ -1,5 +1,6 @@
-use super::common::*;
 use crate::constants::BIN_ID;
+use crate::db::counter::counter;
+use crate::db::prelude::*;
 
 pub fn insert(dbm: &DatabaseManager, store_id: u32, parent_id: u32, name: &str) -> Result<u32> {
     let id = counter(&dbm, store_id)?;

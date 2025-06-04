@@ -16,7 +16,6 @@ use crate::{
 use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
-    http::{HeaderValue, Method, header::CONTENT_TYPE},
     routing::{delete, get, patch, post},
 };
 use std::{
@@ -122,6 +121,7 @@ async fn main() {
     // Allow CORS from dev frontend server.
     #[cfg(debug_assertions)]
     {
+        use axum::http::{HeaderValue, Method, header::CONTENT_TYPE};
         use tower_http::cors::CorsLayer;
 
         let frontend_port: &str =

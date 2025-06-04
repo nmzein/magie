@@ -1,4 +1,4 @@
-use super::common::*;
+use crate::db::prelude::*;
 use crate::{
     constants::{BIN_ID, ROOT_ID},
     types::{

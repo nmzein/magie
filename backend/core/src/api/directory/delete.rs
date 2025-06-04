@@ -1,5 +1,8 @@
-use crate::api::common::*;
-use crate::constants::{BIN_ID, PRIVILEGED};
+use crate::api::prelude::*;
+use crate::{
+    constants::{BIN_ID, PRIVILEGED},
+    types::fs::DeleteMode,
+};
 
 #[derive(Deserialize)]
 pub struct PathParams {

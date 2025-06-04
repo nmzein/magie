@@ -1,4 +1,4 @@
-use super::common::*;
+use crate::api::prelude::*;
 
 pub async fn generators(Extension(mut logger): Extension<Logger<'_>>) -> Response {
     let generators = generators::export::names();

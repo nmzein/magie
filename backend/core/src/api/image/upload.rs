@@ -1,4 +1,4 @@
-use crate::api::common::*;
+use crate::api::prelude::*;
 use crate::constants::{
     ANNOTATIONS_PATH_PREFIX, IMAGE_NAME, THUMBNAIL_NAME, TRANSLATED_ANNOTATIONS_PATH,
     UPLOADED_ANNOTATIONS_PATH, UPLOADED_IMAGE_PATH,
@@ -6,7 +6,7 @@ use crate::constants::{
 use anyhow::anyhow;
 use axum_typed_multipart::{FieldData, TryFromMultipart, TypedMultipart};
 use shared::{
-    traits::Encoder,
+    traits::{Encoder, Generator},
     types::{AnnotationLayer, MetadataLayer},
 };
 use std::{fs, process::Command};
@@ -123,7 +123,7 @@ pub async fn upload(
         None => None,
     };
 
-    let Ok(image_id) = crate::db::common::counter(&dbm, store_id) else {
+    let Ok(image_id) = crate::db::counter::counter(&dbm, store_id) else {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,

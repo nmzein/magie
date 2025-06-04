@@ -1,7 +1,11 @@
 pub static LOCAL_STORES_PATH: &str = env!("LOCAL_STORES_PATH");
 pub static LOCAL_DATABASES_PATH: &str = env!("LOCAL_DATABASES_PATH");
 pub static REGISTRY_PATH: &str = concat!(env!("LOCAL_DATABASES_PATH"), "registry.sqlite");
-pub static REGISTRY_URL: &str = concat!("sqlite://", "../_databases/", "registry.sqlite");
+pub static REGISTRY_URL: &str = concat!(
+    "sqlite://../",
+    env!("LOCAL_DATABASES_PATH"),
+    "registry.sqlite"
+);
 
 pub static UPLOADED_DIRECTORY: &str = "uploaded";
 pub static ANNOTATIONS_DIRECTORY: &str = "annotations";

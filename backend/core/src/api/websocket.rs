@@ -1,16 +1,10 @@
+use crate::api::prelude::*;
 use crate::types::{
-    database::DatabaseManager,
     messages::{ClientMsg, ServerMsg},
-    socket::ClientSocketManager,
     user::User,
 };
-use axum::{
-    Extension,
-    extract::{WebSocketUpgrade, ws::Message},
-    response::IntoResponse,
-};
+use axum::extract::{WebSocketUpgrade, ws::Message};
 use futures_util::{SinkExt, StreamExt};
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub async fn websocket(

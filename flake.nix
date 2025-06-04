@@ -75,10 +75,6 @@
             mv node_modules $out/
             runHook postInstall
           '';
-
-          outputHash = "sha256-we7dYfDZ/v1uzmCtTlVFtudZ4EGsKEx8itUv4AF1dFA=";
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
         };
 
         # Frontend build.
@@ -136,7 +132,7 @@
           nativeBuildInputs = nativeBuildDeps ++ buildDeps;
           buildInputs = buildDeps;
 
-          cargoHash = "sha256-2hjStRGO83euf6OW0qQgzon6DBIrg1O8FbyH+Lw9bPk=";
+          cargoHash = "sha256-ugpHrEd6aXAwCQcFlZkOF7XtgL16ypday+uJsNFJAjs=";
         };
 
         runScript = pkgs.writeShellScriptBin "run" ''

@@ -1,4 +1,4 @@
-use super::common::*;
+use crate::api::prelude::*;
 
 pub async fn registry(
     Extension(db): Extension<Arc<DatabaseManager>>,
