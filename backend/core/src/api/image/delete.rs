@@ -34,7 +34,9 @@ pub async fn delete(
                 }
             };
 
-            match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID) {
+            match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
+                .map(|res| res || parent_id == BIN_ID)
+            {
                 Ok(false) => {}
                 Ok(true) => {
                     return logger.error(

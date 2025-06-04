@@ -1,6 +1,6 @@
 use crate::api::prelude::*;
 use crate::constants::{
-    ANNOTATIONS_PATH_PREFIX, IMAGE_NAME, THUMBNAIL_NAME, TRANSLATED_ANNOTATIONS_PATH,
+    ANNOTATIONS_PATH_PREFIX, BIN_ID, IMAGE_NAME, THUMBNAIL_NAME, TRANSLATED_ANNOTATIONS_PATH,
     UPLOADED_ANNOTATIONS_PATH, UPLOADED_IMAGE_PATH,
 };
 use anyhow::anyhow;
@@ -61,13 +61,38 @@ pub async fn upload(
         annotations_file,
     }): TypedMultipart<Multipart>,
 ) -> Response {
+    // [CHECK]: Cannot upload asset to the bin.
+    match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
+        .map(|res| res || parent_id == BIN_ID)
+    {
+        Ok(false) => {}
+        Ok(true) => {
+            return logger.error(
+                StatusCode::FORBIDDEN,
+                Error::RequestIntegrity,
+                "IU-E00",
+                "Cannot upload asset to the bin.",
+                None,
+            );
+        }
+        Err(e) => {
+            return logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseQuery,
+                "IU-E01",
+                "Failed to check if asset would be in the bin.",
+                Some(e),
+            );
+        }
+    };
+
     // Extract image extension from metadata request body.
     let Some(uploaded_image_extension) = extract_extension(&image_file.metadata.file_name.clone())
     else {
         return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
-            "IU-E00",
+            "IU-E02",
             "Uploaded image has no extension.",
             None,
         );
@@ -82,7 +107,7 @@ pub async fn upload(
         return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
-            "IU-E01",
+            "IU-E03",
             "Uploaded annotations file has no extension.",
             None,
         );
@@ -98,7 +123,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E02",
+                "IU-E04",
                 "Encoder could not be found.",
                 None,
             );
@@ -115,7 +140,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E03",
+                "IU-E05",
                 "Generator could not be found.",
                 None,
             );
@@ -127,7 +152,7 @@ pub async fn upload(
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
-            "IU-E04",
+            "IU-E06",
             "Failed to generate image ID.",
             None,
         );
@@ -140,7 +165,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IU-E05",
+                "IU-E07",
                 "Failed to create a directory for asset.",
                 Some(e),
             );
@@ -198,7 +223,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::CONFLICT,
                 Error::ResourceCreation,
-                "IU-E06",
+                "IU-E08",
                 "Failed to save asset to database.",
                 Some(e),
             );

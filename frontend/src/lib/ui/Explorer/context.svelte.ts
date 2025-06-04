@@ -19,7 +19,18 @@ export class Explorer {
 	#store = $derived(registry.store(this.#storeId));
 	#directoryId: number = $state(ROOT_ID); // TODO: Default to directory last opened by the user.
 	#directory: Directory = $derived(this.#store?.get(this.#directoryId) as Directory);
-	inBin: boolean = $derived(this.#directoryId === BIN_ID);
+	inBin: boolean = $derived.by(() => {
+		// Recursively go up the directories parent to check if in bin, stop when parentId is null or BIN_ID.
+		let currentDirectory = this.#directory;
+		if (currentDirectory.id === BIN_ID) return true;
+
+		while (defined(currentDirectory.parentId)) {
+			if (currentDirectory.parentId === BIN_ID) return true;
+			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+		}
+
+		return false;
+	});
 	#history!: StateHistory<number>;
 	uploader = new Uploader();
 	directoryCreator = new DirectoryCreator();

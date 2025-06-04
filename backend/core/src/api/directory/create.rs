@@ -20,20 +20,29 @@ pub async fn create(
     }): Path<PathParams>,
 ) -> Response {
     // [CHECK]: Cannot create directory in bin.
-    if parent_id == BIN_ID {
-        return logger.error(
-            StatusCode::FORBIDDEN,
-            Error::RequestIntegrity,
-            "DC-E00",
-            "Cannot create directory in bin.",
-            None,
-        );
-    } else {
-        logger.report(
-            Check::RequestIntegrity,
-            "Specified parent directory is not bin.",
-        );
-    }
+    match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
+        .map(|res| res || parent_id == BIN_ID)
+    {
+        Ok(false) => {}
+        Ok(true) => {
+            return logger.error(
+                StatusCode::FORBIDDEN,
+                Error::RequestIntegrity,
+                "DC-E00",
+                "Cannot create a directory in the bin.",
+                None,
+            );
+        }
+        Err(e) => {
+            return logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseQuery,
+                "DC-E01",
+                "Failed to check if new directory would be in the bin.",
+                Some(e),
+            );
+        }
+    };
 
     // [DATABASE]: Insert directory into the database.
     let id = match crate::db::directory::insert(&dbm, store_id, parent_id, &name) {
@@ -45,7 +54,7 @@ pub async fn create(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseInsertion,
-                "DC-E01",
+                "DC-E02",
                 "Failed to insert directory into the database.",
                 Some(e),
             );
@@ -66,7 +75,7 @@ pub async fn create(
         Err(e) => logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResponseIntegrity,
-            "DC-E02",
+            "DC-E03",
             "Failed to encode directory create message.",
             Some(e),
         ),
