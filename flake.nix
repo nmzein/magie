@@ -132,7 +132,7 @@
           nativeBuildInputs = nativeBuildDeps ++ buildDeps;
           buildInputs = buildDeps;
 
-          cargoHash = "sha256-ugpHrEd6aXAwCQcFlZkOF7XtgL16ypday+uJsNFJAjs=";
+          cargoHash = "sha256-oC7BeeffeV8pdJlS+/yOJ8XLrdZaWHoBZyrL1GXglSg=";
         };
 
         runScript = pkgs.writeShellScriptBin "run" ''
@@ -151,13 +151,13 @@
 
         podmanRunScript = pkgs.writeShellScriptBin "podman" ''
           echo "Loading podman container..."
-          podman load < result
+          podman load < ${self.packages.${system}.container}
           podman run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
         '';
 
         dockerRunScript = pkgs.writeShellScriptBin "docker" ''
           echo "Loading docker container..."
-          docker load < result
+          docker load < ${self.packages.${system}.container}
           docker run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
         '';
 

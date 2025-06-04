@@ -34,8 +34,6 @@ nix run
 
 ### Container
 ```
-nix build .#container
-
 nix run .#podman
 # or
 nix run .#docker
