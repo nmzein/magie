@@ -5,7 +5,7 @@
 	import { contextMenu } from '$states';
 
 	const classes = {
-		list: `min-w-[150px] flex flex-col mt-[4px] ml-[4px] bg-[#333]/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm`,
+		list: `min-w-[150px] flex flex-col py-0.5 mt-1 ml-1 bg-[#333]/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm`,
 		item: 'flex gap-[10px] justify-between items-center mx-1 my-0.5 px-[10px] gap-5 py-[7.5px] rounded-[5px] hover:bg-primary/10'
 	};
 
@@ -59,7 +59,7 @@
 			{#each clean(contextMenu.items) as item}
 				{#if item === 'separator'}
 					<div class="flex w-full justify-center">
-						<Separator class="my-1" />
+						<Separator class="my-0.5" />
 					</div>
 				{:else}
 					<Dropdown.Item onclick={item.action} disabled={item.disabled} hidden={item.hidden}>
