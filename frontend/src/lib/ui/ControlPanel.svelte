@@ -5,6 +5,7 @@
 	import { registry, views } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
 	import Button from '$components/Button.svelte';
+	import Window from '$components/window/Window.svelte';
 	import { Explorer } from '$ui/Explorer';
 	import { ContextMenu } from '$ui/ContextMenu/index.ts';
 	import Geometry2DControls from '$view/Geometry2D/Control.svelte';
@@ -37,7 +38,9 @@
 						bind:contentRect={contentSpaceBounds}
 					>
 						<Tabs.Content value="explorer">
-							<Explorer {contentSpaceBounds} />
+							<Window {contentSpaceBounds}>
+								<Explorer />
+							</Window>
 						</Tabs.Content>
 						<Tabs.Content value="control" disabled={!defined(activeView)}>
 							<Geometry2DControls bind:geometries={activeView!.state.geometries} />

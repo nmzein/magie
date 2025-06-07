@@ -1,5 +1,5 @@
 import { Context } from 'runed';
-import type { Directory, Asset, Point, UploaderOptions } from '$types';
+import type { Directory, Asset, UploaderOptions } from '$types';
 import { registry, repository, clipboard } from '$states';
 import { http } from '$api';
 import { StateHistory } from 'runed';
@@ -13,7 +13,6 @@ export const BIN_ID = 1;
 export const context = new Context<Explorer>('');
 
 export class Explorer {
-	position: Point = $state({ x: -1, y: -1 }); // TODO: Put this in separate Window class.
 	#selected = new SvelteSet<number>();
 	#pinned = new SvelteSet<number>();
 	#storeId: number = $state(1); // TODO: This will be selected from a top level stores page.
