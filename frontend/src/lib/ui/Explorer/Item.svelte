@@ -69,7 +69,7 @@
 			contextMenu.open({ x: e.clientX, y: e.clientY }, [
 				{
 					name: 'Open',
-					action: () => open(),
+					action: () => explorer.open(item),
 					hidden: explorer.selected.size !== 1,
 					shortcut: 'Enter'
 				},
