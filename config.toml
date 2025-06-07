@@ -1,3 +1,4 @@
+[env]
 PUBLIC_PORT = "3000"
 
 LOCAL_STORES_PATH = "./_stores/"

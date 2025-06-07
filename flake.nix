@@ -2,23 +2,29 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
+        craneLib = crane.mkLib pkgs;
+        rustToolchain = pkgs.rust-bin.nightly."2025-06-04".default;
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
 
         env = {
           PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-        } // config;
+          RUSTC_LINKER = "${pkgs.llvmPackages.clangUseLLVM}/bin/clang";
+          RUSTFLAGS = "-Z threads=8";
+        } // config.env;
 
         devDeps = with pkgs; [
           bun
           cargo
-          rustc
           rustfmt
         ];
 
@@ -26,6 +32,9 @@
           clang
           cmake
           nasm
+          rustToolchain
+          llvmPackages_latest.llvm
+          llvmPackages_latest.lld
         ];
 
         buildDeps = with pkgs; [
@@ -60,7 +69,7 @@
           buildInputs = [ pkgs.nodejs-slim_latest ];
 
           dontConfigure = true;
-          dontFixup = true; # patchShebangs produces illegal path references in FODs
+          dontFixup = true;
 
           buildPhase = ''
             runHook preBuild
@@ -75,6 +84,10 @@
             mv node_modules $out/
             runHook postInstall
           '';
+
+          outputHash = "sha256-zRzvj7xK5GKqpSbxPdyGm0JY/k+BtCxAZEbSCzJoZ2E=";
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
         };
 
         # Frontend build.
@@ -117,16 +130,16 @@
             runHook postInstall
           '';
 
-          outputHash = "sha256-2U1ceggvOJfP4MSOVcx6NvDBobtLrp80mETFjBvoHJ4=";
+          outputHash = "sha256-j6Fscztb/MmiiO8+1X62Cdqxu6iMEQNx6oPqevVXC5g=";
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
         };
 
         # Backend build.
-        backend = pkgs.rustPlatform.buildRustPackage {
+        backend = craneLib.buildPackage {
           pname = "backend";
           version = "0.0.0";
-          src = ./backend;
+          src = craneLib.cleanCargoSource ./backend;
 
           env = env;
           nativeBuildInputs = nativeBuildDeps ++ buildDeps;
