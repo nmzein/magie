@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
-	import { defined } from '$helpers';
 	import { onClickOutside } from 'runed';
 	import { context } from './context.svelte.ts';
 
@@ -20,17 +19,15 @@
 				explorer.directoryCreator.close();
 			} else {
 				// Clicked anywhere and a name was set, create directory.
-				// FIX: I don't like this.
-				explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
+				explorer.createDirectory(name);
 			}
 		}
 	);
 
 	function onkeydown(event: KeyboardEvent) {
 		event.stopPropagation();
-		if (event.key === 'Enter' && name !== '' && defined(explorer.directory)) {
-			// FIX: I don't like this.
-			explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
+		if (event.key === 'Enter' && name !== '') {
+			explorer.createDirectory(name);
 		}
 	}
 </script>

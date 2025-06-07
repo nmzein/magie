@@ -68,6 +68,10 @@ export class Explorer {
 		await this.uploader.upload(this.#storeId, this.#directoryId);
 	}
 
+	async createDirectory(name: string) {
+		await this.directoryCreator.create(this.#storeId, this.#directoryId, name);
+	}
+
 	get selected() {
 		return this.#selected;
 	}
