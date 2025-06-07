@@ -5,6 +5,7 @@ import { http } from '$api';
 import { StateHistory } from 'runed';
 import { defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
+import { load as createImage2DView } from '$view/Image2D/state.svelte.ts';
 
 export const ROOT_ID = 0;
 export const BIN_ID = 1;
@@ -51,6 +52,7 @@ export class Explorer {
 	});
 	searchQuery: string = $state('');
 	items = $derived.by(() => {
+		this.deselectAll();
 		let children = this.#directory.children;
 
 		const query = this.searchQuery.toLowerCase();
@@ -123,23 +125,36 @@ export class Explorer {
 		this.select(this.#directoryId);
 	}
 
-	undo() {
+	back() {
 		this.deselectAll();
 		this.#history.undo();
 		this.select(this.#directoryId);
 	}
 
-	redo() {
+	forward() {
 		this.deselectAll();
 		this.#history.redo();
 		this.select(this.#directoryId);
 	}
 
+	async open(item: Directory | Asset) {
+		switch (item.type) {
+			case 'Directory':
+				this.goto(item.id);
+				break;
+			case 'Asset':
+				await createImage2DView(this.storeId, item.parentId, item.id, item.name);
+				break;
+		}
+	}
+
 	gotoStore(storeId: number) {
 		if (storeId === this.storeId && this.#directoryId === ROOT_ID) return;
 
-		const directory = this.#store?.get(ROOT_ID);
-		if (!defined(directory) || directory.type === 'Asset') return;
+		const store = registry.store(storeId);
+		const directory = store?.get(ROOT_ID);
+
+		if (!defined(store) || !defined(directory) || directory.type !== 'Directory') return;
 
 		this.deselectAll();
 		this.#storeId = storeId;
@@ -150,7 +165,7 @@ export class Explorer {
 		if (id === this.#directoryId) return;
 
 		const directory = this.#store?.get(id);
-		if (!defined(directory) || directory.type === 'Asset') return;
+		if (!defined(directory) || directory.type !== 'Directory') return;
 
 		this.deselectAll();
 		this.#directoryId = directory.id;

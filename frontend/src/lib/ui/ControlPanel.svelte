@@ -6,7 +6,7 @@
 	import * as Tabs from '$components/tabs/index.ts';
 	import Button from '$components/Button.svelte';
 	import { Explorer } from '$ui/Explorer';
-	import ContextMenu from '$ui/ContextMenu.svelte';
+	import { ContextMenu } from '$ui/ContextMenu/index.ts';
 	import Geometry2DControls from '$view/Geometry2D/Control.svelte';
 	import Icon from '$icon';
 

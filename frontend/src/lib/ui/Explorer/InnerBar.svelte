@@ -28,7 +28,7 @@
 				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
 			</Dropdown.Item>
 			<Dropdown.Item onclick={() => explorer.directoryCreator.open()}>
-				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Directory
+				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Folder
 			</Dropdown.Item>
 		</Dropdown.List>
 	</Dropdown.Root>

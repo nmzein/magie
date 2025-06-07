@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Bounds, Directory, Asset } from '$types';
 	import { type SelectionBoxState, contextMenu } from '$states';
-	import { load as createImage2DView } from '$view/Image2D/state.svelte.ts';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
@@ -43,20 +42,9 @@
 		}
 	}
 
-	function onkeypress(e: KeyboardEvent) {
+	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
-			open();
-		}
-	}
-
-	async function open() {
-		switch (item.type) {
-			case 'Directory':
-				explorer.goto(item.id);
-				break;
-			case 'Asset':
-				await createImage2DView(explorer.storeId, item.parentId, item.id, item.name);
-				break;
+			explorer.open(item);
 		}
 	}
 </script>
@@ -67,8 +55,8 @@
 			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
 		)}
 		{onpointerdown}
-		ondblclick={open}
-		{onkeypress}
+		ondblclick={() => explorer.open(item)}
+		{onkeydown}
 		oncontextmenu={(e) => {
 			e.preventDefault();
 			e.stopPropagation();
@@ -78,47 +66,60 @@
 				explorer.select(item.id);
 			}
 
-			contextMenu.show = true;
-			contextMenu.position = { x: e.clientX, y: e.clientY };
-			contextMenu.items = [
-				{ name: 'Open', action: () => open(), hidden: explorer.selected.size !== 1 },
+			contextMenu.open({ x: e.clientX, y: e.clientY }, [
+				{
+					name: 'Open',
+					action: () => open(),
+					hidden: explorer.selected.size !== 1,
+					shortcut: 'Enter'
+				},
 				'separator',
-				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
-				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
+				{ name: 'Cut', action: () => explorer.clipSelected('cut'), shortcut: 'Ctrl+X' },
+				{
+					name: 'Copy',
+					action: () => explorer.clipSelected('copy'),
+					disabled: true,
+					shortcut: 'Ctrl+C'
+				},
 				{ name: 'Rename', action: () => {}, disabled: true },
 				'separator',
 				{
 					name: 'Pin',
 					action: () => explorer.pinSelected(),
-					hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1)
+					hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1),
+					shortcut: 'Ctrl+P'
 				},
 				{
 					name: 'Unpin',
 					action: () => explorer.unpinSelected(),
-					hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1
+					hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1,
+					shortcut: 'Ctrl+U'
 				},
 				'separator',
 				{
 					name: 'Move to Bin',
 					action: () => explorer.deleteSelected('soft'),
-					hidden: explorer.inBin
+					hidden: explorer.inBin,
+					shortcut: 'Del'
 				},
 				{
 					name: 'Permanently Delete',
 					action: () => explorer.deleteSelected('hard'),
-					hidden: explorer.inBin
+					hidden: explorer.inBin,
+					shortcut: 'Shift+Del'
 				},
 				{
 					name: 'Delete from Bin',
 					action: () => explorer.deleteSelected('hard'),
-					hidden: !explorer.inBin
+					hidden: !explorer.inBin,
+					shortcut: 'Del'
 				},
 				{
 					name: 'Recover from Bin',
 					disabled: true,
 					hidden: !explorer.inBin
 				}
-			];
+			]);
 		}}
 	>
 		{#if item.type === 'Asset'}

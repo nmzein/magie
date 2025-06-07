@@ -8,6 +8,11 @@
 	const ctx = context.get();
 </script>
 
-<Button class={ctx.classes.trigger} onclick={() => ctx.toggle()} {disabled}>
+<Button
+	bind:component={ctx.triggerElement}
+	class={ctx.classes.trigger}
+	onclick={() => ctx.toggle()}
+	{disabled}
+>
 	{@render children()}
 </Button>

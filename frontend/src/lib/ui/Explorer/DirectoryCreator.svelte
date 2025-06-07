@@ -26,7 +26,8 @@
 		}
 	);
 
-	function onkeypress(event: KeyboardEvent) {
+	function onkeydown(event: KeyboardEvent) {
+		event.stopPropagation();
 		if (event.key === 'Enter' && name !== '' && defined(explorer.directory)) {
 			// FIX: I don't like this.
 			explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
@@ -37,8 +38,7 @@
 <Button
 	bind:component={button}
 	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
-	{onkeypress}
-	onkeydown={(e) => e.stopPropagation()}
+	{onkeydown}
 >
 	<Icon name="directory" class="h-[90px] w-[90px]" />
 	<!-- svelte-ignore a11y_autofocus -->

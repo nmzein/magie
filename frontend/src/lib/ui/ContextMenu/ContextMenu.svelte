@@ -1,12 +1,12 @@
 <script lang="ts">
 	import * as Dropdown from '$components/dropdown';
 	import Separator from '$components/Separator.svelte';
-	import type { ContextMenuItem } from '$lib/states/context-menu.svelte';
+	import type { ContextMenuItem } from './state.svelte.ts';
 	import { contextMenu } from '$states';
 
 	const classes = {
 		list: `min-w-[150px] flex flex-col mt-[4px] ml-[4px] bg-[#333]/90 rounded-[5px] border border-primary/10 backdrop-blur-[45px] z-10 text-sm`,
-		item: 'flex flex-row gap-[10px] items-center m-[2px] px-[10px] py-[7.5px] rounded-[5px] hover:bg-primary/10'
+		item: 'flex gap-[10px] justify-between items-center mx-1 my-0.5 px-[10px] gap-5 py-[7.5px] rounded-[5px] hover:bg-primary/10'
 	};
 
 	function clean(items: ContextMenuItem[]) {
@@ -38,6 +38,16 @@
 	}
 </script>
 
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape' || e.key === 'Enter') {
+			contextMenu.close();
+		}
+	}}
+/>
+
+<!-- TODO: Focus keyboard on first item. -->
+<!-- TODO: Intelligently display based on viewport size. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="pointer-events-auto absolute z-[1000]"
@@ -49,11 +59,14 @@
 			{#each clean(contextMenu.items) as item}
 				{#if item === 'separator'}
 					<div class="flex w-full justify-center">
-						<Separator class="my-1 w-7/8" />
+						<Separator class="my-1" />
 					</div>
 				{:else}
 					<Dropdown.Item onclick={item.action} disabled={item.disabled} hidden={item.hidden}>
 						{item.name}
+						<span class="text-secondary">
+							{item.shortcut}
+						</span>
 					</Dropdown.Item>
 				{/if}
 			{/each}

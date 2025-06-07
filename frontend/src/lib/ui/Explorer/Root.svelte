@@ -32,7 +32,7 @@
 </script>
 
 <div
-	class="panel flex max-w-[800px] min-w-48 origin-center flex-col !border-none"
+	class="panel outline-tertiary flex max-w-[800px] min-w-48 origin-center flex-col !border-none outline"
 	style="transform: translate({explorer.position.x}px, {explorer.position.y}px);"
 	use:ResizeObserver={(v) => (explorerBounds = v)}
 	onwheel={(e) => e.stopPropagation()}
