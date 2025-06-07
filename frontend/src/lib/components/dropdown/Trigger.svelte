@@ -3,11 +3,11 @@
 	import { context } from './context.svelte';
 	import Button from '$components/Button.svelte';
 
-	let { children }: { children: Snippet } = $props();
+	let { disabled = false, children }: { disabled?: boolean; children: Snippet } = $props();
 
 	const ctx = context.get();
 </script>
 
-<Button class={ctx.classes.trigger} onclick={() => ctx.toggle()}>
+<Button class={ctx.classes.trigger} onclick={() => ctx.toggle()} {disabled}>
 	{@render children()}
 </Button>

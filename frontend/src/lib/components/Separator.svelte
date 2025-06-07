@@ -1,5 +1,7 @@
 <script lang="ts">
-	let { margin = 7.5 }: { margin?: number } = $props();
+	import { twMerge } from 'tailwind-merge';
+
+	let { class: className = '' }: { class?: string } = $props();
 </script>
 
-<div class="bg-secondary/20 !mx-0 h-[1px] w-full" style:margin="{margin}px"></div>
+<div class={twMerge('bg-secondary/20 my-2 h-[1px] w-full', className)}></div>

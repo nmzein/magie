@@ -200,8 +200,8 @@ export class Explorer {
 		this.#pinned.delete(id);
 	}
 
-	deleteSelected(mode: 'soft' | 'hard') {
-		this.#selected.forEach((id) => {
+	deleteGroup(mode: 'soft' | 'hard', group: SvelteSet<number>) {
+		group.forEach((id) => {
 			switch (this.#store?.get(id)?.type) {
 				case 'Directory':
 					http.directory.remove(this.#storeId, id, mode);
@@ -211,6 +211,10 @@ export class Explorer {
 					break;
 			}
 		});
+	}
+
+	deleteSelected(mode: 'soft' | 'hard') {
+		this.deleteGroup(mode, this.#selected);
 	}
 
 	clipSelected(mode: 'cut' | 'copy') {

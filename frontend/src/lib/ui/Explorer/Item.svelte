@@ -82,21 +82,30 @@
 			contextMenu.position = { x: e.clientX, y: e.clientY };
 			contextMenu.items = [
 				{ name: 'Open', action: () => open(), hidden: explorer.selected.size !== 1 },
+				'separator',
+				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
+				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
+				{ name: 'Rename', action: () => {}, disabled: true },
+				'separator',
 				{
 					name: 'Pin',
 					action: () => explorer.pinSelected(),
-					hidden: explorer.isPinned(item.id) && explorer.selected.size === 1
+					hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1)
 				},
 				{
 					name: 'Unpin',
 					action: () => explorer.unpinSelected(),
 					hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1
 				},
-				{ name: 'Copy', action: () => explorer.clipSelected('copy'), disabled: true },
-				{ name: 'Cut', action: () => explorer.clipSelected('cut') },
+				'separator',
 				{
 					name: 'Move to Bin',
 					action: () => explorer.deleteSelected('soft'),
+					hidden: explorer.inBin
+				},
+				{
+					name: 'Permanently Delete',
+					action: () => explorer.deleteSelected('hard'),
 					hidden: explorer.inBin
 				},
 				{

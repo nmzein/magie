@@ -74,7 +74,11 @@
 					break;
 				case 'v':
 					e.preventDefault();
-					explorer.paste();
+					if (!explorer.inBin) {
+						explorer.paste();
+					} else {
+						// Display error notification.
+					}
 					break;
 			}
 		} else if (!e.shiftKey && e.key === 'Delete') {
@@ -96,10 +100,20 @@
 		contextMenu.show = true;
 		contextMenu.position = { x: e.clientX, y: e.clientY };
 		contextMenu.items = [
-			{ name: 'Select All', action: () => explorer.selectAll() },
-			{ name: 'Paste', action: () => explorer.paste(), disabled: clipboard.isEmpty },
-			{ name: 'New Image', action: () => explorer.uploader.open() },
-			{ name: 'New Directory', action: () => explorer.directoryCreator.open() }
+			{ name: 'Upload Asset', action: () => explorer.uploader.open(), hidden: explorer.inBin },
+			{
+				name: 'New Folder',
+				action: () => explorer.directoryCreator.open(),
+				hidden: explorer.inBin
+			},
+			'separator',
+			{
+				name: 'Paste',
+				action: () => explorer.paste(),
+				disabled: clipboard.isEmpty,
+				hidden: explorer.inBin
+			},
+			{ name: 'Select All', action: () => explorer.selectAll() }
 		];
 	}
 </script>

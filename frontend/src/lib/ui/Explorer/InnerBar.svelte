@@ -19,7 +19,7 @@
 
 <div class="bg-primary/15 relative flex flex-row px-[1px]">
 	<Dropdown.Root {classes}>
-		<Dropdown.Trigger>
+		<Dropdown.Trigger disabled={explorer.inBin}>
 			<Icon name="new" class="h-[1.15rem] w-[1.15rem]" /> New
 			{@render DownArrow()}
 		</Dropdown.Trigger>
