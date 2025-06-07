@@ -3,4 +3,3 @@ mod common;
 pub mod export;
 
 mod openslide;
-mod test;

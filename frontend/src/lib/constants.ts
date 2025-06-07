@@ -6,10 +6,10 @@ export const HTTP_BASE_URL =
 const WEBSOCKET_BASE_URL =
 	import.meta.env.MODE === 'development' ? `ws://localhost:${PUBLIC_PORT}` : '';
 
-export const DIRECTORY_URL = new URL(HTTP_BASE_URL + '/api/directory');
-export const ASSET_URL = new URL(HTTP_BASE_URL + '/api/image');
-export const STORE_URL = new URL(HTTP_BASE_URL + '/api/store');
-export const WEBSOCKET_URL = new URL(WEBSOCKET_BASE_URL + '/api/websocket');
+export const DIRECTORY_URL = HTTP_BASE_URL + '/api/directory';
+export const ASSET_URL = HTTP_BASE_URL + '/api/image';
+export const STORE_URL = HTTP_BASE_URL + '/api/store';
+export const WEBSOCKET_URL = WEBSOCKET_BASE_URL + '/api/websocket';
 
 export const C_TILE_TAG = 0;
 

@@ -2,5 +2,4 @@
 mod common;
 pub mod export;
 
-mod test;
 mod omezarr;

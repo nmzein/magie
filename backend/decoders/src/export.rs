@@ -54,9 +54,6 @@ pub fn get(extension: &str, image_path: &Path) -> Option<Box<dyn Decoder>> {
             if let Ok(decoder) = crate::openslide::Module::open(image_path) {
                 return Some(Box::new(decoder));
             }
-            if let Ok(decoder) = crate::test::Module::open(image_path) {
-                return Some(Box::new(decoder));
-            }
             None
         }
         "vms" => {
@@ -75,5 +72,5 @@ pub fn get(extension: &str, image_path: &Path) -> Option<Box<dyn Decoder>> {
     }
 }
 pub fn names() -> Vec<&'static str> {
-    vec!["OpenSlide", "Test"]
+    vec!["OpenSlide"]
 }

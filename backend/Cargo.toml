@@ -13,9 +13,16 @@ opt-level = 3     # TODO: Check speed compared to 2.
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98", default-features = false }
-axum = { version = "0.8.4", features = ["ws", "json"] }
-axum_typed_multipart = { version = "0.16.2" }
-bincode = { version = "2.0.1" }
+axum = { version = "0.8.4", features = [
+    "http1",
+    "json",
+    "query",
+    "ws",
+], default-features = false }
+axum_typed_multipart = { version = "0.16.2", features = [
+    "tempfile_3",
+], default-features = false }
+bincode = "2.0.1"
 chrono = { version = "0.4.41" }
 dashmap = { version = "6.1.0", default-features = false }
 futures-util = { version = "0.3.31", default-features = false }
@@ -24,14 +31,12 @@ prettyplease = { version = "0.2.33", default-features = false }
 proc-macro2 = { version = "1.0.95", default-features = false }
 quote = { version = "1.0.40", default-features = false }
 rayon = { version = "1.10.0", default-features = false }
-rusqlite = { version = "0.36.0", default-features = false, features = [
-    "bundled",
-] }
-serde = { version = "1.0.219", features = ["derive"] }
+rusqlite = "0.36.0"
+serde = { version = "1.0.219", features = ["serde_derive"] }
 serde_json = { version = "1.0.140", default-features = false }
 syn = { version = "2.0.101", default-features = false }
 tempfile = { version = "3.20.0", default-features = false }
-tokio = { version = "1.45.1", default-features = false, features = ["full"] }
+tokio = { version = "1.45.1", features = ["rt-multi-thread"] }
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.6", default-features = false, features = [
     "cors",

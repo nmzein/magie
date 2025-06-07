@@ -10,8 +10,8 @@ path = "src/main.rs"
 [dependencies]
 shared = { version = "0.0.0", path = "../shared" }
 decoders = { version = "0.0.0", path = "../decoders" }
-encoders = { version = "0.0.0", path = "../encoders" }
-generators = { version = "0.0.0", path = "../generators" }
+encoders = { version = "0.0.0", path = "../encoders" , default-features = false }
+generators = { version = "0.0.0", path = "../generators" , default-features = false }
 
 anyhow = { workspace = true }
 axum = { workspace = true }

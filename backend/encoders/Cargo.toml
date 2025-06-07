@@ -17,8 +17,7 @@ rayon = { workspace = true }
 zarrs = { workspace = true }
 
 [features]
-default = ["omezarr", "test"]
+default = ["omezarr"]
 
 omezarr = []
-test = []
 time = []
