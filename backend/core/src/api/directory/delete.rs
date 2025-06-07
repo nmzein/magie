@@ -38,7 +38,7 @@ pub async fn delete(
 
     // [CHECK]: Cannot soft delete within the bin.
     if mode == DeleteMode::Soft {
-        match crate::db::directory::is_within(&dbm, store_id, directory_id, BIN_ID) {
+        match crate::db::directory::is_or_in(&dbm, store_id, directory_id, BIN_ID) {
             Ok(false) => {}
             Ok(true) => {
                 return logger.error(

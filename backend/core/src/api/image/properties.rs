@@ -20,7 +20,7 @@ pub async fn properties(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
-                "IP-E00",
+                "AP-E00",
                 "Failed to retrieve asset properties.",
                 Some(e),
             );

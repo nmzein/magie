@@ -62,15 +62,13 @@ pub async fn upload(
     }): TypedMultipart<Multipart>,
 ) -> Response {
     // [CHECK]: Cannot upload asset to the bin.
-    match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
-        .map(|res| res || parent_id == BIN_ID)
-    {
+    match crate::db::directory::is_or_in(&dbm, store_id, parent_id, BIN_ID) {
         Ok(false) => {}
         Ok(true) => {
             return logger.error(
                 StatusCode::FORBIDDEN,
                 Error::RequestIntegrity,
-                "IU-E00",
+                "AU-E00",
                 "Cannot upload asset to the bin.",
                 None,
             );
@@ -79,7 +77,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
-                "IU-E01",
+                "AU-E01",
                 "Failed to check if asset would be in the bin.",
                 Some(e),
             );
@@ -92,8 +90,8 @@ pub async fn upload(
         return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
-            "IU-E02",
-            "Uploaded image has no extension.",
+            "AU-E02",
+            "Uploaded asset has no extension.",
             None,
         );
     };
@@ -107,7 +105,7 @@ pub async fn upload(
         return logger.error(
             StatusCode::BAD_REQUEST,
             Error::RequestIntegrity,
-            "IU-E03",
+            "AU-E03",
             "Uploaded annotations file has no extension.",
             None,
         );
@@ -123,7 +121,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E04",
+                "AU-E04",
                 "Encoder could not be found.",
                 None,
             );
@@ -140,7 +138,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::NOT_FOUND,
                 Error::ResourceExistence,
-                "IU-E05",
+                "AU-E05",
                 "Generator could not be found.",
                 None,
             );
@@ -152,7 +150,7 @@ pub async fn upload(
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
-            "IU-E06",
+            "AU-E06",
             "Failed to generate image ID.",
             None,
         );
@@ -165,7 +163,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IU-E07",
+                "AU-E07",
                 "Failed to create a directory for asset.",
                 Some(e),
             );
@@ -223,7 +221,7 @@ pub async fn upload(
             return logger.error(
                 StatusCode::CONFLICT,
                 Error::ResourceCreation,
-                "IU-E08",
+                "AU-E08",
                 "Failed to save asset to database.",
                 Some(e),
             );
@@ -258,8 +256,8 @@ fn handle_image(
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IUI-E00",
-                "Failed to save image to disk.",
+                "AUI-E00",
+                "Failed to save asset to disk.",
                 Some(e),
             ));
         }
@@ -281,7 +279,7 @@ fn handle_image(
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IUI-E01",
+                "AUI-E01",
                 "Failed to convert image to Zarr.",
                 Some(e),
             ));
@@ -337,7 +335,7 @@ fn translate_annotations(
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IUTA-E00",
+                "AUTA-E00",
                 "Failed to save annotations file to disk.",
                 Some(e),
             ));
@@ -354,7 +352,7 @@ fn translate_annotations(
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IUTA-E01",
+                "AUTA-E01",
                 "Failed to translate annotations file.",
                 Some(e),
             ));
@@ -368,7 +366,7 @@ fn translate_annotations(
         return Err(logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
-            "IUTA-E02",
+            "AUTA-E02",
             "Failed to serialise annotations file.",
             None,
         ));
@@ -378,7 +376,7 @@ fn translate_annotations(
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
-            "IUTA-E03",
+            "AUTA-E03",
             "Failed to save translated annotations file to disk.",
             Some(e.into()),
         );
@@ -402,7 +400,7 @@ fn translate_annotations(
                     return logger.error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error::ResourceCreation,
-                        "IUTA-E04",
+                        "AUTA-E04",
                         "Failed to convert stderr to string.",
                         Some(e.into()),
                     );
@@ -411,7 +409,7 @@ fn translate_annotations(
                 return Err(logger.error(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Error::ResourceCreation,
-                    "IUTA-E05",
+                    "AUTA-E05",
                     "Failed to compute annotation positions and normals.",
                     Some(anyhow!(e)),
                 ));
@@ -421,7 +419,7 @@ fn translate_annotations(
             return Err(logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceCreation,
-                "IUTA-E06",
+                "AUTA-E06",
                 "Failed to run geometry computation.",
                 Some(e.into()),
             ));
