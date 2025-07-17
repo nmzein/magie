@@ -1,45 +1,49 @@
 {
-	"name": "magie",
-	"version": "0.0.0",
-	"type": "module",
-	"scripts": {
-		"dev": "bunx --bun vite dev --port 4000",
-		"build": "bunx --bun vite build",
-		"preview": "bunx --bun vite preview --port 4000",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write .",
-		"lint": "eslint ."
-	},
-	"devDependencies": {
-		"@eslint/compat": "1.2.9",
-		"@eslint/js": "9.28.0",
-		"@sveltejs/adapter-static": "3.0.8",
-		"@sveltejs/kit": "2.21.2",
-		"@sveltejs/vite-plugin-svelte": "5.1.0",
-		"@types/eslint": "9.6.1",
-		"@types/three": "0.177.0",
-		"eslint": "9.28.0",
-		"eslint-config-prettier": "10.1.5",
-		"eslint-plugin-svelte": "3.9.1",
-		"globals": "16.2.0",
-		"prettier": "3.5.3",
-		"prettier-plugin-svelte": "3.4.0",
-		"prettier-plugin-tailwindcss": "0.6.12",
-		"svelte": "5.33.14",
-		"svelte-check": "4.2.1",
-		"typescript": "5.8.3",
-		"typescript-eslint": "8.33.1",
-		"vite": "6.3.5"
-	},
-	"dependencies": {
-		"@iconify/json": "2.2.345",
-		"@tailwindcss/vite": "4.1.8",
-		"runed": "0.28.0",
-		"tailwind-merge": "3.3.0",
-		"tailwind-variants": "1.0.0",
-		"tailwindcss": "4.1.8",
-		"three": "0.177.0",
-		"unplugin-icons": "22.1.0"
-	}
+  "name": "magie",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite dev --port 4000",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview --port 4000",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "prettier --write .",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/compat": "1.3.1",
+    "@eslint/js": "9.31.0",
+    "@sveltejs/adapter-static": "3.0.8",
+    "@sveltejs/kit": "2.24.0",
+    "@sveltejs/vite-plugin-svelte": "6.1.0",
+    "@types/eslint": "9.6.1",
+    "@types/three": "0.178.1",
+    "eslint": "9.31.0",
+    "eslint-config-prettier": "10.1.5",
+    "eslint-plugin-svelte": "3.11.0",
+    "globals": "16.3.0",
+    "prettier": "3.6.2",
+    "prettier-plugin-svelte": "3.4.0",
+    "prettier-plugin-tailwindcss": "0.6.14",
+    "svelte": "5.36.5",
+    "svelte-check": "4.2.2",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.37.0",
+    "vite": "7.0.5"
+  },
+  "dependencies": {
+    "@iconify/json": "2.2.359",
+    "@tailwindcss/vite": "4.1.11",
+    "runed": "0.31.0",
+    "tailwind-merge": "3.3.1",
+    "tailwind-variants": "1.0.0",
+    "tailwindcss": "4.1.11",
+    "three": "0.178.0",
+    "unplugin-icons": "22.1.0"
+  },
+  "trustedDependencies": [
+    "@tailwindcss/oxide",
+    "esbuild"
+  ]
 }

@@ -4,16 +4,16 @@
     "": {
       "name": "geometry-computer",
       "dependencies": {
-        "@gltf-transform/core": "4.1.4",
-        "three": "0.177.0",
+        "@gltf-transform/core": "4.2.0",
+        "three": "0.178.0",
       },
     },
   },
   "packages": {
-    "@gltf-transform/core": ["@gltf-transform/core@4.1.4", "", { "dependencies": { "property-graph": "^3.0.0" } }, "sha512-TE6MGzlmsFWR8mkWNDSM7KWUjAeySBYN6MchL8YIzDECLpkFzXeO69K2yLjhKFfPmL27ZYe17vgzqwlcGF+X3A=="],
+    "@gltf-transform/core": ["@gltf-transform/core@4.2.0", "", { "dependencies": { "property-graph": "^3.0.0" } }, "sha512-43FtHNxMhT+VX/WZeXISorbtknwusdcfwu0qzfrDa1azsk5CBVOaZwM+ul7DsHty47eC49lSPN0g8uNso35WVw=="],
 
     "property-graph": ["property-graph@3.0.0", "", {}, "sha512-TnzxUsttmGtw+OiU0LDw+0FlMbJ8vV8pOjyDI7+Kdni4Tj0hW5BFh7TatQu7Y68hcvvFmiFOHilKShsA4R82fA=="],
 
-    "three": ["three@0.177.0", "", {}, "sha512-EiXv5/qWAaGI+Vz2A+JfavwYCMdGjxVsrn3oBwllUoqYeaBO75J63ZfyaQKoiLrqNHoTlUc6PFgMXnS0kI45zg=="],
+    "three": ["three@0.178.0", "", {}, "sha512-ybFIB0+x8mz0wnZgSGy2MO/WCO6xZhQSZnmfytSPyNpM0sBafGRVhdaj+erYh5U+RhQOAg/eXqw5uVDiM2BjhQ=="],
   }
 }
