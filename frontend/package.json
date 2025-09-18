@@ -42,7 +42,7 @@
 		"three": "0.180.0",
 		"unplugin-icons": "22.3.0"
 	},
-	"trustedDependencies": [
-		"@tailwindcss/oxide"
-	]
+	"overrides": {
+		"cookie": "1.0.2"
+	}
 }
