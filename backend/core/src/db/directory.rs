@@ -58,12 +58,16 @@ pub fn r#move(
     Ok(())
 }
 
-pub fn is_within(
+pub fn is_or_in(
     dbm: &DatabaseManager,
     store_id: u32,
-    descendant_id: u32,
-    ancestor_id: u32,
+    directory_id: u32,
+    potential_ancestor_id: u32,
 ) -> Result<bool> {
+    if directory_id == potential_ancestor_id {
+        return Ok(true);
+    }
+
     let conn = dbm.store(store_id)?;
 
     let mut stmt = conn.prepare_cached(
@@ -86,7 +90,7 @@ pub fn is_within(
             ",
     )?;
 
-    let exists = stmt.exists([descendant_id, ancestor_id])?;
+    let exists = stmt.exists([directory_id, potential_ancestor_id])?;
 
     Ok(exists)
 }

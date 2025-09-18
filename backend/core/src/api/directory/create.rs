@@ -20,9 +20,7 @@ pub async fn create(
     }): Path<PathParams>,
 ) -> Response {
     // [CHECK]: Cannot create directory in bin.
-    match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
-        .map(|res| res || parent_id == BIN_ID)
-    {
+    match crate::db::directory::is_or_in(&dbm, store_id, parent_id, BIN_ID) {
         Ok(false) => {}
         Ok(true) => {
             return logger.error(
@@ -46,10 +44,7 @@ pub async fn create(
 
     // [DATABASE]: Insert directory into the database.
     let id = match crate::db::directory::insert(&dbm, store_id, parent_id, &name) {
-        Ok(id) => {
-            logger.log("Directory inserted into the database.");
-            id
-        }
+        Ok(id) => id,
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -60,6 +55,8 @@ pub async fn create(
             );
         }
     };
+
+    logger.log("Directory inserted into the database.");
 
     // [COMMS]: Broadcast directory create message to connected clients.
     match csm

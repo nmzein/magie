@@ -20,30 +20,28 @@ pub async fn delete(
 ) -> Response {
     match mode {
         DeleteMode::Soft => {
-            // Need to check if image already in bin or else bad state will happen.
             let parent_id = match crate::db::image::get_parent(&dbm, store_id, image_id) {
                 Ok(parent_id) => parent_id,
                 Err(e) => {
                     return logger.error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error::DatabaseQuery,
-                        "IDS-E00",
-                        "Failed to get image parent.",
+                        "ADS-E00",
+                        "Failed to get parent of the asset.",
                         Some(e),
                     );
                 }
             };
 
-            match crate::db::directory::is_within(&dbm, store_id, parent_id, BIN_ID)
-                .map(|res| res || parent_id == BIN_ID)
-            {
+            // [CHECK]: Cannot soft delete image already in bin.
+            match crate::db::directory::is_or_in(&dbm, store_id, parent_id, BIN_ID) {
                 Ok(false) => {}
                 Ok(true) => {
                     return logger.error(
-                        StatusCode::BAD_REQUEST,
+                        StatusCode::FORBIDDEN,
                         Error::RequestIntegrity,
-                        "IDS-E01",
-                        "Cannot soft delete image already in bin.",
+                        "ADS-E01",
+                        "Cannot soft delete asset that is already in bin.",
                         None,
                     );
                 }
@@ -51,7 +49,7 @@ pub async fn delete(
                     return logger.error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error::DatabaseQuery,
-                        "IDS-E02",
+                        "ADS-E02",
                         "Failed to check if image parent is in the bin.",
                         Some(e),
                     );

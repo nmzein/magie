@@ -5,8 +5,9 @@
 	import { registry, views } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
 	import Button from '$components/Button.svelte';
+	import Window from '$components/window/Window.svelte';
 	import { Explorer } from '$ui/Explorer';
-	import ContextMenu from '$ui/ContextMenu.svelte';
+	import { ContextMenu } from '$ui/ContextMenu/index.ts';
 	import Geometry2DControls from '$view/Geometry2D/Control.svelte';
 	import Icon from '$icon';
 
@@ -25,19 +26,21 @@
 	const activeView: View | undefined = $derived(views[0]);
 </script>
 
-<Tabs.Root id="zooming" mode="buttons" {classes}>
-	<Tabs.Root id="applets" mode="collapsible-tab" {classes}>
-		<Tabs.Root id="drawing" mode="tab" currentTab="move" {classes}>
-			<div class="pointer-events-none absolute flex w-full flex-row gap-[10px] overflow-hidden">
+<div class="pointer-events-none absolute flex w-full flex-row gap-2 overflow-hidden">
+	<Tabs.Root id="zooming" mode="buttons" {classes}>
+		<Tabs.Root id="applets" mode="collapsible-tab" {classes}>
+			<Tabs.Root id="drawing" mode="tab" currentTab="move" {classes}>
 				<ContextMenu />
 
 				<Tabs.ContentSpace id="applets">
 					<div
-						class="h-screen w-full flex-1 shrink-0 overflow-hidden p-[10px] pr-0"
+						class="h-screen w-full flex-1 shrink-0 overflow-hidden p-2 pr-1"
 						bind:contentRect={contentSpaceBounds}
 					>
 						<Tabs.Content value="explorer">
-							<Explorer {contentSpaceBounds} />
+							<Window {contentSpaceBounds}>
+								<Explorer />
+							</Window>
 						</Tabs.Content>
 						<Tabs.Content value="control" disabled={!defined(activeView)}>
 							<Geometry2DControls bind:geometries={activeView!.state.geometries} />
@@ -60,6 +63,7 @@
 								onclick={() => {
 									activeView?.state.transformer.resetScale();
 								}}
+								disabled={!defined(activeView)}
 								class="my-[5px] text-center select-none"
 								class:cursor-pointer={defined(activeView)}
 								class:opacity-30={!defined(activeView)}
@@ -116,7 +120,7 @@
 						</div>
 					</div>
 				</div>
-			</div>
+			</Tabs.Root>
 		</Tabs.Root>
 	</Tabs.Root>
-</Tabs.Root>
+</div>

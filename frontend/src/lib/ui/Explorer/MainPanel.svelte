@@ -56,6 +56,14 @@
 	function onkeydown(e: KeyboardEvent) {
 		if (e.ctrlKey) {
 			switch (e.key) {
+				case 'l':
+					e.preventDefault();
+					explorer.uploader.open();
+					break;
+				case 'L':
+					e.preventDefault();
+					explorer.directoryCreator.open();
+					break;
 				case 'a':
 					e.preventDefault();
 					explorer.selectAll();
@@ -74,7 +82,11 @@
 					break;
 				case 'v':
 					e.preventDefault();
-					explorer.paste();
+					if (!explorer.inBin) {
+						explorer.paste();
+					} else {
+						// Display error notification.
+					}
 					break;
 			}
 		} else if (!e.shiftKey && e.key === 'Delete') {
@@ -93,14 +105,29 @@
 
 	function oncontextmenu(e: MouseEvent) {
 		e.preventDefault();
-		contextMenu.show = true;
-		contextMenu.position = { x: e.clientX, y: e.clientY };
-		contextMenu.items = [
-			{ name: 'Select All', action: () => explorer.selectAll() },
-			{ name: 'Paste', action: () => explorer.paste(), disabled: clipboard.isEmpty },
-			{ name: 'New Image', action: () => explorer.uploader.open() },
-			{ name: 'New Directory', action: () => explorer.directoryCreator.open() }
-		];
+		contextMenu.open({ x: e.clientX, y: e.clientY }, [
+			{
+				name: 'Upload Asset',
+				action: () => explorer.uploader.open(),
+				hidden: explorer.inBin,
+				shortcut: 'Ctrl+L'
+			},
+			{
+				name: 'New Folder',
+				action: () => explorer.directoryCreator.open(),
+				hidden: explorer.inBin,
+				shortcut: 'Shift+Ctrl+L'
+			},
+			'separator',
+			{
+				name: 'Paste',
+				action: () => explorer.paste(),
+				disabled: clipboard.isEmpty,
+				hidden: explorer.inBin,
+				shortcut: 'Ctrl+V'
+			},
+			{ name: 'Select All', action: () => explorer.selectAll(), shortcut: 'Ctrl+A' }
+		]);
 	}
 </script>
 

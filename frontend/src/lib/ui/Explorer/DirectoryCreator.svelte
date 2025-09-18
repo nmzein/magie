@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Icon from '$icon';
 	import Button from '$components/Button.svelte';
-	import { defined } from '$helpers';
 	import { onClickOutside } from 'runed';
 	import { context } from './context.svelte.ts';
 
@@ -20,16 +19,15 @@
 				explorer.directoryCreator.close();
 			} else {
 				// Clicked anywhere and a name was set, create directory.
-				// FIX: I don't like this.
-				explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
+				explorer.createDirectory(name);
 			}
 		}
 	);
 
-	function onkeypress(event: KeyboardEvent) {
-		if (event.key === 'Enter' && name !== '' && defined(explorer.directory)) {
-			// FIX: I don't like this.
-			explorer.directoryCreator.create(explorer.storeId, explorer.directory.id, name);
+	function onkeydown(event: KeyboardEvent) {
+		event.stopPropagation();
+		if (event.key === 'Enter' && name !== '') {
+			explorer.createDirectory(name);
 		}
 	}
 </script>
@@ -37,8 +35,7 @@
 <Button
 	bind:component={button}
 	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
-	{onkeypress}
-	onkeydown={(e) => e.stopPropagation()}
+	{onkeydown}
 >
 	<Icon name="directory" class="h-[90px] w-[90px]" />
 	<!-- svelte-ignore a11y_autofocus -->

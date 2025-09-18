@@ -22,7 +22,7 @@ pub async fn thumbnail(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
-                "IT-E00",
+                "AT-E00",
                 "Failed to retrieve asset thumbnail path.",
                 Some(e),
             );
@@ -53,7 +53,7 @@ pub async fn thumbnail(
                     return logger.error(
                         StatusCode::INTERNAL_SERVER_ERROR,
                         Error::ResourceRead,
-                        "IT-E01",
+                        "AT-E01",
                         "Failed to read asset thumbnail.",
                         Some(e.into()),
                     );
@@ -64,7 +64,7 @@ pub async fn thumbnail(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceRead,
-                "IT-E02",
+                "AT-E02",
                 "Failed to open asset thumbnail.",
                 Some(e.into()),
             );

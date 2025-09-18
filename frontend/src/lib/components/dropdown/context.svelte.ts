@@ -8,6 +8,8 @@ const DEFAULT_CLASSES: DropdownClasses = { trigger: '', list: '', item: '' };
 export type DropdownClasses = { trigger?: string; list?: string; item?: string };
 export class DropdownState {
 	show: boolean = $state(false);
+	triggerElement: HTMLButtonElement | undefined = $state();
+	listElement: HTMLDivElement | undefined = $state();
 	#classes: DropdownClasses;
 
 	constructor(classes?: DropdownClasses) {

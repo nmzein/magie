@@ -1,5 +1,5 @@
 use crate::api::prelude::*;
-use crate::constants::PRIVILEGED;
+use crate::constants::{BIN_ID, PRIVILEGED};
 
 #[derive(Deserialize)]
 pub struct PathParams {
@@ -22,47 +22,25 @@ pub async fn r#move(
     }): Path<PathParams>,
     Json(Body { destination_id }): Json<Body>,
 ) -> Response {
-    if directory_id == destination_id {
-        return logger.error(
-            StatusCode::FORBIDDEN,
-            Error::RequestIntegrity,
-            "DM-E00",
-            "Cannot move directory into itself.",
-            None,
-        );
-    } else {
-        logger.report(Check::RequestIntegrity, "Not moving directory into itself.");
-    }
-
-    // Check if the directory we're trying to move is privileged.
+    // [CHECK]: Cannot move privileged directories.
     if PRIVILEGED.contains(&directory_id) {
         return logger.error(
             StatusCode::FORBIDDEN,
             Error::RequestIntegrity,
-            "DM-E01",
+            "DM-E00",
             "Cannot move privileged directories.",
             None,
         );
-    } else {
-        logger.report(
-            Check::RequestIntegrity,
-            "Specified parent directory is not a privileged directory.",
-        );
     }
 
-    // Check if the destination is a child of the directory we're trying to move.
-    match crate::db::directory::is_within(&dbm, store_id, destination_id, directory_id) {
-        Ok(false) => {
-            logger.report(
-                Check::RequestIntegrity,
-                "Destination directory is not inside target directory.",
-            );
-        }
+    // [CHECK]: Cannot move a directory into itself or its children.
+    match crate::db::directory::is_or_in(&dbm, store_id, destination_id, directory_id) {
+        Ok(false) => {}
         Ok(true) => {
             return logger.error(
                 StatusCode::FORBIDDEN,
                 Error::RequestIntegrity,
-                "DM-E02",
+                "DM-E01",
                 "Cannot move directory into its children.",
                 None,
             );
@@ -71,8 +49,31 @@ pub async fn r#move(
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::DatabaseQuery,
-                "DM-E03",
+                "DM-E02",
                 "Failed to check if attempting to move directory inside its children.",
+                Some(e),
+            );
+        }
+    }
+
+    // [CHECK]: Cannot move directory into bin.
+    match crate::db::directory::is_or_in(&dbm, store_id, directory_id, BIN_ID) {
+        Ok(false) => {}
+        Ok(true) => {
+            return logger.error(
+                StatusCode::FORBIDDEN,
+                Error::RequestIntegrity,
+                "DM-E03",
+                "Cannot create a directory in the bin.",
+                None,
+            );
+        }
+        Err(e) => {
+            return logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::DatabaseQuery,
+                "DM-E04",
+                "Failed to check if new directory would be in the bin.",
                 Some(e),
             );
         }
@@ -80,17 +81,19 @@ pub async fn r#move(
 
     // Move the directory in the database.
     match crate::db::directory::r#move(&dbm, store_id, directory_id, destination_id) {
-        Ok(()) => logger.log("Directory moved in the database."),
+        Ok(()) => {}
         Err(e) => {
             return logger.error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceMove,
-                "DM-E04",
+                "DM-E05",
                 "Failed to move directory in the database.",
                 Some(e),
             );
         }
     }
+
+    logger.log("Directory moved in the database.");
 
     // Broadcast directory move.
     match csm
@@ -105,7 +108,7 @@ pub async fn r#move(
         Err(e) => logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResponseIntegrity,
-            "DM-E05",
+            "DM-E06",
             "Failed to encode directory move message.",
             Some(e),
         ),

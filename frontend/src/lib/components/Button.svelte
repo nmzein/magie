@@ -22,7 +22,7 @@
 	} & HTMLButtonAttributes = $props();
 
 	const button = tv({
-		base: 'cursor-pointer text-sm items-center',
+		base: 'cursor-pointer text-sm items-center focus-visible:outline-2 focus-visible:outline-offset-2 rounded-md',
 		variants: {
 			variant: {
 				plain: '',
@@ -33,19 +33,19 @@
 				true: 'invisible'
 			},
 			disabled: {
-				true: 'cursor-default'
+				true: 'cursor-default opacity-50 hover:!bg-transparent'
 			}
 		},
 		compoundVariants: [
 			{
 				variant: 'primary',
 				disabled: true,
-				class: 'text-primary/50 hover:bg-transparent'
+				class: 'text-primary/50'
 			},
 			{
 				variant: 'accent',
 				disabled: true,
-				class: 'bg-accent-dark hover:bg-accent-dark'
+				class: 'bg-accent-dark'
 			}
 		]
 	});
