@@ -19,7 +19,7 @@
 		intersected = defined(itemBounds) && selection.intersecting(itemBounds, item.id);
 	});
 
-	const selected = $derived(explorer.isSelected(item.id));
+	let selected = $derived(explorer.isSelected(item.id));
 
 	function onpointerdown(e: PointerEvent) {
 		// If control key is pressed, the user wants
@@ -45,82 +45,86 @@
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			explorer.open(item);
+		} else if (e.key === 'Tab') {
+			explorer.deselect(item.id);
 		}
+	}
+
+	function oncontextmenu(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		if (!selected) {
+			explorer.deselectAll();
+			explorer.select(item.id);
+		}
+
+		contextMenu.open({ x: e.clientX, y: e.clientY }, [
+			{
+				name: 'Open',
+				action: () => explorer.open(item),
+				hidden: explorer.selected.size !== 1,
+				shortcut: 'Enter'
+			},
+			'separator',
+			{ name: 'Cut', action: () => explorer.clipSelected('cut'), shortcut: 'Ctrl+X' },
+			{
+				name: 'Copy',
+				action: () => explorer.clipSelected('copy'),
+				disabled: true,
+				shortcut: 'Ctrl+C'
+			},
+			{ name: 'Rename', action: () => {}, disabled: true },
+			'separator',
+			{
+				name: 'Pin',
+				action: () => explorer.pinSelected(),
+				hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1),
+				shortcut: 'Ctrl+P'
+			},
+			{
+				name: 'Unpin',
+				action: () => explorer.unpinSelected(),
+				hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1,
+				shortcut: 'Ctrl+U'
+			},
+			'separator',
+			{
+				name: 'Move to Bin',
+				action: () => explorer.deleteSelected('soft'),
+				hidden: explorer.inBin,
+				shortcut: 'Del'
+			},
+			{
+				name: 'Permanently Delete',
+				action: () => explorer.deleteSelected('hard'),
+				hidden: explorer.inBin,
+				shortcut: 'Shift+Del'
+			},
+			{
+				name: 'Delete from Bin',
+				action: () => explorer.deleteSelected('hard'),
+				hidden: !explorer.inBin,
+				shortcut: 'Del'
+			},
+			{
+				name: 'Recover from Bin',
+				disabled: true,
+				hidden: !explorer.inBin
+			}
+		]);
 	}
 </script>
 
 <div use:BoundingClientRect={(v) => (itemBounds = v)} class="h-fit">
 	<button
 		class={twMerge(
-			`hover:bg-primary/10 active:bg-primary/20 ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
+			`hover:bg-primary/10 active:bg-primary/20 focus:bg-primary/10 focus:outline-none ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40 focus:bg-accent/30' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
 		)}
 		{onpointerdown}
 		ondblclick={() => explorer.open(item)}
 		{onkeydown}
-		oncontextmenu={(e) => {
-			e.preventDefault();
-			e.stopPropagation();
-
-			if (!selected) {
-				explorer.deselectAll();
-				explorer.select(item.id);
-			}
-
-			contextMenu.open({ x: e.clientX, y: e.clientY }, [
-				{
-					name: 'Open',
-					action: () => explorer.open(item),
-					hidden: explorer.selected.size !== 1,
-					shortcut: 'Enter'
-				},
-				'separator',
-				{ name: 'Cut', action: () => explorer.clipSelected('cut'), shortcut: 'Ctrl+X' },
-				{
-					name: 'Copy',
-					action: () => explorer.clipSelected('copy'),
-					disabled: true,
-					shortcut: 'Ctrl+C'
-				},
-				{ name: 'Rename', action: () => {}, disabled: true },
-				'separator',
-				{
-					name: 'Pin',
-					action: () => explorer.pinSelected(),
-					hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1),
-					shortcut: 'Ctrl+P'
-				},
-				{
-					name: 'Unpin',
-					action: () => explorer.unpinSelected(),
-					hidden: !explorer.isPinned(item.id) || explorer.selected.size !== 1,
-					shortcut: 'Ctrl+U'
-				},
-				'separator',
-				{
-					name: 'Move to Bin',
-					action: () => explorer.deleteSelected('soft'),
-					hidden: explorer.inBin,
-					shortcut: 'Del'
-				},
-				{
-					name: 'Permanently Delete',
-					action: () => explorer.deleteSelected('hard'),
-					hidden: explorer.inBin,
-					shortcut: 'Shift+Del'
-				},
-				{
-					name: 'Delete from Bin',
-					action: () => explorer.deleteSelected('hard'),
-					hidden: !explorer.inBin,
-					shortcut: 'Del'
-				},
-				{
-					name: 'Recover from Bin',
-					disabled: true,
-					hidden: !explorer.inBin
-				}
-			]);
-		}}
+		{oncontextmenu}
 	>
 		{#if item.type === 'Asset'}
 			{#await http.asset.thumbnail(explorer.storeId, item.id)}

@@ -12,7 +12,7 @@
 		{#each explorer.path as [segment, id], index}
 			<Button
 				onclick={() => explorer.goto(id)}
-				class="rounded-md px-[5px] py-[3px] whitespace-nowrap hover:bg-black/25"
+				class="rounded-md px-[5px] py-[3px] whitespace-nowrap hover:bg-black/25 focus:outline-2 focus:outline-offset-2"
 			>
 				{segment}
 			</Button>

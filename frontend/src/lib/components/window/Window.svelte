@@ -71,7 +71,7 @@
 <svelte:window {onmousemove} {onmouseup} />
 
 <div
-	class="h-fit w-fit"
+	class="h-fit max-h-full w-fit max-w-full"
 	style="transform: translate({position.x}px, {position.y}px);"
 	use:ResizeObserver={(v) => (bounds = v)}
 >

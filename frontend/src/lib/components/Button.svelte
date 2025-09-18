@@ -22,7 +22,7 @@
 	} & HTMLButtonAttributes = $props();
 
 	const button = tv({
-		base: 'cursor-pointer text-sm items-center',
+		base: 'cursor-pointer text-sm items-center focus-visible:outline-2 focus-visible:outline-offset-2 rounded-md',
 		variants: {
 			variant: {
 				plain: '',

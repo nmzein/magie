@@ -15,11 +15,7 @@
 	class="absolute z-10 h-full w-full min-w-72 rounded-xl bg-black/50 p-6"
 	onkeydown={(e) => e.stopPropagation()}
 >
-	<div
-		class="panel border-tertiary flex h-full w-full flex-col rounded-[inherit] border-2"
-		role="dialog"
-		aria-modal="true"
-	>
+	<div class="panel flex h-full w-full flex-col rounded-[inherit]" role="dialog" aria-modal="true">
 		<TopBar />
 
 		<div class="flex flex-1 flex-col items-center justify-center gap-5 p-5">
