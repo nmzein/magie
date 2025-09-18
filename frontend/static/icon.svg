@@ -1,1 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><title>default_folder</title><path d="M27.5,5.5H18.2L16.1,9.7H4.4V26.5H29.6V5.5Zm0,4.2H19.3l1.1-2.1h7.1Z" style="fill:#c09553"/></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: SketchAPI 2022.10.24.12 https://api.sketch.io -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketchjs="https://sketch.io/dtd/" sketchjs:metadata="eyJuYW1lIjoiRHJhd2luZyIsInN1cmZhY2UiOnsiaXNQYWludCI6dHJ1ZSwibWV0aG9kIjoiZmlsbCIsImJsZW5kIjoibm9ybWFsIiwiZW5hYmxlZCI6dHJ1ZSwib3BhY2l0eSI6MSwidHlwZSI6InBhdHRlcm4iLCJwYXR0ZXJuIjp7InR5cGUiOiJwYXR0ZXJuIiwicmVmbGVjdCI6Im5vLXJlZmxlY3QiLCJyZXBlYXQiOiJyZXBlYXQiLCJzbW9vdGhpbmciOmZhbHNlLCJzcmMiOiJ0cmFuc3BhcmVudExpZ2h0Iiwic3giOjEsInN5IjoxLCJ4MCI6MC41LCJ4MSI6MSwieTAiOjAuNSwieTEiOjF9LCJpc0ZpbGwiOnRydWV9LCJjbGlwUGF0aCI6eyJlbmFibGVkIjp0cnVlLCJzdHlsZSI6eyJzdHJva2VTdHlsZSI6ImJsYWNrIiwibGluZVdpZHRoIjoxfX0sImRlc2NyaXB0aW9uIjoiTWFkZSB3aXRoIFNrZXRjaHBhZCIsIm1ldGFkYXRhIjp7fSwiZXhwb3J0RFBJIjo3MiwiZXhwb3J0Rm9ybWF0IjoicG5nIiwiZXhwb3J0UXVhbGl0eSI6MC45NSwidW5pdHMiOiJweCIsIndpZHRoIjozNzUsImhlaWdodCI6NDEwLCJwYWdlcyI6W3sid2lkdGgiOjM3NSwiaGVpZ2h0Ijo0MTB9XSwidXVpZCI6IjBjMzMzNzliLTZjYjUtNGU1ZS04MzJhLTk5Y2VkNmVhODUzOCJ9" width="375" height="410" viewBox="0 0 375 410">
+<defs>
+	<radialGradient id="dna_3509859785" gradientUnits="userSpaceOnUse" cx="246.38641189346663" cy="246.38641189346663" fx="246.38641189346663" fy="246.38641189346663" r="246.38641189346663">
+		<stop offset="0" style="stop-color:rgb(219, 58, 222);stop-opacity:1;"/>
+		<stop offset="0.469" style="stop-color:rgb(162, 57, 161);stop-opacity:1;"/>
+		<stop offset="1" style="stop-color:rgb(89, 39, 86);stop-opacity:1;"/>
+	</radialGradient>
+	<radialGradient id="dna_1165799959" gradientUnits="userSpaceOnUse" cx="246.38641189346663" cy="246.38641189346663" fx="246.38641189346663" fy="246.38641189346663" r="246.38641189346663">
+		<stop offset="0" style="stop-color:#e570e7;"/>
+		<stop offset="0.469" style="stop-color:#c65cc5;"/>
+		<stop offset="1" style="stop-color:#a849a3;"/>
+	</radialGradient>
+</defs>
+<path style="fill: url(#dna_3509859785); stroke: #d07ccf; mix-blend-mode: source-over; paint-order: stroke fill markers; fill-opacity: 1; stroke-dasharray: none; stroke-dashoffset: 0; stroke-linecap: round; stroke-linejoin: bevel; stroke-miterlimit: 4; stroke-opacity: 1; stroke-width: 5.66; vector-effect: non-scaling-stroke;" sketchjs:tool="square" d="M133.867 0 L358.906 0 Q414.355 0 453.564 35.361 492.773 70.722 492.773 120.729 L492.773 372.043 Q492.773 422.051 453.564 457.412 414.355 492.773 358.906 492.773 L133.867 492.773 Q78.417 492.773 39.209 457.412 0 422.051 0 372.043 L0 120.729 Q0 70.722 39.209 35.361 78.417 0 133.867 0 z" transform="matrix(0.7112511011900979,0,0,0.7886475827483278,5.3749779193035465,15.817068323432409)"/>
+<path style="fill: url(#dna_1165799959); stroke: #d07ccf; mix-blend-mode: source-over; paint-order: stroke fill markers; fill-opacity: 1; stroke-dasharray: none; stroke-dashoffset: 0; stroke-linecap: round; stroke-linejoin: bevel; stroke-miterlimit: 4; stroke-opacity: 1; stroke-width: 5.66; vector-effect: non-scaling-stroke;" sketchjs:tool="square" d="M133.867 0 L358.906 0 Q414.355 0 453.564 35.361 492.773 70.722 492.773 120.729 L492.773 372.043 Q492.773 422.051 453.564 457.412 414.355 492.773 358.906 492.773 L133.867 492.773 Q78.417 492.773 39.209 457.412 0 422.051 0 372.043 L0 120.729 Q0 70.722 39.209 35.361 78.417 0 133.867 0 z" transform="matrix(0.7112511011900979,0,0,0.7886475827483278,18.374977919303547,4.817068323432409)"/>
+<g style="mix-blend-mode: source-over;" sketchjs:tool="fancyText" transform="matrix(1,0,0,1,-140.12095109287424,35.075006518771715)">
+	<g sketchjs:uid="1">
+		<g sketchjs:uid="2" style="paint-order: fill stroke markers;">
+			<path d="M 240.79221850585938 298L 245.50034350585938 43.76124999999999L 280.34046850585935 43.76124999999999L 325.2245935058594 249.977125L 370.42259350585937 43.76124999999999L 404.9488435058594 43.76124999999999L 409.65696850585937 298L 381.09434350585934 298L 378.2694685058594 113.44149999999999L 335.26859350585937 298L 315.1805935058594 298L 272.4935935058594 113.44149999999999L 269.6687185058594 298L 240.79221850585938 298Z" sketchjs:uid="3" style="fill: #000000; stroke: #000000; stroke-width: 3.3; stroke-linecap: round; paint-order: stroke fill markers;"/>
+		</g>
+	</g>
+</g>
+<g style="mix-blend-mode: source-over;" sketchjs:tool="fancyText" transform="matrix(1,0,0,1,-127.12095109287424,25.075006518771715)">
+	<g sketchjs:uid="1">
+		<g sketchjs:uid="2" style="paint-order: fill stroke markers;">
+			<path d="M 240.79221850585938 298L 245.50034350585938 43.76124999999999L 280.34046850585935 43.76124999999999L 325.2245935058594 249.977125L 370.42259350585937 43.76124999999999L 404.9488435058594 43.76124999999999L 409.65696850585937 298L 381.09434350585934 298L 378.2694685058594 113.44149999999999L 335.26859350585937 298L 315.1805935058594 298L 272.4935935058594 113.44149999999999L 269.6687185058594 298L 240.79221850585938 298Z" sketchjs:uid="3" style="fill: #ffffff; stroke: #ffffff; stroke-width: 3.3; stroke-linecap: round; paint-order: stroke fill markers;"/>
+		</g>
+	</g>
+</g>
+</svg>
