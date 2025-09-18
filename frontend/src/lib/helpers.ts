@@ -7,10 +7,9 @@ type Req = {
 };
 
 class FetchHandler {
-	#url(req: Req): URL {
-		const url = new URL(req.url);
-		url.search = new URLSearchParams(req.query).toString();
-		return url;
+	#url(req: Req): string {
+		const queryParams = new URLSearchParams(req.query).toString();
+		return `${req.url}?${queryParams}`;
 	}
 
 	#content(req: Req) {
@@ -55,23 +54,19 @@ class FetchHandler {
 			fetch(url, { method: req.method, headers: content?.headers, body: content?.body })
 		).then(([error, response]) => {
 			if (error) {
-				console.error(`Fetch Error [${url.pathname}${url.search}]:`, error);
+				console.error(`Fetch Error [${url}]:`, error);
 				return null;
 			}
 
 			if (!response.ok) {
-				console.error(
-					`Response Error [${url.pathname}${url.search}]:`,
-					response.status,
-					response.statusText
-				);
+				console.error(`Response Error [${url}]:`, response.status, response.statusText);
 				return null;
 			}
 
 			return this.#response<T>(response).then(([error, result]) => {
 				if (error) {
 					console.error(
-						`Content-Type Error [${url.pathname}${url.search}]: No or Invalid Content-Type in Response: ${error}`
+						`Content-Type Error [${url}]: No or Invalid Content-Type in Response: ${error}`
 					);
 					return null;
 				}
