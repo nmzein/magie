@@ -23,7 +23,7 @@ pub fn create_store_database(store_id: u32) -> Result<String> {
 
     fs::File::create(&path)?;
 
-    // FIXME: Dont prefix with "../".
+    // FIXME: Dont prefix with "../", should not be location aware.
     Ok(format!(
         "sqlite://../{}",
         path.to_str()
@@ -67,8 +67,8 @@ pub fn save_asset(file: NamedTempFile, path: &Path) -> Result<()> {
     Ok(())
 }
 
-// TODO: Remove encoder hardcode.
 pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<TileServerMsg> {
+    // FIXME: Remove encoder hardcode.
     let Some(encoder) = encoders::export::get("OMEZarr") else {
         return Err(anyhow::anyhow!("Could not get encoder."));
     };
@@ -82,7 +82,7 @@ pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<TileServerMsg
 
     let jpeg_buffer = turbojpeg::compress_image(&bmp_buffer, 70, turbojpeg::Subsamp::Sub2x2)?;
 
-    // TODO: Fix hardcoding
+    // FIXME: Remove id hardcode.
     Ok(TileServerMsg {
         store_id: 0,
         id: 0,
@@ -107,12 +107,19 @@ pub fn convert(
 
     match encoder.convert(destination_path, &decoder) {
         Ok(metadata) => {
+            if metadata[0].width == 0 || metadata[0].height == 0 {
+                return Err(anyhow::anyhow!("Invalid image dimensions."));
+            }
+
             // Create thumbnail.
             let larger_dim = metadata[0].width.max(metadata[0].height);
 
             let thumbnail_buffer = decoder.thumbnail(&Size {
-                width: metadata[0].width / larger_dim * MAX_THUMBNAIL_SIZE,
-                height: metadata[0].height / larger_dim * MAX_THUMBNAIL_SIZE,
+                width: ((metadata[0].width as f32 / larger_dim as f32) * MAX_THUMBNAIL_SIZE as f32)
+                    .round() as u32,
+                height: ((metadata[0].height as f32 / larger_dim as f32)
+                    * MAX_THUMBNAIL_SIZE as f32)
+                    .round() as u32,
             })?;
 
             // Convert thumbnail buffer to JPEG.

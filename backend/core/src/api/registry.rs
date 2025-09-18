@@ -1,10 +1,10 @@
 use crate::api::prelude::*;
 
 pub async fn registry(
-    Extension(db): Extension<Arc<DatabaseManager>>,
+    Extension(dbm): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
 ) -> Response {
-    match crate::db::registry::get(&db) {
+    match crate::db::registry::get(&dbm) {
         Ok(registry) => {
             logger.success(StatusCode::OK, "Retrieved registry.");
             Json(registry).into_response()
