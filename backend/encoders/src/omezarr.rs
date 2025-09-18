@@ -49,11 +49,11 @@ impl Encoder for Module {
 
                 let array = ArrayBuilder::new(
                     // Define image shape.
-                    vec![0, RGB_CHANNELS.into(), 0, height.into(), width.into()],
+                    [0, RGB_CHANNELS.into(), 0, height.into(), width.into()],
+                    // Define tile size.
+                    [1, 1, 1, TILE_SIZE.into(), TILE_SIZE.into()],
                     // Define data type.
                     DataType::UInt8,
-                    // Define tile size.
-                    vec![1, 1, 1, TILE_SIZE.into(), TILE_SIZE.into()].try_into()?,
                     // Define initial fill value.
                     FillValue::from(41u8),
                 )

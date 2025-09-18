@@ -11,7 +11,7 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
         craneLib = crane.mkLib pkgs;
-        rustToolchain = pkgs.rust-bin.nightly."2025-06-04".default;
+        rustToolchain = pkgs.rust-bin.nightly.latest.default;
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
 
@@ -38,6 +38,7 @@
         ];
 
         buildDeps = with pkgs; [
+          nodejs_24
           libjpeg
           pkg-config
           openslide
@@ -49,14 +50,18 @@
           glib
           lerc
           libdicom
+          libdeflate
           libselinux
           libsepol
           libsysprof-capture
+          libwebp
           libxml2
           openjpeg
           pcre2
           util-linux.dev
           xorg.libXdmcp
+          xz
+          zstd
         ];
 
         # Install node_modules.
@@ -85,7 +90,7 @@
             runHook postInstall
           '';
 
-          outputHash = "sha256-zRzvj7xK5GKqpSbxPdyGm0JY/k+BtCxAZEbSCzJoZ2E=";
+          outputHash = "sha256-RJT4PRnMbVeFpdCw0IFkPlw+rK99LMS70O+bSKL93ow=";
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
         };
@@ -130,7 +135,7 @@
             runHook postInstall
           '';
 
-          outputHash = "sha256-j6Fscztb/MmiiO8+1X62Cdqxu6iMEQNx6oPqevVXC5g=";
+          outputHash = "sha256-kRSwOJXFH2uxVXyqMSmY3pIEQlWH/zBFTsil9fE3GMw=";
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
         };
@@ -201,6 +206,7 @@
             mkdir -p $out
             mkdir -p $out/_static/
             cp ${backend}/bin/* $out
+            echo "Copying static output..."
             cp -r ${frontend}/build/* $out/_static/
           '';
         };
