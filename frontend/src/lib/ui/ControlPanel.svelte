@@ -43,7 +43,9 @@
 							</Window>
 						</Tabs.Content>
 						<Tabs.Content value="control" disabled={!defined(activeView)}>
-							<Geometry2DControls bind:geometries={activeView!.state.geometries} />
+							<Window {contentSpaceBounds}>
+								<Geometry2DControls bind:geometries={activeView!.state.geometries} />
+							</Window>
 						</Tabs.Content>
 					</div>
 				</Tabs.ContentSpace>

@@ -16,6 +16,7 @@ use crate::{
 use axum::{
     Extension, Router,
     extract::DefaultBodyLimit,
+    http::{HeaderName, HeaderValue},
     routing::{delete, get, patch, post},
 };
 use std::{
@@ -26,6 +27,7 @@ use std::{
 use tokio::net::TcpListener;
 use tower::builder::ServiceBuilder;
 use tower_http::services::ServeDir;
+use tower_http::set_header::SetResponseHeaderLayer;
 
 #[tokio::main]
 async fn main() {
@@ -116,7 +118,37 @@ async fn main() {
         .layer(Extension(Arc::new(
             DatabaseManager::connect().expect("Could not connect to the databases."),
         )))
-        .layer(Extension(Arc::new(ClientSocketManager::default())));
+        .layer(Extension(Arc::new(ClientSocketManager::default())))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("content-security-policy"),
+            HeaderValue::from_static(
+                "default-src 'none'; \
+                 script-src 'self' 'unsafe-inline'; \
+                 style-src 'self' 'unsafe-inline'; \
+                 img-src 'self' blob:; \
+                 font-src 'self'; \
+                 manifest-src 'self'; \
+                 connect-src 'self'; \
+                 frame-src 'self'; \
+                 frame-ancestors 'none';",
+            ),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("strict-transport-security"),
+            HeaderValue::from_static("max-age=31536000; includeSubDomains; preload"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("cross-origin-opener-policy"),
+            HeaderValue::from_static("same-origin"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("cross-origin-embedder-policy"),
+            HeaderValue::from_static("require-corp"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            HeaderName::from_static("x-frame-options"),
+            HeaderValue::from_static("DENY"),
+        ));
 
     // Allow CORS from dev frontend server.
     #[cfg(debug_assertions)]

@@ -14,12 +14,10 @@
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
 
-        env = {
+        env = config.env // {
           PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-          RUSTC_LINKER = "${pkgs.llvmPackages.clangUseLLVM}/bin/clang";
-          RUSTFLAGS = "-Z threads=8";
-        } // config.env;
+        };
 
         backend_module = import ./nix/backend.nix { inherit pkgs crane rust-overlay env; };
         frontend_module = import ./nix/frontend.nix { inherit pkgs env; };

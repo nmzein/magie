@@ -8,8 +8,7 @@ import {
 	S_DIRECTORY_TAG,
 	S_TILE_TAG
 } from '$constants';
-import { views, registry } from '$states';
-import type { Image2DView } from '$view/Image2D/types';
+import { registry } from '$states';
 
 let socket: WebSocket;
 
@@ -20,7 +19,7 @@ export function send(data: Uint8Array): boolean {
 }
 
 async function receive(event: MessageEvent) {
-	const data = new Uint8Array(await event.data.arrayBuffer());
+	const data = new Uint8Array(event.data);
 	const dataView = new DataView(data.buffer);
 
 	switch (dataView.getUint8(0)) {
@@ -28,14 +27,6 @@ async function receive(event: MessageEvent) {
 			console.log('Error');
 			break;
 		case S_TILE_TAG:
-			const storeId = dataView.getUint32(1);
-			const id = dataView.getUint32(5);
-			const level = dataView.getUint32(9);
-			const x = dataView.getUint32(13);
-			const y = dataView.getUint32(17);
-			const tile = data.slice(29);
-
-			views[0].state.insertTile(level, x, y, tile);
 			break;
 		case S_DIRECTORY_TAG:
 			switch (dataView.getUint8(1)) {
@@ -74,5 +65,6 @@ async function receive(event: MessageEvent) {
 
 export function connect() {
 	socket = new WebSocket(WEBSOCKET_URL);
+	socket.binaryType = 'arraybuffer';
 	socket.addEventListener('message', receive);
 }

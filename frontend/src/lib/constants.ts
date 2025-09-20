@@ -1,4 +1,7 @@
-import { PUBLIC_PORT } from '$env/static/public';
+// import { PUBLIC_PORT } from '$env/static/public';
+
+// TODO: Fix import issue.
+const PUBLIC_PORT = 3000;
 
 export const HTTP_BASE_URL =
 	import.meta.env.MODE === 'development' ? `http://localhost:${PUBLIC_PORT}` : '';

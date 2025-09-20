@@ -3,7 +3,7 @@
 let
   inherit (pkgs) lib;
   craneLib = crane.mkLib pkgs;
-  rustToolchain = pkgs.rust-bin.nightly.latest.default;
+  rustToolchain = pkgs.rust-bin.stable."1.90.0".default;
 
   src = craneLib.cleanCargoSource ../backend;
 
@@ -12,8 +12,6 @@ let
     cmake
     nasm
     rustToolchain
-    llvmPackages_latest.llvm
-    llvmPackages_latest.lld
   ];
 
   buildDeps = with pkgs; [

@@ -1,14 +1,77 @@
 <script lang="ts">
-	import { defined } from '$helpers';
-	import type { Image2DView } from './types.ts';
+	import { WEBSOCKET_URL } from '$constants';
+	import type { Image2DView } from './types';
+	import { onMount } from 'svelte';
 
 	let { view = $bindable() }: { view: Image2DView } = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
-	let ctx = $derived(canvas?.getContext('2d'));
+	let worker: Worker | undefined = $state();
+	let sharedInts: Int32Array | undefined;
 
-	let x = $state(0);
-	let y = $state(0);
+	onMount(() => {
+		if (!canvas || !window.innerWidth || !window.innerHeight || !view.state) return;
+
+		// Prepare shared memory:
+		// [0] viewportWidth
+		// [1] viewportHeight
+		// [2] offsetX
+		// [3] offsetY
+		// [4] scale * 1e6
+		// [5] dirty flag
+		const buf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
+		sharedInts = new Int32Array(buf);
+
+		worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+
+		const offscreen = canvas.transferControlToOffscreen();
+		const viewportWidth = window.innerWidth * 2;
+		const viewportHeight = window.innerHeight * 2;
+
+		// init message (includes shared buffer)
+		worker.postMessage(
+			{
+				type: 'init',
+				data: {
+					canvas: offscreen,
+					width: viewportWidth,
+					height: viewportHeight,
+					wsUrl: WEBSOCKET_URL,
+					storeId: view.state.storeId,
+					id: view.state.id,
+					layers: JSON.stringify(view.state.layers),
+					sharedBuf: buf
+				}
+			},
+			[offscreen]
+		);
+
+		worker.onmessage = (e) => {
+			const { type } = e.data;
+			switch (type) {
+				case 'connected':
+					markDirty();
+					break;
+			}
+		};
+
+		return () => {
+			worker?.postMessage({ type: 'disconnect' });
+			worker?.terminate();
+		};
+	});
+
+	function markDirty() {
+		if (!sharedInts) return;
+		const { scale, offsetX, offsetY } = view.state.transformer;
+
+		sharedInts[0] = window.innerWidth * 2;
+		sharedInts[1] = window.innerHeight * 2;
+		sharedInts[2] = offsetX;
+		sharedInts[3] = offsetY;
+		sharedInts[4] = Math.floor(scale * 1e6);
+		Atomics.store(sharedInts, 5, 1);
+	}
 
 	function onmousedown(e: MouseEvent) {
 		e.preventDefault();
@@ -21,94 +84,45 @@
 	}
 
 	function onmousemove(e: MouseEvent) {
+		if (!view.state.transformer.isDragging) return;
 		e.preventDefault();
-		if (!canvas) return;
-
-		// Logic for calculating the coordinates of the mouse pointer.
-		// if (!view.state.transformer.isDragging) {
-		// 	const xTemp = Math.floor(
-		// 		(e.clientX - view.state.transformer.offsetX) * (view.state.width / canvas.width)
-		// 	);
-		// 	const yTemp = Math.floor(
-		// 		(e.clientY - view.state.transformer.offsetY) * (view.state.height / canvas.height)
-		// 	);
-
-		// 	if (Number.isFinite(xTemp) && !isNaN(xTemp)) x = xTemp;
-		// 	if (Number.isFinite(yTemp) && !isNaN(yTemp)) y = yTemp;
-
-		// 	return;
-		// }
-
 		view.state.transformer.pan(e.clientX, e.clientY);
+		markDirty();
 	}
 
 	function ontouchmove(te: TouchEvent) {
+		if (!view.state.transformer.isDragging) return;
 		const e = te.touches[0];
 		view.state.transformer.pan(e.clientX, e.clientY);
+		markDirty();
 	}
 
-	$effect(() => {
-		for (let x = 0; x < view.state.layers[0].rows; x++) {
-			for (let y = 0; y < view.state.layers[0].cols; y++) {
-				view.state.getTile(0, x, y);
-			}
-		}
-	});
+	function onmouseup() {
+		view.state.transformer.panStop();
+		markDirty();
+	}
 
-	$effect(() => {
-		if (!canvas || !ctx || !view.state.tiles) return;
-		render();
-	});
+	function ontouchend() {
+		view.state.transformer.panStop();
+		markDirty();
+	}
 
-	function render() {
-		if (!canvas || !ctx) return;
+	function onwheel(e: WheelEvent) {
+		view.state.transformer.zoom(e.deltaY, e.clientX, e.clientY);
+		markDirty();
+	}
 
-		const vw = window.innerWidth;
-		const vh = window.innerHeight;
-
-		// Set backing resolution (actual pixels)
-		canvas.width = vw * 2;
-		canvas.height = vh * 2;
-
-		// Optional: match display size to viewport (so it doesn’t look stretched)
-		canvas.style.width = `${vw}px`;
-		canvas.style.height = `${vh}px`;
-
-		const TS = 1024;
-		const CTS = TS * view.state.transformer.scale;
-
-		for (let c = 0; c < view.state.layers[0].cols; c++) {
-			for (let r = 0; r < view.state.layers[0].rows; r++) {
-				if (!view.state.tiles[0][c][r]) continue;
-				ctx.drawImage(
-					view.state.tiles[0][c][r],
-					0,
-					0,
-					TS,
-					TS,
-					view.state.transformer.offsetX + r * CTS,
-					view.state.transformer.offsetY + c * CTS,
-					CTS,
-					CTS
-				);
-			}
-		}
+	function onresize() {
+		markDirty();
 	}
 </script>
 
-<svelte:window
-	onresize={render}
-	{onmousemove}
-	{ontouchmove}
-	onmouseup={() => view.state.transformer.panStop()}
-	ontouchend={() => view.state.transformer.panStop()}
-	onwheel={(e) => view.state.transformer.zoom(e.deltaY, e.clientX, e.clientY)}
-/>
+<svelte:window {onresize} {onmousemove} {ontouchmove} {onmouseup} {ontouchend} {onwheel} />
+
 <canvas
 	{onmousedown}
 	{ontouchstart}
 	style="cursor: {view.state.transformer.isDragging ? 'grab' : 'crosshair'};"
 	bind:this={canvas}
 	class="absolute h-full w-full"
->
-</canvas>
+></canvas>

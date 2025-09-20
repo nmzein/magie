@@ -72,11 +72,10 @@ let
       runHook postInstall
     '';
 
-    outputHash = "sha256-7RkU+tl7TVnmwyswg+N2chRqFpaMEjGf/C5DpeOHTgE=";
+    outputHash = "sha256-Pbr7K0YEARivsTU5oH8ABrURRE24k0ZPsCdFlHZPfsQ=";
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
   };
-
 in
 {
   inherit frontend node_modules;

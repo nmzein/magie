@@ -1,5 +1,4 @@
-import { C_TILE_TAG } from '$constants';
-import { http, websocket } from '$api';
+import { http } from '$api';
 import { defined } from '$helpers';
 import { views } from '$states';
 import { Transformer } from './transformer.svelte.ts';
@@ -11,7 +10,6 @@ class Image2DState {
 	height: number;
 	levels: number;
 	layers: Image2DLayer[] = $state([]);
-	tiles: ImageBitmap[][][] = $state([]);
 	geometries: Geometry2DLayer[] = $state([]);
 	transformer: Transformer;
 
@@ -28,34 +26,7 @@ class Image2DState {
 		this.width = layers[0].width;
 		this.height = layers[0].height;
 		this.levels = layers.length;
-
-		// Initialise the tiles arrays to the correct shape.
-		for (const layer of layers) {
-			this.tiles.push(new Array(layer.rows).fill(0).map(() => new Array(layer.cols).fill(null)));
-		}
-
 		this.transformer = new Transformer(layers);
-	}
-
-	// TODO: Cleanup. Should not need to know how to format websocket msgs here.
-	async getTile(level: number, x: number, y: number): Promise<boolean> {
-		const buffer = new ArrayBuffer(1 + 5 * 4);
-		const view = new DataView(buffer);
-
-		view.setUint8(0, C_TILE_TAG);
-		view.setUint32(1, this.storeId);
-		view.setUint32(5, this.id);
-		view.setUint32(9, level);
-		view.setUint32(13, x);
-		view.setUint32(17, y);
-
-		return websocket.send(new Uint8Array(buffer));
-	}
-
-	async insertTile(level: number, x: number, y: number, tile: Uint8Array) {
-		let start = performance.now();
-		const blob = new Blob([tile], { type: 'image/jpeg' });
-		this.tiles[level][y][x] = await createImageBitmap(blob);
 	}
 }
 
