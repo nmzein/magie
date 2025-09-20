@@ -11,6 +11,7 @@ class Image2DState {
 	height: number;
 	levels: number;
 	layers: Image2DLayer[] = $state([]);
+	tiles: ImageBitmap[][][] = $state([]);
 	geometries: Geometry2DLayer[] = $state([]);
 	transformer: Transformer;
 
@@ -28,15 +29,9 @@ class Image2DState {
 		this.height = layers[0].height;
 		this.levels = layers.length;
 
-		// TODO: Figure out why this scaling is needed.
-		this.width *= 1.003;
-		this.height += 1.003;
-
 		// Initialise the tiles arrays to the correct shape.
 		for (const layer of layers) {
-			layer.tiles = new Array(layer.rows)
-				.fill(0)
-				.map(() => new Array(layer.cols).fill(new Image()));
+			this.tiles.push(new Array(layer.rows).fill(0).map(() => new Array(layer.cols).fill(null)));
 		}
 
 		this.transformer = new Transformer(layers);
@@ -58,10 +53,9 @@ class Image2DState {
 	}
 
 	async insertTile(level: number, x: number, y: number, tile: Uint8Array) {
-		const newTile = new Image();
+		let start = performance.now();
 		const blob = new Blob([tile], { type: 'image/jpeg' });
-		newTile.src = URL.createObjectURL(blob);
-		this.layers[level].tiles[y][x] = newTile;
+		this.tiles[level][y][x] = await createImageBitmap(blob);
 	}
 }
 

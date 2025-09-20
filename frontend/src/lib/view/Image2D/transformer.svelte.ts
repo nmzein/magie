@@ -91,7 +91,7 @@ export class Transformer {
 
 		this.#scale = newScale;
 
-		this.#handleLevelChange(delta);
+		// this.#handleLevelChange(delta);
 	}
 
 	#handleLevelChange(delta: number) {

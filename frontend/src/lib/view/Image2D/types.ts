@@ -1,7 +1,6 @@
 import type { Image2DState } from './state.svelte';
 
 export type Image2DLayer = {
-	tiles: HTMLImageElement[][];
 	level: number;
 	cols: number;
 	rows: number;
