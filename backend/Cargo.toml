@@ -1,6 +1,8 @@
 [workspace]
 members = ["core", "decoders", "encoders", "generators", "shared"]
 resolver = "3"
+package.version = "0.0.0"
+metadata.crane.name = "magie"
 
 [profile.dev]
 opt-level = 1

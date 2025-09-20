@@ -5,13 +5,12 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     crane.url = "github:ipetkov/crane";
   };
+
   outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
-        craneLib = crane.mkLib pkgs;
-        rustToolchain = pkgs.rust-bin.nightly.latest.default;
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
 
@@ -22,137 +21,31 @@
           RUSTFLAGS = "-Z threads=8";
         } // config.env;
 
+        backend_module = import ./nix/backend.nix { inherit pkgs crane rust-overlay env; };
+        frontend_module = import ./nix/frontend.nix { inherit pkgs env; };
+
+        backend = backend_module.backend;
+        frontend = frontend_module.frontend;
+
         devDeps = with pkgs; [
           bun
           cargo
           rustfmt
         ];
 
-        nativeBuildDeps = with pkgs; [
-          clang
-          cmake
-          nasm
-          rustToolchain
-          llvmPackages_latest.llvm
-          llvmPackages_latest.lld
-        ];
-
-        buildDeps = with pkgs; [
-          nodejs_24
-          libjpeg
-          pkg-config
-          openslide
-          sqlite
-          # OpenSlide dependencies.
-          cairo
-          expat
-          gdk-pixbuf
-          glib
-          lerc
-          libdicom
-          libdeflate
-          libselinux
-          libsepol
-          libsysprof-capture
-          libwebp
-          libxml2
-          openjpeg
-          pcre2
-          util-linux.dev
-          xorg.libXdmcp
-          xz
-          zstd
-        ];
-
-        # Install node_modules.
-        node_modules = pkgs.stdenv.mkDerivation {
-          pname = "frontend-node-modules";
+        # Combined application
+        magie = pkgs.stdenv.mkDerivation {
+          pname = "magie";
           version = "0.0.0";
-          src = ./frontend;
-
-          nativeBuildInputs = [ pkgs.bun ];
-          buildInputs = [ pkgs.nodejs-slim_latest ];
-
-          dontConfigure = true;
-          dontFixup = true;
-
-          buildPhase = ''
-            runHook preBuild
-            export HOME=$TMPDIR
-            bun install --frozen-lockfile
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p $out/node_modules
-            mv node_modules $out/
-            runHook postInstall
-          '';
-
-          outputHash = "sha256-RJT4PRnMbVeFpdCw0IFkPlw+rK99LMS70O+bSKL93ow=";
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
-        };
-
-        # Frontend build.
-        frontend = pkgs.stdenv.mkDerivation {
-          pname = "frontend";
-          version = "0.0.0";
-          src = ./frontend;
-
-          env = env;
-          nativeBuildInputs = [
-              pkgs.bun
-              pkgs.nodejs-slim_latest
-              node_modules
-          ];
-
-          configurePhase = ''
-            runHook preConfigure
-
-            cp -a ${node_modules}/node_modules ./node_modules
-            chmod -R u+rw node_modules
-            chmod -R u+x node_modules/.bin
-            patchShebangs node_modules
-
-            export HOME=$TMPDIR
-            export PATH="$PWD/node_modules/.bin:$PATH"
-
-            runHook postConfigure
-          '';
-
-          buildPhase = ''
-            runHook preBuild
-            bun run build
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
+          buildCommand = ''
             mkdir -p $out
-            mv ./build $out
-            runHook postInstall
+            mkdir -p $out/_static/
+            cp ${backend}/bin/* $out
+            cp -r ${frontend}/build/* $out/_static/
           '';
-
-          outputHash = "sha256-kRSwOJXFH2uxVXyqMSmY3pIEQlWH/zBFTsil9fE3GMw=";
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
         };
 
-        # Backend build.
-        backend = craneLib.buildPackage {
-          pname = "backend";
-          version = "0.0.0";
-          src = craneLib.cleanCargoSource ./backend;
-
-          env = env;
-          nativeBuildInputs = nativeBuildDeps ++ buildDeps;
-          buildInputs = buildDeps;
-
-          cargoHash = "sha256-oC7BeeffeV8pdJlS+/yOJ8XLrdZaWHoBZyrL1GXglSg=";
-        };
-
+        # Runtime scripts
         runScript = pkgs.writeShellScriptBin "run" ''
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
@@ -189,7 +82,7 @@
         # nix develop
         devShells.default = pkgs.mkShell {
           env = env;
-          buildInputs = devDeps ++ nativeBuildDeps ++ buildDeps;
+          buildInputs = devDeps ++ backend_module.nativeBuildDeps ++ backend_module.buildDeps;
 
           shellHook = ''
             echo ""
@@ -199,31 +92,25 @@
         };
 
         # nix build
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = "magie";
-          version = "0.0.0";
-          buildCommand = ''
-            mkdir -p $out
-            mkdir -p $out/_static/
-            cp ${backend}/bin/* $out
-            echo "Copying static output..."
-            cp -r ${frontend}/build/* $out/_static/
-          '';
-        };
+        packages = {
+          default = magie;
+          backend = backend;
+          frontend = frontend;
 
-        # nix build .#container
-        packages.container = pkgs.dockerTools.buildLayeredImage {
-          name = "magie";
-          tag = "latest";
-          contents = [pkgs.coreutils];
-          config = {
-            Cmd = ["${runScript}/bin/run"];
-            ExposedPorts = {
-              "3000/tcp" = {};
-            };
-            Volumes = {
-              "/_databases" = { };
-              "/_stores" = { };
+          # nix build .#container
+          container = pkgs.dockerTools.buildLayeredImage {
+            name = "magie";
+            tag = "latest";
+            contents = [pkgs.coreutils];
+            config = {
+              Cmd = ["${runScript}/bin/run"];
+              ExposedPorts = {
+                "3000/tcp" = {};
+              };
+              Volumes = {
+                "/_databases" = { };
+                "/_stores" = { };
+              };
             };
           };
         };
@@ -252,4 +139,4 @@
         };
       }
     );
- }
+}
