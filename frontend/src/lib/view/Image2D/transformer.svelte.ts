@@ -18,17 +18,8 @@ export class Transformer {
 	atMaxScale: boolean = $derived(this.#scale === this.MAX_SCALE);
 
 	constructor(metadata: Image2DLayer[]) {
-		// TODO: FIX
-		for (let i = 0; i < metadata.length; i++) {
-			if (metadata[i].cols <= 4 || metadata[i].rows <= 4) {
-				this.maxLevel = i - 1;
-				this.currentLevel = i - 1;
-				break;
-			}
-		}
-
-		// this.maxLevel = metadata.length - 1;
-		// this.currentLevel = metadata.length - 1;
+		this.maxLevel = metadata.length - 1;
+		this.currentLevel = metadata.length - 1;
 
 		const lowestResolution = metadata[this.maxLevel!].width * metadata[this.maxLevel!].height;
 
@@ -119,7 +110,7 @@ export class Transformer {
 
 		// If zooming out (not at lowest detail)
 		// check current breakpoint (at currentLevel)
-		// if scale <>> sB[cL] then cL += 1 (move to lower reso.)
+		// if scale < sB[cL] then cL += 1 (move to lower reso.)
 		// e.g. sB = [32, 8] and currently at level 1 and zooming out
 		// desired result: move to level 2 (cL + 1)
 		// should happen when: scale < 8 (sB[cl])

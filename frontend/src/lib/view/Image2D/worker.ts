@@ -1,18 +1,23 @@
-import { C_TILE_TAG, S_TILE_TAG, S_ERROR_TAG } from '$constants';
+import { C_TILE_TAG, S_TILE_TAG } from '$constants';
+import { WebSocketManager } from '$lib/helpers/network';
 
-interface TileCache {
+type TileCache = {
 	[key: string]: ImageBitmap;
-}
+};
 
-interface WorkerState {
+type WorkerState = {
 	storeId: number;
 	id: number;
 	layers: Array<{ rows: number; cols: number; width: number; height: number }>;
-}
+};
+
+type TileIdentifier = { level: number; x: number; y: number };
+
+const TILE_SIZE = 1024;
 
 let offscreenCanvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
-let socket: WebSocket | null = null;
+let socketManager: WebSocketManager | null = null;
 let tileCache: TileCache = {};
 let pendingTileRequests = new Set<string>();
 let workerState: WorkerState | null = null;
@@ -23,7 +28,7 @@ let maxReconnectAttempts = 5;
 let sharedInts: Int32Array | null = null;
 
 // Track which tiles are currently in view
-let visibleTiles: Array<{ level: number; x: number; y: number }> = [];
+let visibleTiles: TileIdentifier[] = [];
 
 // Track last transform/size
 let lastWidth = 0;
@@ -42,14 +47,12 @@ self.onmessage = function (e) {
 				layers: JSON.parse(data.layers)
 			};
 			if (data.sharedBuf) sharedInts = new Int32Array(data.sharedBuf);
-			connectWebSocket(data.wsUrl);
+			connect(data.wsUrl);
 			requestAnimationFrame(loop);
 			break;
-
 		case 'updateState':
 			updateWorkerState(data);
 			break;
-
 		case 'disconnect':
 			disconnect();
 			break;
@@ -58,62 +61,45 @@ self.onmessage = function (e) {
 
 function initCanvas(canvas: OffscreenCanvas, width: number, height: number) {
 	offscreenCanvas = canvas;
-	ctx = canvas.getContext('2d');
+	ctx = canvas.getContext('2d', { alpha: false });
 	if (!ctx || !offscreenCanvas) return;
 
 	offscreenCanvas.width = width;
 	offscreenCanvas.height = height;
 	lastWidth = width;
 	lastHeight = height;
-	ctx.imageSmoothingEnabled = false;
+	ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
 }
 
-function connectWebSocket(wsUrl: string) {
-	socket = new WebSocket(wsUrl);
-	socket.binaryType = 'arraybuffer';
-
-	socket.onopen = () => {
-		reconnectAttempts = 0;
-		self.postMessage({ type: 'connected' });
-	};
-
-	socket.onmessage = async (event) => {
-		await handleWebSocketMessage(event);
-	};
-
-	socket.onerror = (error) => {
-		self.postMessage({ type: 'error', error });
-	};
-
-	socket.onclose = () => {
-		self.postMessage({ type: 'disconnected' });
-		if (reconnectAttempts < maxReconnectAttempts) {
-			reconnectAttempts += 1;
-			setTimeout(() => connectWebSocket(wsUrl), 1000 * reconnectAttempts);
+function connect(wsUrl: string) {
+	socketManager = new WebSocketManager({
+		url: wsUrl,
+		maxReconnectAttempts: 8,
+		minDelay: 500, // start at 0.5s
+		maxDelay: 20000, // cap at 20s
+		factor: 2, // exponential growth
+		onOpen: () => {
+			self.postMessage({ type: 'connected' });
+		},
+		onMessage: async (event) => {
+			await handleTile(event);
+		},
+		onError: (error) => {
+			self.postMessage({ type: 'error', error });
+		},
+		onClose: (_, willReconnect) => {
+			self.postMessage({ type: 'disconnected' });
 		}
-	};
+	});
+
+	socketManager.connect();
 }
 
-async function handleWebSocketMessage(event: MessageEvent) {
+async function handleTile(event: MessageEvent) {
 	const data = new Uint8Array(event.data);
 	const dataView = new DataView(data.buffer);
+	if (dataView.getUint8(0) !== S_TILE_TAG) return;
 
-	switch (dataView.getUint8(0)) {
-		case S_ERROR_TAG:
-			console.error('Server error received');
-			self.postMessage({ type: 'error' });
-			break;
-
-		case S_TILE_TAG:
-			await handleTileResponse(dataView, data);
-			break;
-
-		default:
-			break;
-	}
-}
-
-async function handleTileResponse(dataView: DataView, data: Uint8Array) {
 	const level = dataView.getUint32(9);
 	const x = dataView.getUint32(13);
 	const y = dataView.getUint32(17);
@@ -140,11 +126,10 @@ function calculateVisibleTiles(
 	transformer: { offsetX: number; offsetY: number; scale: number },
 	width: number,
 	height: number
-) {
+): TileIdentifier[] {
 	if (!workerState) return [];
 
-	const TS = 1024;
-	const CTS = TS * transformer.scale;
+	const CTS = TILE_SIZE * transformer.scale;
 	const layer = workerState.layers[0];
 	if (!layer) return [];
 
@@ -153,7 +138,7 @@ function calculateVisibleTiles(
 	const startY = Math.max(0, Math.floor(-transformer.offsetY / CTS));
 	const endY = Math.min(layer.rows - 1, Math.ceil((height - transformer.offsetY) / CTS));
 
-	const visible: Array<{ level: number; x: number; y: number }> = [];
+	const visible: TileIdentifier[] = [];
 	const level = 0;
 
 	for (let x = startX; x <= endX; x++) {
@@ -165,8 +150,8 @@ function calculateVisibleTiles(
 	return visible;
 }
 
-function requestTiles(tiles: Array<{ level: number; x: number; y: number }>) {
-	if (!socket || socket.readyState !== WebSocket.OPEN || !workerState) return;
+function requestTiles(tiles: TileIdentifier[]) {
+	if (socketManager?.state !== 'connected' || !workerState) return;
 
 	for (const tile of tiles) {
 		const tileKey = `${tile.level}_${tile.x}_${tile.y}`;
@@ -186,7 +171,7 @@ function requestTiles(tiles: Array<{ level: number; x: number; y: number }>) {
 		view.setUint32(13, tile.x);
 		view.setUint32(17, tile.y);
 
-		socket.send(new Uint8Array(buffer));
+		socketManager.send(new Uint8Array(buffer));
 	}
 }
 
@@ -197,39 +182,31 @@ function updateWorkerState(data: Partial<WorkerState>) {
 }
 
 function loop() {
-	if (!ctx || !workerState || !offscreenCanvas) {
+	if (!ctx || !workerState || !offscreenCanvas || !sharedInts) {
 		requestAnimationFrame(loop);
 		return;
 	}
 
-	// Read from SharedArrayBuffer if available
-	if (sharedInts) {
-		const dirty = Atomics.load(sharedInts, 5);
-		if (dirty === 1) {
-			Atomics.store(sharedInts, 5, 0);
+	const dirty = Atomics.load(sharedInts, 5);
+	if (dirty === 1) {
+		Atomics.store(sharedInts, 5, 0);
 
-			const viewportWidth = sharedInts[0];
-			const viewportHeight = sharedInts[1];
-			const offsetX = sharedInts[2];
-			const offsetY = sharedInts[3];
-			const scale = sharedInts[4] / 1e6;
+		const canvasWidth = sharedInts[0];
+		const canvasHeight = sharedInts[1];
+		const offsetX = sharedInts[2];
+		const offsetY = sharedInts[3];
+		const scale = sharedInts[4] / 1e6;
 
-			lastWidth = viewportWidth;
-			lastHeight = viewportHeight;
-			lastTransform = { offsetX, offsetY, scale };
+		lastWidth = canvasWidth;
+		lastHeight = canvasHeight;
+		lastTransform = { offsetX, offsetY, scale };
 
-			offscreenCanvas.width = viewportWidth;
-			offscreenCanvas.height = viewportHeight;
+		offscreenCanvas.width = canvasWidth;
+		offscreenCanvas.height = canvasHeight;
 
-			visibleTiles = calculateVisibleTiles(
-				{ offsetX, offsetY, scale },
-				viewportWidth,
-				viewportHeight
-			);
-			requestTiles(visibleTiles);
-
-			renderVisibleTiles({ offsetX, offsetY, scale }, viewportWidth, viewportHeight);
-		}
+		visibleTiles = calculateVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
+		requestTiles(visibleTiles);
+		renderVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
 	}
 
 	requestAnimationFrame(loop);
@@ -241,7 +218,6 @@ function renderVisibleTiles(transformer = lastTransform, width = lastWidth, heig
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 	ctx.clearRect(0, 0, width, height);
 
-	const TS = 1024;
 	const scale = transformer.scale;
 	const offsetX = transformer.offsetX;
 	const offsetY = transformer.offsetY;
@@ -252,17 +228,15 @@ function renderVisibleTiles(transformer = lastTransform, width = lastWidth, heig
 		const key = `${tile.level}_${tile.x}_${tile.y}`;
 		const bmp = tileCache[key];
 		if (!bmp) continue;
-		ctx.drawImage(bmp, tile.x * TS, tile.y * TS, TS, TS);
+		ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 	}
 
 	ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function disconnect() {
-	if (socket) {
-		socket.close();
-		socket = null;
-	}
+	socketManager?.disconnect();
+	socketManager = null;
 
 	for (const bmp of Object.values(tileCache)) {
 		try {

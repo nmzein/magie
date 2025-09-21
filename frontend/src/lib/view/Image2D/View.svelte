@@ -9,38 +9,50 @@
 	let worker: Worker | undefined = $state();
 	let sharedInts: Int32Array | undefined;
 
+	const FRAME_RATE_CAP = 60;
+	const ENABLE_FRAMERATE_CAP = true;
+
+	function withFrameCap<T extends (...args: any[]) => void>(
+		handler: T,
+		fps: number,
+		enabled: boolean = true
+	): T {
+		if (!enabled) return handler as T;
+
+		const minInterval = 1000 / fps;
+		let lastTime = 0;
+
+		return ((...args: Parameters<T>) => {
+			const now = performance.now();
+			if (now - lastTime >= minInterval) {
+				lastTime = now;
+				handler(...args);
+			}
+		}) as T;
+	}
+
 	onMount(() => {
 		if (!canvas || !window.innerWidth || !window.innerHeight || !view.state) return;
 
-		// Prepare shared memory:
-		// [0] viewportWidth
-		// [1] viewportHeight
-		// [2] offsetX
-		// [3] offsetY
-		// [4] scale * 1e6
-		// [5] dirty flag
-		const buf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
-		sharedInts = new Int32Array(buf);
-
-		worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+		console.log('Window device pixel ratio is:', window.devicePixelRatio);
 
 		const offscreen = canvas.transferControlToOffscreen();
-		const viewportWidth = window.innerWidth * 2;
-		const viewportHeight = window.innerHeight * 2;
+		const sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
+		sharedInts = new Int32Array(sharedBuf);
+		worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
 
-		// init message (includes shared buffer)
 		worker.postMessage(
 			{
 				type: 'init',
 				data: {
 					canvas: offscreen,
-					width: viewportWidth,
-					height: viewportHeight,
+					width: window.innerWidth * window.devicePixelRatio,
+					height: window.innerHeight * window.devicePixelRatio,
 					wsUrl: WEBSOCKET_URL,
 					storeId: view.state.storeId,
 					id: view.state.id,
 					layers: JSON.stringify(view.state.layers),
-					sharedBuf: buf
+					sharedBuf
 				}
 			},
 			[offscreen]
@@ -65,11 +77,17 @@
 		if (!sharedInts) return;
 		const { scale, offsetX, offsetY } = view.state.transformer;
 
-		sharedInts[0] = window.innerWidth * 2;
-		sharedInts[1] = window.innerHeight * 2;
-		sharedInts[2] = offsetX;
-		sharedInts[3] = offsetY;
+		// [0] canvas width
+		sharedInts[0] = Math.round(window.innerWidth * window.devicePixelRatio);
+		// [1] canvas height
+		sharedInts[1] = Math.round(window.innerHeight * window.devicePixelRatio);
+		// [2] offset x
+		sharedInts[2] = Math.round(offsetX);
+		// [3] offset y
+		sharedInts[3] = Math.round(offsetY);
+		// [4] scale * 1e6
 		sharedInts[4] = Math.floor(scale * 1e6);
+		// [5] dirty flag
 		Atomics.store(sharedInts, 5, 1);
 	}
 
@@ -117,7 +135,14 @@
 	}
 </script>
 
-<svelte:window {onresize} {onmousemove} {ontouchmove} {onmouseup} {ontouchend} {onwheel} />
+<svelte:window
+	onresize={withFrameCap(onresize, FRAME_RATE_CAP, ENABLE_FRAMERATE_CAP)}
+	onmousemove={withFrameCap(onmousemove, FRAME_RATE_CAP, ENABLE_FRAMERATE_CAP)}
+	ontouchmove={withFrameCap(ontouchmove, FRAME_RATE_CAP, ENABLE_FRAMERATE_CAP)}
+	{onmouseup}
+	{ontouchend}
+	onwheel={withFrameCap(onwheel, FRAME_RATE_CAP, ENABLE_FRAMERATE_CAP)}
+/>
 
 <canvas
 	{onmousedown}
