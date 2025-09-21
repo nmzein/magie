@@ -1,4 +1,4 @@
-import { Context } from 'runed';
+import { Context, PersistedState } from 'runed';
 import type { Directory, Asset, UploaderOptions } from '$types';
 import { registry, repository, clipboard } from '$states';
 import { http } from '$api';
@@ -14,7 +14,7 @@ export const context = new Context<Explorer>('');
 
 export class Explorer {
 	#selected = new SvelteSet<number>();
-	#pinned = new SvelteSet<number>();
+	#pinned = new PersistedState('pinned', new Array<number>());
 	#storeId: number = $state(1); // TODO: This will be selected from a top level stores page.
 	#store = $derived(registry.store(this.#storeId));
 	#directoryId: number = $state(ROOT_ID); // TODO: Default to directory last opened by the user.
@@ -199,23 +199,24 @@ export class Explorer {
 	}
 
 	isPinned(id: number): boolean {
-		return this.#pinned.has(id);
+		return this.#pinned.current.includes(id);
 	}
 
 	pinSelected() {
-		this.#selected.forEach((id) => this.#pinned.add(id));
+		this.#selected.forEach((id) => this.pin(id));
 	}
 
 	unpinSelected() {
-		this.#selected.forEach((id) => this.#pinned.delete(id));
+		this.#selected.forEach((id) => this.unpin(id));
 	}
 
 	pin(id: number) {
-		this.#pinned.add(id);
+		if (this.isPinned(id)) return;
+		this.#pinned.current.push(id);
 	}
 
 	unpin(id: number) {
-		this.#pinned.delete(id);
+		this.#pinned.current = this.#pinned.current.filter((item) => item !== id);
 	}
 
 	deleteGroup(mode: 'soft' | 'hard', group: SvelteSet<number>) {

@@ -8,7 +8,7 @@
 </script>
 
 <Section title="pinned">
-	{#each explorer.pinned as id}
+	{#each explorer.pinned.current as id}
 		{@const item = explorer.get(id)}
 		{#if defined(item)}
 			<Button

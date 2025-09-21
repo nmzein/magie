@@ -72,6 +72,10 @@
 					e.preventDefault();
 					explorer.pinSelected();
 					break;
+				case 'u':
+					e.preventDefault();
+					explorer.unpinSelected();
+					break;
 				case 'x':
 					e.preventDefault();
 					explorer.clipSelected('cut');
@@ -107,7 +111,7 @@
 		e.preventDefault();
 		contextMenu.open({ x: e.clientX, y: e.clientY }, [
 			{
-				name: 'Upload Asset',
+				name: 'New Asset',
 				action: () => explorer.uploader.open(),
 				hidden: explorer.inBin,
 				shortcut: 'Ctrl+L'

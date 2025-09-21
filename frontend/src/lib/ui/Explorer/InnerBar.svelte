@@ -25,7 +25,7 @@
 		</Dropdown.Trigger>
 		<Dropdown.List>
 			<Dropdown.Item onclick={() => explorer.uploader.open()}>
-				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Image
+				<Icon name="new-image" class="h-[1.15rem] w-[1.15rem]" /> Asset
 			</Dropdown.Item>
 			<Dropdown.Item onclick={() => explorer.directoryCreator.open()}>
 				<Icon name="directory" class="h-[1.15rem] w-[1.15rem]" /> Folder

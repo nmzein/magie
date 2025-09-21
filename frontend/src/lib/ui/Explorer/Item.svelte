@@ -79,6 +79,7 @@
 			{
 				name: 'Pin',
 				action: () => explorer.pinSelected(),
+				// TODO: Should also hide when all selected are pinned.
 				hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1),
 				shortcut: 'Ctrl+P'
 			},
