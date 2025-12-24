@@ -1,9 +1,10 @@
 import { http } from '$api';
 import { defined } from '$helpers';
 import { views } from '$states';
-import { Transformer } from './transformer.svelte.ts';
 import type { Image2DLayer } from './types.ts';
 import type { Geometry2DLayer } from '$view/Geometry2D/types.ts';
+import Viewer from './viewer.svelte.ts';
+import { WEBSOCKET_URL } from '$constants';
 
 class Image2DState {
 	width: number;
@@ -11,7 +12,6 @@ class Image2DState {
 	levels: number;
 	layers: Image2DLayer[] = $state([]);
 	geometries: Geometry2DLayer[] = $state([]);
-	transformer: Transformer;
 
 	constructor(
 		public storeId: number,
@@ -26,19 +26,18 @@ class Image2DState {
 		this.width = layers[0].width;
 		this.height = layers[0].height;
 		this.levels = layers.length;
-		this.transformer = new Transformer(layers);
 	}
 }
 
-export async function load(storeId: number, parentId: number, id: number, name: string) {
-	const properties = await http.asset.properties(storeId, id);
+export async function load(storeId: number, parentId: number, assetId: number, name: string) {
+	const properties = await http.asset.properties(storeId, assetId);
 
 	if (!defined(properties) || properties.metadata.length === 0) return;
 
 	const state = new Image2DState(
 		storeId,
 		parentId,
-		id,
+		assetId,
 		name,
 		properties.metadata,
 		properties.annotations
@@ -47,7 +46,12 @@ export async function load(storeId: number, parentId: number, id: number, name: 
 	views[0] = {
 		type: 'Image2D',
 		state,
-		active: true
+		active: true,
+		viewer: new Viewer({
+			canvasId: `asset-${storeId}-${assetId}`,
+			websocketUrl: `${WEBSOCKET_URL}/${storeId}/${assetId}`,
+			metadata: properties.metadata
+		})
 	};
 }
 

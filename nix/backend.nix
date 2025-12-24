@@ -1,10 +1,8 @@
 { pkgs, crane, rust-overlay, env }:
-
 let
   inherit (pkgs) lib;
   craneLib = crane.mkLib pkgs;
   rustToolchain = pkgs.rust-bin.stable."1.90.0".default;
-
   src = craneLib.cleanCargoSource ../backend;
 
   nativeBuildDeps = with pkgs; [
@@ -12,12 +10,13 @@ let
     cmake
     nasm
     rustToolchain
+    llvmPackages.libclang
+    pkg-config
   ];
 
   buildDeps = with pkgs; [
     nodejs_24
     libjpeg
-    pkg-config
     openslide
     sqlite
     # OpenSlide dependencies.
@@ -45,8 +44,16 @@ let
     inherit src;
     strictDeps = true;
 
+    # Ensure environment variables are properly set
+    # LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+    LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+    BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include";
+    PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
+
+    # Merge with any additional env vars from config
     env = env;
-    nativeBuildInputs = nativeBuildDeps ++ buildDeps;
+
+    nativeBuildInputs = nativeBuildDeps;
     buildInputs = buildDeps;
   };
 

@@ -105,7 +105,8 @@ async fn main() {
         .nest("/store", store_routes)
         .route("/registry", get(api::registry::registry))
         .route("/generators", get(api::generators::generators))
-        .route("/websocket", get(api::websocket::websocket));
+        .route("/websocket", get(api::websocket::websocket))
+        .route("/websocket/{store_id}/{asset_id}", get(api::image::tiles::websocket));
 
     let static_routes = ServiceBuilder::new().service(ServeDir::new("_static"));
 

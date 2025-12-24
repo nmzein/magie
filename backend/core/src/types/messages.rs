@@ -13,8 +13,6 @@ pub enum ClientMsg {
 
 #[derive(bincode::Decode)]
 pub struct TileClientMsg {
-    pub store_id: u32,
-    pub id: u32,
     pub level: u32,
     pub x: u32,
     pub y: u32,
@@ -60,8 +58,6 @@ pub enum ServerMsg {
 
 #[derive(bincode::Encode)]
 pub struct TileServerMsg {
-    pub store_id: u32,
-    pub id: u32,
     pub level: u32,
     pub x: u32,
     pub y: u32,

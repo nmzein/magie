@@ -4,10 +4,10 @@
 const PUBLIC_PORT = 3000;
 
 export const HTTP_BASE_URL =
-	import.meta.env.MODE === 'development' ? `http://localhost:${PUBLIC_PORT}` : '';
+	process.env.NODE_ENV === 'development' ? `http://localhost:${PUBLIC_PORT}` : '';
 
-const WEBSOCKET_BASE_URL =
-	import.meta.env.MODE === 'development' ? `ws://localhost:${PUBLIC_PORT}` : '';
+export const WEBSOCKET_BASE_URL =
+	process.env.NODE_ENV === 'development' ? `ws://localhost:${PUBLIC_PORT}` : '';
 
 export const DIRECTORY_URL = HTTP_BASE_URL + '/api/directory';
 export const ASSET_URL = HTTP_BASE_URL + '/api/image';

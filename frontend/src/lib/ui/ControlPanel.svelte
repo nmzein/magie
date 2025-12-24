@@ -50,33 +50,33 @@
 					</div>
 				</Tabs.ContentSpace>
 
-				<div class="pointer-events-none p-[10px] pl-0">
-					<div class="flex h-full flex-col gap-[10px]">
+				<div class="pointer-events-none p-2.5 pl-0">
+					<div class="flex h-full flex-col gap-2.5">
 						<Tabs.TriggerList id="zooming">
 							<Tabs.Trigger
 								sideEffect={() => {
-									activeView?.state.transformer.zoom(-100);
+									activeView?.viewer.zoom(-100);
 								}}
-								disabled={!defined(activeView) || activeView?.state.transformer.atMaxScale}
+								disabled={!defined(activeView) || activeView?.viewer.atMaxScale()}
 							>
 								<Icon name="zoom-in" class="h-9 w-9" />
 							</Tabs.Trigger>
 							<button
 								onclick={() => {
-									activeView?.state.transformer.resetScale();
+									activeView?.viewer.resetScale();
 								}}
 								disabled={!defined(activeView)}
-								class="my-[5px] text-center select-none"
+								class="my-1.25 text-center select-none"
 								class:cursor-pointer={defined(activeView)}
 								class:opacity-30={!defined(activeView)}
 							>
-								{defined(activeView) ? truncateNumber(activeView.state.transformer.scale) : '1.0'}x
+								{defined(activeView) ? truncateNumber(activeView.viewer.scale) : '1.0'}x
 							</button>
 							<Tabs.Trigger
 								sideEffect={() => {
-									activeView?.state.transformer.zoom(100);
+									activeView?.viewer.zoom(100);
 								}}
-								disabled={!defined(activeView) || activeView?.state.transformer.atMinScale}
+								disabled={!defined(activeView) || activeView?.viewer.atMinScale()}
 							>
 								<Icon name="zoom-out" class="h-9 w-9" />
 							</Tabs.Trigger>
@@ -112,9 +112,9 @@
 							</Tabs.Trigger>
 						</Tabs.TriggerList>
 
-						<div class="panel mt-auto flex flex-col gap-[2px] p-[3px]">
+						<div class="panel mt-auto flex flex-col gap-0.5 p-0.75">
 							<Button
-								class="hover:bg-primary/10 h-12 w-12 rounded-[7px] p-[5px] opacity-30 hover:backdrop-blur-[15px]"
+								class="hover:bg-primary/10 h-12 w-12 rounded-[7px] p-1.25 opacity-30 hover:backdrop-blur-[15px]"
 								disabled
 							>
 								<Icon name="settings" class="h-9 w-9" />

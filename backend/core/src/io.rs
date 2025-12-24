@@ -82,10 +82,7 @@ pub fn retrieve(path: &Path, level: u32, x: u32, y: u32) -> Result<TileServerMsg
 
     let jpeg_buffer = turbojpeg::compress_image(&bmp_buffer, 70, turbojpeg::Subsamp::Sub2x2)?;
 
-    // FIXME: Remove id hardcode.
     Ok(TileServerMsg {
-        store_id: 0,
-        id: 0,
         level,
         x,
         y,

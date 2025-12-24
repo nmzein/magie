@@ -14,10 +14,7 @@
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
 
-        env = config.env // {
-          PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
-          LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-        };
+        env = config.env;
 
         backend_module = import ./nix/backend.nix { inherit pkgs crane rust-overlay env; };
         frontend_module = import ./nix/frontend.nix { inherit pkgs env; };
@@ -73,7 +70,7 @@
         devRunScript = pkgs.writeShellScriptBin "dev" ''
           cd backend && cargo run & \
           cd backend/geometry-computer && bun install & \
-          cd frontend && bun install && bun run dev
+          cd frontend && npm install && npm run dev
         '';
       in
       {

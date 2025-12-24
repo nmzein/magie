@@ -1,4 +1,5 @@
 import type { Image2DState } from './state.svelte';
+import type Viewer from './viewer.svelte';
 
 export type Image2DLayer = {
 	level: number;
@@ -11,6 +12,7 @@ export type Image2DLayer = {
 export type Image2DView = {
 	type: 'Image2D';
 	state: Image2DState;
+	viewer: Viewer;
 	active: boolean;
 };
 

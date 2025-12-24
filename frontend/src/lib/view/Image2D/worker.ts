@@ -1,14 +1,9 @@
 import { C_TILE_TAG, S_TILE_TAG } from '$constants';
 import { WebSocketManager } from '$lib/helpers/network';
+import type { Image2DLayer } from './types';
 
 type TileCache = {
 	[key: string]: ImageBitmap;
-};
-
-type WorkerState = {
-	storeId: number;
-	id: number;
-	layers: Array<{ rows: number; cols: number; width: number; height: number }>;
 };
 
 type TileIdentifier = { level: number; x: number; y: number };
@@ -20,9 +15,7 @@ let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let socketManager: WebSocketManager | null = null;
 let tileCache: TileCache = {};
 let pendingTileRequests = new Set<string>();
-let workerState: WorkerState | null = null;
-let reconnectAttempts = 0;
-let maxReconnectAttempts = 5;
+let metadata: Image2DLayer[] | null = null;
 
 // SharedArrayBuffer-backed transform
 let sharedInts: Int32Array | null = null;
@@ -41,20 +34,13 @@ self.onmessage = function (e) {
 	switch (type) {
 		case 'init':
 			initCanvas(data.canvas, data.width, data.height);
-			workerState = {
-				storeId: data.storeId,
-				id: data.id,
-				layers: JSON.parse(data.layers)
-			};
+			metadata = JSON.parse(data.layers);
 			if (data.sharedBuf) sharedInts = new Int32Array(data.sharedBuf);
 			connect(data.wsUrl);
 			requestAnimationFrame(loop);
 			break;
-		case 'updateState':
-			updateWorkerState(data);
-			break;
-		case 'disconnect':
-			disconnect();
+		case 'close':
+			close();
 			break;
 	}
 };
@@ -100,12 +86,12 @@ async function handleTile(event: MessageEvent) {
 	const dataView = new DataView(data.buffer);
 	if (dataView.getUint8(0) !== S_TILE_TAG) return;
 
-	const level = dataView.getUint32(9);
-	const x = dataView.getUint32(13);
-	const y = dataView.getUint32(17);
-	const tileData = data.slice(29);
+	const level = dataView.getUint32(1);
+	const x = dataView.getUint32(5);
+	const y = dataView.getUint32(9);
+	const tileData = data.slice(21);
 
-	if (!workerState) return;
+	if (!metadata) return;
 
 	const tileKey = `${level}_${x}_${y}`;
 	try {
@@ -127,10 +113,10 @@ function calculateVisibleTiles(
 	width: number,
 	height: number
 ): TileIdentifier[] {
-	if (!workerState) return [];
+	if (!metadata) return [];
 
 	const CTS = TILE_SIZE * transformer.scale;
-	const layer = workerState.layers[0];
+	const layer = metadata[0];
 	if (!layer) return [];
 
 	const startX = Math.max(0, Math.floor(-transformer.offsetX / CTS));
@@ -151,38 +137,30 @@ function calculateVisibleTiles(
 }
 
 function requestTiles(tiles: TileIdentifier[]) {
-	if (socketManager?.state !== 'connected' || !workerState) return;
+	if (socketManager?.state !== 'connected' || !metadata) return;
 
 	for (const tile of tiles) {
 		const tileKey = `${tile.level}_${tile.x}_${tile.y}`;
 		if (tileCache[tileKey] || pendingTileRequests.has(tileKey)) continue;
 
-		const layer = workerState.layers[tile.level];
+		const layer = metadata[tile.level];
 		if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
 
 		pendingTileRequests.add(tileKey);
 
-		const buffer = new ArrayBuffer(1 + 5 * 4);
+		const buffer = new ArrayBuffer(1 + 3 * 4);
 		const view = new DataView(buffer);
 		view.setUint8(0, C_TILE_TAG);
-		view.setUint32(1, workerState.storeId);
-		view.setUint32(5, workerState.id);
-		view.setUint32(9, tile.level);
-		view.setUint32(13, tile.x);
-		view.setUint32(17, tile.y);
+		view.setUint32(1, tile.level);
+		view.setUint32(5, tile.x);
+		view.setUint32(9, tile.y);
 
 		socketManager.send(new Uint8Array(buffer));
 	}
 }
 
-function updateWorkerState(data: Partial<WorkerState>) {
-	if (workerState) {
-		Object.assign(workerState, data);
-	}
-}
-
 function loop() {
-	if (!ctx || !workerState || !offscreenCanvas || !sharedInts) {
+	if (!ctx || !metadata || !offscreenCanvas || !sharedInts) {
 		requestAnimationFrame(loop);
 		return;
 	}
@@ -205,25 +183,26 @@ function loop() {
 		offscreenCanvas.height = canvasHeight;
 
 		visibleTiles = calculateVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
+
 		requestTiles(visibleTiles);
 		renderVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
 	}
 
 	requestAnimationFrame(loop);
 }
-
 function renderVisibleTiles(transformer = lastTransform, width = lastWidth, height = lastHeight) {
 	if (!ctx || !offscreenCanvas) return;
-
-	ctx.setTransform(1, 0, 0, 1, 0, 0);
-	ctx.clearRect(0, 0, width, height);
 
 	const scale = transformer.scale;
 	const offsetX = transformer.offsetX;
 	const offsetY = transformer.offsetY;
 
-	ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+	// Reset and clear
+	ctx.setTransform(1, 0, 0, 1, 0, 0);
+	ctx.clearRect(0, 0, width, height);
 
+	// Draw tiles
+	ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
 	for (const tile of visibleTiles) {
 		const key = `${tile.level}_${tile.x}_${tile.y}`;
 		const bmp = tileCache[key];
@@ -231,10 +210,42 @@ function renderVisibleTiles(transformer = lastTransform, width = lastWidth, heig
 		ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 	}
 
-	ctx.setTransform(1, 0, 0, 1, 0, 0);
+	// ---- Debug overlay (bottom-left) ----
+	ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transforms for UI
+	ctx.save();
+
+	const panelWidth = 230;
+	const panelHeight = 120;
+	const padding = 10;
+
+	// Background box
+	ctx.fillStyle = 'rgba(0,0,0,0.6)';
+	ctx.fillRect(padding, height - panelHeight - padding, panelWidth, panelHeight);
+
+	// Text
+	ctx.fillStyle = '#00FF00';
+	ctx.font = '12px monospace';
+
+	let y = height - panelHeight - padding + 18;
+	const lineHeight = 14;
+
+	ctx.fillText(`offsetX: ${offsetX}`, padding + 8, y);
+	y += lineHeight;
+	ctx.fillText(`offsetY: ${offsetY}`, padding + 8, y);
+	y += lineHeight;
+	ctx.fillText(`scale: ${scale.toFixed(5)}`, padding + 8, y);
+	y += lineHeight;
+	ctx.fillText(`visibleTiles: ${visibleTiles.length}`, padding + 8, y);
+	y += lineHeight;
+	ctx.fillText(`pending: ${pendingTileRequests.size}`, padding + 8, y);
+	y += lineHeight;
+	ctx.fillText(`socket: ${socketManager?.state}`, padding + 8, y);
+	y += lineHeight;
+
+	ctx.restore();
 }
 
-function disconnect() {
+function close() {
 	socketManager?.disconnect();
 	socketManager = null;
 
@@ -246,7 +257,7 @@ function disconnect() {
 
 	tileCache = {};
 	pendingTileRequests.clear();
-	workerState = null;
+	metadata = null;
 	offscreenCanvas = null;
 	ctx = null;
 }

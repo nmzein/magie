@@ -13,6 +13,7 @@ const config = {
 			precompress: false,
 			strict: true
 		}),
+
 		alias: {
 			$actions: './src/lib/actions',
 			$api: './src/lib/api',
