@@ -1,15 +1,19 @@
 import { untrack } from 'svelte';
 import type { Image2DLayer } from './types.ts';
+import { clamp } from '$helpers';
 
 export default class Viewer {
+	#metadata: Image2DLayer[];
+
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
 	#start = $state({ x: 0, y: 0 });
 	#offset = $state({ x: 0, y: 0 });
 
-	#minScale = 0.1;
-	#maxScale = 100;
-	#scale = $state(1);
+	#minScale = 1;
+	#maxScale = 200;
+	#scale = $state(2);
+	#scaleFactor = 1;
 	#scaleBreakpoints: number[] = [];
 
 	#minLevel = 0;
@@ -32,6 +36,7 @@ export default class Viewer {
 		metadata: Image2DLayer[];
 	}) {
 		this.#canvasId = canvasId;
+		this.#metadata = metadata;
 		this.#maxLevel = metadata.length - 1;
 		this.#currentLevel = metadata.length - 1;
 
@@ -56,6 +61,8 @@ export default class Viewer {
 					this.#canvas = document.getElementById(this.#canvasId) as HTMLCanvasElement | undefined;
 
 					if (!this.#canvas) throw Error('Canvas element not found');
+
+					this.resetScale();
 
 					const offscreen = this.#canvas.transferControlToOffscreen();
 					this.#worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
@@ -137,9 +144,29 @@ export default class Viewer {
 	}
 
 	resetScale() {
+		if (!this.#canvas) return;
+
+		this.#scale = 2;
+
+		const { width, height } = this.#canvas.getBoundingClientRect();
+
+		const canvasWidth = width * window.devicePixelRatio;
+		const canvasHeight = height * window.devicePixelRatio;
+		const imageWidth = this.#metadata[this.#minLevel].width;
+		const imageHeight = this.#metadata[this.#minLevel].height;
+
+		// Fit to smallest dimension (ensures entire image is visible)
+		const scaleX = canvasWidth / imageWidth;
+		const scaleY = canvasHeight / imageHeight;
+		this.#scaleFactor = Math.min(scaleX, scaleY) * 0.5;
+
+		// Center the image in the canvas
+		const scaledImageWidth = imageWidth * this.#scaleFactor * this.#scale;
+		const scaledImageHeight = imageHeight * this.#scaleFactor * this.#scale;
+		this.#offset.x = (canvasWidth - scaledImageWidth) / 2;
+		this.#offset.y = (canvasHeight - scaledImageHeight) / 2;
+
 		this.#start = { x: 0, y: 0 };
-		this.#offset = { x: 0, y: 0 };
-		this.#scale = 1;
 		this.markDirty();
 	}
 
@@ -165,37 +192,32 @@ export default class Viewer {
 		this.#mouseDown = false;
 	}
 
+	// FIXME: default to half canvas width/height
 	zoom(
 		delta: number,
 		mouseX: number = screen.availWidth / 2,
 		mouseY: number = screen.availHeight / 2,
-		dpr: number = 1
+		dpr: number = window.devicePixelRatio
 	) {
-		let newScale = this.#scale * Math.exp(delta * -0.005);
+		const prevScale = this.#scale;
 
-		// Limit the scale factor within a reasonable range.
-		if (newScale < this.#minScale) {
-			newScale = this.#minScale;
-		} else if (newScale > this.#maxScale) {
-			newScale = this.#maxScale;
-		}
+		// Exponential zoom feels natural on wheel / pinch
+		const zoomFactor = Math.exp(-0.005 * delta);
+		const nextScale = clamp(prevScale * zoomFactor, this.#minScale, this.#maxScale);
 
-		// Convert client coordinates to canvas coordinates
+		// Early-out if scale didn't change (avoids jitter & extra math)
+		if (nextScale === prevScale) return;
+
+		// Screen → canvas
 		const canvasX = mouseX * dpr;
 		const canvasY = mouseY * dpr;
 
-		// Calculate the world-space position of the mouse before zoom
-		const worldX = (canvasX - this.#offset.x) / this.#scale;
-		const worldY = (canvasY - this.#offset.y) / this.#scale;
+		// Keep cursor anchored during zoom
+		const scaleRatio = nextScale / prevScale;
+		this.#offset.x = canvasX - (canvasX - this.#offset.x) * scaleRatio;
+		this.#offset.y = canvasY - (canvasY - this.#offset.y) * scaleRatio;
 
-		// Update scale
-		this.#scale = newScale;
-
-		// Calculate new #offset to keep the world position under the mouse
-		this.#offset.x = canvasX - worldX * this.#scale;
-		this.#offset.y = canvasY - worldY * this.#scale;
-
-		// this.#handleLevelChange(delta);
+		this.#scale = nextScale;
 		this.markDirty();
 	}
 
@@ -211,7 +233,8 @@ export default class Viewer {
 		// [3] #offset y
 		this.#sharedInts[3] = Math.round(this.#offset.y);
 		// [4] scale * 1e6
-		this.#sharedInts[4] = Math.floor(this.scale * 1e6);
+		const actualScale = this.#scale * this.#scaleFactor;
+		this.#sharedInts[4] = Math.floor(actualScale * 1e6);
 		// [5] dirty flag
 		Atomics.store(this.#sharedInts, 5, 1);
 	}
@@ -245,7 +268,7 @@ export default class Viewer {
 	}
 
 	onwheel(e: WheelEvent) {
-		this.zoom(e.deltaY, e.clientX, e.clientY, window.devicePixelRatio);
+		this.zoom(e.deltaY, e.clientX, e.clientY);
 	}
 
 	onresize() {

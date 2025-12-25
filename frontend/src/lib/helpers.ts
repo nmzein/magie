@@ -178,3 +178,7 @@ export type DeepRequired<T> = T extends object
 		? Array<DeepRequired<U>>
 		: { [K in keyof T]-?: DeepRequired<T[K]> }
 	: T;
+
+export function clamp(value: number, min: number, max: number): number {
+	return Math.min(max, Math.max(min, value));
+}

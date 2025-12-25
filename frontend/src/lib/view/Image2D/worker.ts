@@ -190,8 +190,9 @@ function loop() {
 
 	requestAnimationFrame(loop);
 }
+
 function renderVisibleTiles(transformer = lastTransform, width = lastWidth, height = lastHeight) {
-	if (!ctx || !offscreenCanvas) return;
+	if (!ctx || !offscreenCanvas || !metadata) return;
 
 	const scale = transformer.scale;
 	const offsetX = transformer.offsetX;
