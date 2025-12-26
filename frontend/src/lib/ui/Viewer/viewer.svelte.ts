@@ -1,9 +1,9 @@
 import { untrack } from 'svelte';
-import type { Image2DLayer } from './types.ts';
 import { clamp } from '$helpers';
+import type { Asset } from '$lib/states/viewer-manager.svelte.ts';
 
 export default class Viewer {
-	#metadata: Image2DLayer[];
+	asset: Asset;
 
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
@@ -29,23 +29,24 @@ export default class Viewer {
 	constructor({
 		canvasId,
 		websocketUrl,
-		metadata
+		asset
 	}: {
 		canvasId: string;
 		websocketUrl: string;
-		metadata: Image2DLayer[];
+		asset: Asset;
 	}) {
+		this.asset = asset;
 		this.#canvasId = canvasId;
-		this.#metadata = metadata;
-		this.#maxLevel = metadata.length - 1;
-		this.#currentLevel = metadata.length - 1;
+		this.#maxLevel = asset.layers.length - 1;
+		this.#currentLevel = this.#maxLevel;
 
-		const lowestResolution = metadata[this.#maxLevel].width * metadata[this.#maxLevel].height;
+		const lowestResolution =
+			asset.layers[this.#maxLevel].width * asset.layers[this.#maxLevel].height;
 
 		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
 		for (let i = this.#minLevel; i < this.#maxLevel; i++) {
 			this.#scaleBreakpoints.push(
-				Math.sqrt((metadata[i].width * metadata[i].height) / lowestResolution)
+				Math.sqrt((asset.layers[i].width * asset.layers[i].height) / lowestResolution)
 			);
 		}
 
@@ -75,7 +76,7 @@ export default class Viewer {
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
 								wsUrl: websocketUrl,
-								layers: JSON.stringify(metadata),
+								asset: JSON.stringify(this.asset),
 								sharedBuf: this.#sharedBuf
 							}
 						},
@@ -152,8 +153,8 @@ export default class Viewer {
 
 		const canvasWidth = width * window.devicePixelRatio;
 		const canvasHeight = height * window.devicePixelRatio;
-		const imageWidth = this.#metadata[this.#minLevel].width;
-		const imageHeight = this.#metadata[this.#minLevel].height;
+		const imageWidth = this.asset.layers[this.#minLevel].width;
+		const imageHeight = this.asset.layers[this.#minLevel].height;
 
 		// Fit to smallest dimension (ensures entire image is visible)
 		const scaleX = canvasWidth / imageWidth;

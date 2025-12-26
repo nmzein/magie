@@ -1,10 +1,9 @@
 import { Context, PersistedState, StateHistory } from 'runed';
 import type { Directory, Asset, UploaderOptions } from '$types';
-import { registry, repository, clipboard } from '$states';
+import { registry, repository, clipboard, viewerManager } from '$states';
 import { http } from '$api';
 import { defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
-import { load as createImage2DView } from '$view/Image2D/state.svelte.ts';
 
 export const ROOT_ID = 0;
 export const BIN_ID = 1;
@@ -145,7 +144,7 @@ export class Explorer {
 				this.goto(item.id);
 				break;
 			case 'Asset':
-				await createImage2DView(this.storeId, item.parentId, item.id, item.name);
+				await viewerManager.load(this.storeId, item.parentId, item.id, item.name);
 				break;
 		}
 	}

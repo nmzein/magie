@@ -182,3 +182,26 @@ export type DeepRequired<T> = T extends object
 export function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
 }
+
+// const FRAME_RATE_CAP = 60;
+// const ENABLE_FRAMERATE_CAP = true;
+
+// function withFrameCap<T extends (...args: any[]) => void>(
+// 	handler: T,
+// 	fps: number,
+// 	enabled: boolean = true
+// ): T {
+// 	if (!enabled) return handler as T;
+
+// 	const minInterval = 1000 / fps;
+// 	let lastTime = 0;
+
+// 	return ((...args: Parameters<T>) => {
+// 		const now = performance.now();
+// 		if (now - lastTime >= minInterval) {
+// 			lastTime = now;
+// 			handler(...args);
+// 		}
+// 	}) as T;
+// }
+//

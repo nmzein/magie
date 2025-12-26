@@ -1,7 +1,7 @@
+import { AssetClientMsgTag } from '$types';
 import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
-import { AssetClientMsgTag } from '$types';
-import type { Image2DLayer } from './types';
+import type { Asset } from '$lib/states/viewer-manager.svelte';
 
 type TileCache = {
 	[key: string]: ImageBitmap;
@@ -16,7 +16,7 @@ let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let socketManager: WebSocketManager | null = null;
 let tileCache: TileCache = {};
 let pendingTileRequests = new Set<string>();
-let metadata: Image2DLayer[] | null = null;
+let asset: Asset | null = null;
 
 // SharedArrayBuffer-backed transform
 let sharedInts: Int32Array | null = null;
@@ -35,7 +35,7 @@ self.onmessage = function (e) {
 	switch (type) {
 		case 'init':
 			initCanvas(data.canvas, data.width, data.height);
-			metadata = JSON.parse(data.layers);
+			asset = JSON.parse(data.asset);
 			if (data.sharedBuf) sharedInts = new Int32Array(data.sharedBuf);
 			connect(data.wsUrl);
 			requestAnimationFrame(loop);
@@ -90,7 +90,7 @@ async function handleTile(event: MessageEvent) {
 	const y = r.u32();
 	const tileData = r.bytes();
 
-	if (!metadata) return;
+	if (!asset) return;
 
 	const tileKey = `${level}_${x}_${y}`;
 	try {
@@ -112,10 +112,10 @@ function calculateVisibleTiles(
 	width: number,
 	height: number
 ): TileIdentifier[] {
-	if (!metadata) return [];
+	if (!asset) return [];
 
 	const CTS = TILE_SIZE * transformer.scale;
-	const layer = metadata[0];
+	const layer = asset.layers[0];
 	if (!layer) return [];
 
 	const startX = Math.max(0, Math.floor(-transformer.offsetX / CTS));
@@ -136,13 +136,13 @@ function calculateVisibleTiles(
 }
 
 function requestTiles(tiles: TileIdentifier[]) {
-	if (socketManager?.state !== 'connected' || !metadata) return;
+	if (socketManager?.state !== 'connected' || !asset) return;
 
 	for (const tile of tiles) {
 		const tileKey = `${tile.level}_${tile.x}_${tile.y}`;
 		if (tileCache[tileKey] || pendingTileRequests.has(tileKey)) continue;
 
-		const layer = metadata[tile.level];
+		const layer = asset.layers[tile.level];
 		if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
 
 		pendingTileRequests.add(tileKey);
@@ -158,7 +158,7 @@ function requestTiles(tiles: TileIdentifier[]) {
 }
 
 function loop() {
-	if (!ctx || !metadata || !offscreenCanvas || !sharedInts) {
+	if (!ctx || !asset || !offscreenCanvas || !sharedInts) {
 		requestAnimationFrame(loop);
 		return;
 	}
@@ -190,7 +190,7 @@ function loop() {
 }
 
 function renderVisibleTiles(transformer = lastTransform, width = lastWidth, height = lastHeight) {
-	if (!ctx || !offscreenCanvas || !metadata) return;
+	if (!ctx || !offscreenCanvas || !asset) return;
 
 	const scale = transformer.scale;
 	const offsetX = transformer.offsetX;
@@ -256,7 +256,7 @@ function close() {
 
 	tileCache = {};
 	pendingTileRequests.clear();
-	metadata = null;
+	asset = null;
 	offscreenCanvas = null;
 	ctx = null;
 }

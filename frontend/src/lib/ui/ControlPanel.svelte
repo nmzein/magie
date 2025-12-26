@@ -1,14 +1,13 @@
 <script lang="ts">
 	import type { Bounds } from '$types';
-	import type { View } from '$lib/types/views';
 	import { defined, truncateNumber } from '$helpers';
-	import { registry, views } from '$states';
+	import { registry, viewerManager } from '$states';
 	import * as Tabs from '$components/tabs/index.ts';
 	import Button from '$components/Button.svelte';
 	import Window from '$components/window/Window.svelte';
 	import { Explorer } from '$ui/Explorer';
 	import { ContextMenu } from '$ui/ContextMenu/index.ts';
-	import Geometry2DControls from '$view/Geometry2D/Control.svelte';
+	// import Geometry2DControls from '$view/Geometry2D/Control.svelte';
 	import Icon from '$icon';
 
 	const classes = {
@@ -22,8 +21,6 @@
 	};
 
 	let contentSpaceBounds: Bounds | undefined = $state();
-
-	const activeView: View | undefined = $derived(views[0]);
 </script>
 
 <div class="pointer-events-none absolute flex w-full flex-row gap-2 overflow-hidden">
@@ -42,11 +39,13 @@
 								<Explorer />
 							</Window>
 						</Tabs.Content>
-						<Tabs.Content value="control" disabled={!defined(activeView)}>
+						<!-- <Tabs.Content value="control" disabled={!defined(viewerManager.activeViewer)}>
 							<Window {contentSpaceBounds}>
-								<Geometry2DControls bind:geometries={activeView!.state.geometries} />
+								<Geometry2DControls
+									bind:geometries={viewerManager.activeViewer!.state.geometries}
+								/>
 							</Window>
-						</Tabs.Content>
+						</Tabs.Content> -->
 					</div>
 				</Tabs.ContentSpace>
 
@@ -55,28 +54,32 @@
 						<Tabs.TriggerList id="zooming">
 							<Tabs.Trigger
 								sideEffect={() => {
-									activeView?.viewer.zoom(-100);
+									viewerManager.activeViewer?.instance.zoom(-100);
 								}}
-								disabled={!defined(activeView) || activeView?.viewer.atMaxScale()}
+								disabled={!defined(viewerManager.activeViewer) ||
+									viewerManager.activeViewer?.instance.atMaxScale()}
 							>
 								<Icon name="zoom-in" class="h-9 w-9" />
 							</Tabs.Trigger>
 							<button
 								onclick={() => {
-									activeView?.viewer.resetScale();
+									viewerManager.activeViewer?.instance.resetScale();
 								}}
-								disabled={!defined(activeView)}
+								disabled={!defined(viewerManager.activeViewer)}
 								class="my-1.25 text-center select-none"
-								class:cursor-pointer={defined(activeView)}
-								class:opacity-30={!defined(activeView)}
+								class:cursor-pointer={defined(viewerManager.activeViewer)}
+								class:opacity-30={!defined(viewerManager.activeViewer)}
 							>
-								{defined(activeView) ? truncateNumber(activeView.viewer.scale) : '1.0'}x
+								{defined(viewerManager.activeViewer)
+									? truncateNumber(viewerManager.activeViewer.instance.scale)
+									: '1.0'}x
 							</button>
 							<Tabs.Trigger
 								sideEffect={() => {
-									activeView?.viewer.zoom(100);
+									viewerManager.activeViewer?.instance.zoom(100);
 								}}
-								disabled={!defined(activeView) || activeView?.viewer.atMinScale()}
+								disabled={!defined(viewerManager.activeViewer) ||
+									viewerManager.activeViewer?.instance.atMinScale()}
 							>
 								<Icon name="zoom-out" class="h-9 w-9" />
 							</Tabs.Trigger>
@@ -89,12 +92,13 @@
 							>
 								<Icon name="explorer" class="h-9 w-9" />
 							</Tabs.Trigger>
-							<Tabs.Trigger
+							<!-- <Tabs.Trigger
 								value="control"
-								disabled={!defined(activeView) || activeView?.state.geometries.length === 0}
+								disabled={!defined(viewerManager.activeViewer) ||
+									viewerManager.activeViewer?.instance.asset.geometries.length === 0}
 							>
 								<Icon name="control" class="h-9 w-9" />
-							</Tabs.Trigger>
+							</Tabs.Trigger> -->
 							<Tabs.Trigger value="info" disabled={true}>
 								<Icon name="info" class="h-9 w-9" />
 							</Tabs.Trigger>

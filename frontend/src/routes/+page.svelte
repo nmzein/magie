@@ -3,10 +3,10 @@
 <script lang="ts">
 	import '../app.css';
 	import Stats from 'three/examples/jsm/libs/stats.module.js';
-	import View from '$view/View.svelte';
 	import ControlPanel from '$ui/ControlPanel.svelte';
+	import Viewer from '$ui/Viewer/Viewer.svelte';
 	import { websocket } from '$api';
-	import { views } from '$states';
+	import { viewerManager } from '$states';
 
 	$effect(() => {
 		websocket.connect();
@@ -20,8 +20,8 @@
 	});
 </script>
 
-{#each views as view, idx (view.state.id)}
-	<View bind:view={views[idx]} />
+{#each viewerManager.viewers as viewer (viewer.instance.asset.assetId)}
+	<Viewer bind:instance={viewer.instance} />
 {/each}
 
 <ControlPanel />
