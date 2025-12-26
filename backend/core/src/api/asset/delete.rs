@@ -4,7 +4,7 @@ use crate::{constants::BIN_ID, types::fs::DeleteMode};
 #[derive(Deserialize)]
 pub struct PathParams {
     store_id: u32,
-    image_id: u32,
+    asset_id: u32,
 }
 
 #[derive(Deserialize)]
@@ -15,12 +15,12 @@ pub struct QueryParams {
 pub async fn delete(
     Extension(dbm): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(PathParams { store_id, image_id }): Path<PathParams>,
+    Path(PathParams { store_id, asset_id }): Path<PathParams>,
     Query(QueryParams { mode }): Query<QueryParams>,
 ) -> Response {
     match mode {
         DeleteMode::Soft => {
-            let parent_id = match crate::db::image::get_parent(&dbm, store_id, image_id) {
+            let parent_id = match crate::db::image::get_parent(&dbm, store_id, asset_id) {
                 Ok(parent_id) => parent_id,
                 Err(e) => {
                     return logger.error(
@@ -57,7 +57,7 @@ pub async fn delete(
             };
 
             // Soft delete the image in the database.
-            match crate::db::image::soft_delete(&dbm, store_id, image_id) {
+            match crate::db::image::soft_delete(&dbm, store_id, asset_id) {
                 Ok(()) => logger.success(StatusCode::OK, "Soft deleted image successfully."),
                 Err(e) => logger.error(
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -69,7 +69,7 @@ pub async fn delete(
             }
         }
         DeleteMode::Hard => {
-            match crate::io::delete(store_id, image_id) {
+            match crate::io::delete(store_id, asset_id) {
                 Ok(()) => {}
                 Err(e) => {
                     return logger.error(
@@ -82,7 +82,7 @@ pub async fn delete(
                 }
             }
 
-            match crate::db::image::delete(&dbm, store_id, image_id) {
+            match crate::db::image::delete(&dbm, store_id, asset_id) {
                 Ok(()) => logger.success(StatusCode::OK, "Hard deleted image successfully."),
                 Err(e) => logger.error(
                     StatusCode::INTERNAL_SERVER_ERROR,

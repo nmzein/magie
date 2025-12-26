@@ -33,12 +33,9 @@ use tower_http::set_header::SetResponseHeaderLayer;
 async fn main() {
     let port: &str = &env::var("PUBLIC_PORT").expect("PUBLIC_PORT environment variable not set");
     let container: bool = env::var("CONTAINER").unwrap_or("false".into()) == "true";
+    let host = if container { "0.0.0.0" } else { "localhost" };
 
-    let backend_url: &str = if container {
-        &format!("0.0.0.0:{port}")
-    } else {
-        &format!("localhost:{port}")
-    };
+    let backend_url: &str = &format!("{host}:{port}");
 
     let tmp_dir = PathBuf::from(LOCAL_STORES_PATH).join("tmp");
 
@@ -81,24 +78,23 @@ async fn main() {
         .route("/{directory_id}", patch(api::directory::r#move::r#move));
 
     let asset_routes = Router::new()
-        .route("/{asset_id}/socket", get(api::image::tiles::websocket))
-        // TODO: Rename image_id to asset_id.
+        .route("/{asset_id}/socket", get(api::asset::tiles::websocket))
         // TODO: Make name part of the body.
-        .route("/{parent_id}/{name}", post(api::image::upload::upload))
-        .route("/{image_id}", delete(api::image::delete::delete))
+        .route("/{parent_id}/{name}", post(api::asset::upload::upload))
+        .route("/{asset_id}", delete(api::asset::delete::delete))
         // TODO: Make this endpoint accept rename too.
-        .route("/{image_id}", patch(api::image::r#move::r#move))
+        .route("/{asset_id}", patch(api::asset::r#move::r#move))
         .route(
-            "/{image_id}/properties",
-            get(api::image::properties::properties),
+            "/{asset_id}/properties",
+            get(api::asset::properties::properties),
         )
         .route(
-            "/{image_id}/thumbnail",
-            get(api::image::thumbnail::thumbnail),
+            "/{asset_id}/thumbnail",
+            get(api::asset::thumbnail::thumbnail),
         )
         .route(
-            "/{image_id}/annotations/{annotation_layer_id}",
-            get(api::image::annotations::annotations),
+            "/{asset_id}/annotations/{annotation_layer_id}",
+            get(api::asset::annotations::annotations),
         );
 
     let store_routes = Router::new()

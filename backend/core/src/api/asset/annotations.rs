@@ -4,7 +4,7 @@ use axum::{body::Bytes, http::header};
 #[derive(Deserialize)]
 pub struct PathParams {
     store_id: u32,
-    image_id: u32,
+    asset_id: u32,
     annotation_layer_id: u32,
 }
 
@@ -13,12 +13,12 @@ pub async fn annotations(
     Extension(mut logger): Extension<Logger<'_>>,
     Path(PathParams {
         store_id,
-        image_id,
+        asset_id,
         annotation_layer_id,
     }): Path<PathParams>,
 ) -> Response {
     let path =
-        match crate::db::image::annotation_path(&dbm, store_id, image_id, annotation_layer_id) {
+        match crate::db::image::annotation_path(&dbm, store_id, asset_id, annotation_layer_id) {
             Ok(path) => path,
             Err(e) => {
                 return logger.error(

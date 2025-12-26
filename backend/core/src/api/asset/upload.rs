@@ -146,7 +146,7 @@ pub async fn upload(
         None => None,
     };
 
-    let Ok(image_id) = crate::db::counter::counter(&dbm, store_id) else {
+    let Ok(asset_id) = crate::db::counter::counter(&dbm, store_id) else {
         return logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,
             Error::ResourceCreation,
@@ -157,7 +157,7 @@ pub async fn upload(
     };
 
     // Create a directory in local store for the image.
-    let path = match crate::io::create(store_id, image_id) {
+    let path = match crate::io::create(store_id, asset_id) {
         Ok(path) => path,
         Err(e) => {
             return logger.error(
@@ -200,7 +200,7 @@ pub async fn upload(
     match crate::db::image::insert(
         &dbm,
         store_id,
-        image_id,
+        asset_id,
         parent_id,
         &name,
         &decoder,

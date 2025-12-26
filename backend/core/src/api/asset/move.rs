@@ -4,7 +4,7 @@ use crate::constants::BIN_ID;
 #[derive(Deserialize)]
 pub struct PathParams {
     store_id: u32,
-    image_id: u32,
+    asset_id: u32,
 }
 
 #[derive(Deserialize)]
@@ -15,7 +15,7 @@ pub struct Body {
 pub async fn r#move(
     Extension(dbm): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(PathParams { store_id, image_id }): Path<PathParams>,
+    Path(PathParams { store_id, asset_id }): Path<PathParams>,
     Json(Body { destination_id }): Json<Body>,
 ) -> Response {
     // [CHECK]: Cannot move asset into bin.
@@ -41,7 +41,7 @@ pub async fn r#move(
         }
     };
 
-    match crate::db::image::r#move(&dbm, store_id, image_id, destination_id) {
+    match crate::db::image::r#move(&dbm, store_id, asset_id, destination_id) {
         Ok(()) => logger.success(StatusCode::OK, "Moved asset successfully."),
         Err(e) => {
             return logger.error(

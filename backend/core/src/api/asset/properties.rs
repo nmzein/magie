@@ -3,15 +3,15 @@ use crate::api::prelude::*;
 #[derive(Deserialize)]
 pub struct PathParams {
     store_id: u32,
-    image_id: u32,
+    asset_id: u32,
 }
 
 pub async fn properties(
     Extension(dbm): Extension<Arc<DatabaseManager>>,
     Extension(mut logger): Extension<Logger<'_>>,
-    Path(PathParams { store_id, image_id }): Path<PathParams>,
+    Path(PathParams { store_id, asset_id }): Path<PathParams>,
 ) -> Response {
-    match crate::db::image::properties(&dbm, store_id, image_id) {
+    match crate::db::image::properties(&dbm, store_id, asset_id) {
         Ok(properties) => {
             logger.success(StatusCode::OK, "Retrieved asset properties successfully.");
             Json(properties).into_response()
