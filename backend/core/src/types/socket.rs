@@ -1,4 +1,7 @@
-use crate::types::{messages::{GeneralServerMsg, AssetServerMsg}, user::UserId};
+use crate::types::{
+    messages::{AssetServerMsg, GeneralServerMsg},
+    user::UserId,
+};
 use anyhow::Result;
 use axum::extract::ws::Message;
 use dashmap::DashMap;
@@ -41,13 +44,7 @@ impl ClientSocketManager {
     }
 
     /// Register a (store_id, asset_id) connection for a client
-    pub fn add_asset_connection(
-        &self,
-        user_id: UserId,
-        store_id: u32,
-        asset_id: u32,
-        sender: Tx,
-    ) {
+    pub fn add_asset_connection(&self, user_id: UserId, store_id: u32, asset_id: u32, sender: Tx) {
         let key = AssetKey { store_id, asset_id };
 
         self.assets
@@ -63,23 +60,14 @@ impl ClientSocketManager {
     }
 
     /// Remove a single asset connection
-    pub fn remove_asset_connection(
-        &self,
-        user_id: UserId,
-        store_id: u32,
-        asset_id: u32,
-    ) {
+    pub fn remove_asset_connection(&self, user_id: UserId, store_id: u32, asset_id: u32) {
         if let Some(user_assets) = self.assets.get(&user_id) {
             user_assets.remove(&AssetKey { store_id, asset_id });
         }
     }
 
     /// Send to the client's general connection
-    pub async fn send_general(
-        &self,
-        user_id: UserId,
-        msg: GeneralServerMsg,
-    ) -> Result<()> {
+    pub async fn send_general(&self, user_id: UserId, msg: GeneralServerMsg) -> Result<()> {
         if let Some(sender) = self.general.get(&user_id) {
             sender.send(msg.try_into()?).await?;
         }
@@ -95,9 +83,7 @@ impl ClientSocketManager {
         msg: AssetServerMsg,
     ) -> Result<()> {
         if let Some(user_assets) = self.assets.get(&user_id) {
-            if let Some(sender) =
-                user_assets.get(&AssetKey { store_id, asset_id })
-            {
+            if let Some(sender) = user_assets.get(&AssetKey { store_id, asset_id }) {
                 sender.send(msg.try_into()?).await?;
             }
         }

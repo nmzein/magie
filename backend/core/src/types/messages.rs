@@ -1,6 +1,9 @@
 use axum::{body::Bytes, extract::ws::Message};
 use std::convert::TryFrom;
-use wincode::{SchemaWrite, SchemaRead, error::{WriteError, ReadError}};
+use wincode::{
+    SchemaRead, SchemaWrite,
+    error::{ReadError, WriteError},
+};
 
 /////////////////////////////////
 // Client -> Server

@@ -1,6 +1,6 @@
 use crate::api::prelude::*;
 use crate::types::{
-    messages::{ClientMsg, AssetServerMsg, TileClientMsg, TileServerMsg},
+    messages::{AssetServerMsg, ClientMsg, TileClientMsg, TileServerMsg},
     user::User,
 };
 use axum::extract::{WebSocketUpgrade, ws::Message};
@@ -90,7 +90,14 @@ pub async fn websocket(
                     ClientMsg::Tile(tile_request) => {
                         match get_tile(&db, store_id, asset_id, tile_request) {
                             Ok(tile_response) => {
-                                let _ = csm.send_asset(user.id, store_id, asset_id, AssetServerMsg::Tile(tile_response)).await;
+                                let _ = csm
+                                    .send_asset(
+                                        user.id,
+                                        store_id,
+                                        asset_id,
+                                        AssetServerMsg::Tile(tile_response),
+                                    )
+                                    .await;
                                 // else {
                                 //     logger.error(
                                 //         StatusCode::INTERNAL_SERVER_ERROR,
@@ -103,7 +110,14 @@ pub async fn websocket(
                                 // };
                             }
                             Err(e) => {
-                                let _ = csm.send_asset(user.id, store_id, asset_id, AssetServerMsg::Error(e)).await;
+                                let _ = csm
+                                    .send_asset(
+                                        user.id,
+                                        store_id,
+                                        asset_id,
+                                        AssetServerMsg::Error(e),
+                                    )
+                                    .await;
                             }
                         }
                     }
@@ -113,17 +127,12 @@ pub async fn websocket(
     })
 }
 
-
 // TODO: Capture large rectangles of selections rather than individual tiles.
 pub fn get_tile(
     dbm: &DatabaseManager,
     store_id: u32,
     asset_id: u32,
-    TileClientMsg {
-        level,
-        x,
-        y,
-    }: TileClientMsg,
+    TileClientMsg { level, x, y }: TileClientMsg,
 ) -> Result<TileServerMsg, String> {
     let path = match crate::db::image::image_path(dbm, store_id, asset_id) {
         Ok(path) => path,
