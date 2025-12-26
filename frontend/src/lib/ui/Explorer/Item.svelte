@@ -135,11 +135,11 @@
 					<!-- svelte-ignore a11y_missing_attribute -->
 					<img src={thumbnail.src} class="h-16 rounded-md" />
 				{:else}
-					<Icon name="image" class="my-[-13px] h-[90px] w-[90px]" />
+					<Icon name="image" class="-my-3.25 h-22.5 w-22.5" />
 				{/if}
 			{/await}
 		{:else}
-			<Icon name="directory" class="my-[-13px] h-[90px] w-[90px]" />
+			<Icon name="directory" class="-my-3.25 h-22.5 w-22.5" />
 		{/if}
 		<span class="line-clamp-2 break-all">
 			{item.name}

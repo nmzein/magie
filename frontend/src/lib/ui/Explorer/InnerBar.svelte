@@ -17,7 +17,7 @@
 	<Icon name="down-arrow" class="flex h-[1.15rem] w-[1.15rem] opacity-40" />
 {/snippet}
 
-<div class="bg-primary/15 relative flex flex-row px-[1px]">
+<div class="bg-primary/15 relative flex flex-row px-px">
 	<Dropdown.Root {classes}>
 		<Dropdown.Trigger disabled={explorer.inBin}>
 			<Icon name="new" class="h-[1.15rem] w-[1.15rem]" /> New

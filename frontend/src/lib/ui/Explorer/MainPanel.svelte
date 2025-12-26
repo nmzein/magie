@@ -150,7 +150,7 @@
 		selection.update();
 	}}
 	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
-	class="@container h-[408px] rounded-br-[10px] select-none
+	class="@container h-102 rounded-br-[10px] select-none
            {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}
 	{oncontextmenu}
