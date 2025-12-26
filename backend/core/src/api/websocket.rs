@@ -1,15 +1,11 @@
 use crate::api::prelude::*;
-use crate::types::{
-    messages::{ClientMsg, ServerMsg},
-    user::User,
-};
+use crate::types::user::User;
 use axum::extract::{WebSocketUpgrade, ws::Message};
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
 
 pub async fn websocket(
     Extension(user): Extension<User>,
-    Extension(db): Extension<Arc<DatabaseManager>>,
     Extension(csm): Extension<Arc<ClientSocketManager>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
@@ -49,7 +45,6 @@ pub async fn websocket(
         // Handle incoming messages.
         while let Some(message) = stream.next().await {
             let csm = Arc::clone(&csm);
-            let db = Arc::clone(&db);
 
             tokio::spawn(async move {
                 match message {

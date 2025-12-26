@@ -1,6 +1,4 @@
-use crate::types::messages::ServerMsg;
-use crate::types::user::UserId;
-
+use crate::types::{messages::{GeneralServerMsg, AssetServerMsg}, user::UserId};
 use anyhow::Result;
 use axum::extract::ws::Message;
 use dashmap::DashMap;
@@ -80,7 +78,7 @@ impl ClientSocketManager {
     pub async fn send_general(
         &self,
         user_id: UserId,
-        msg: ServerMsg,
+        msg: GeneralServerMsg,
     ) -> Result<()> {
         if let Some(sender) = self.general.get(&user_id) {
             sender.send(msg.try_into()?).await?;
@@ -94,7 +92,7 @@ impl ClientSocketManager {
         user_id: UserId,
         store_id: u32,
         asset_id: u32,
-        msg: ServerMsg,
+        msg: AssetServerMsg,
     ) -> Result<()> {
         if let Some(user_assets) = self.assets.get(&user_id) {
             if let Some(sender) =
@@ -107,7 +105,7 @@ impl ClientSocketManager {
     }
 
     /// Broadcast to all connected sockets
-    pub async fn broadcast(&self, msg: ServerMsg) -> Result<()> {
+    pub async fn broadcast(&self, msg: GeneralServerMsg) -> Result<()> {
         self.broadcast.send(msg.try_into()?)?;
         Ok(())
     }

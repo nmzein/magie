@@ -31,3 +31,19 @@ export const DEFAULT_BOUND: Bounds = { width: 0, height: 0, left: 0, top: 0 };
 
 export type Point = { x: number; y: number };
 export const DEFAULT_POINT: Point = { x: 0, y: 0 };
+
+export const AssetClientMsgTag = {
+	Tile: 0
+};
+
+export const GeneralServerMsgTag = {
+	Error: 0,
+	Tile: 1
+};
+
+export const DirectoryServerMsgTag = {
+	Create: 0,
+	Delete: 1,
+	Move: 2,
+	Rename: 3
+};

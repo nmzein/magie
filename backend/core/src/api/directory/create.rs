@@ -60,7 +60,7 @@ pub async fn create(
 
     // [COMMS]: Broadcast directory create message to connected clients.
     match csm
-        .broadcast(ServerMsg::Directory(DirectoryServerMsg::Create {
+        .broadcast(GeneralServerMsg::Directory(DirectoryServerMsg::Create {
             store_id,
             parent_id,
             id,

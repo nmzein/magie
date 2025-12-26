@@ -10,17 +10,82 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
+        craneLib = crane.mkLib pkgs;
         pkgs = import nixpkgs { inherit system overlays; };
 
         config = builtins.fromTOML (builtins.readFile ./config.toml);
+        env = {
+          LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+          BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include";
+          PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
+        } // config.env;
 
-        env = config.env;
+        backendNativeBuildInputs = with pkgs; [
+          clang
+          cmake
+          nasm
+          rust-bin.stable."1.90.0".default
+          llvmPackages.libclang
+          pkg-config
+        ];
 
-        backend_module = import ./nix/backend.nix { inherit pkgs crane rust-overlay env; };
-        frontend_module = import ./nix/frontend.nix { inherit pkgs env; };
+        backendBuildInputs = with pkgs; [
+          nodejs_24
+          libjpeg
+          openslide
+          sqlite
+          # OpenSlide dependencies.
+          cairo
+          expat
+          gdk-pixbuf
+          glib
+          lerc
+          libdicom
+          libdeflate
+          libselinux
+          libsepol
+          libsysprof-capture
+          libwebp
+          libxml2
+          openjpeg
+          pcre2
+          util-linux.dev
+          xorg.libXdmcp
+          xz
+          zstd
+        ];
 
-        backend = backend_module.backend;
-        frontend = frontend_module.frontend;
+        backend = craneLib.buildPackage {
+          pname = "backend";
+          src = craneLib.cleanCargoSource ./backend;
+          cargoExtraArgs = "--workspace";
+
+          strictDeps = true;
+          env = env;
+
+          nativeBuildInputs = backendNativeBuildInputs;
+          buildInputs = backendBuildInputs;
+        };
+
+        frontend = pkgs.buildNpmPackage {
+          pname = "frontend";
+          version = "0.0.0";
+          src = ./frontend;
+          nodejs = pkgs.nodejs_24;
+
+          env = env;
+          npmDeps = pkgs.importNpmLock {
+            npmRoot = ./frontend;
+          };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            mv ./build $out
+            runHook postInstall
+          '';
+        };
 
         devDeps = with pkgs; [
           bun
@@ -77,7 +142,7 @@
         # nix develop
         devShells.default = pkgs.mkShell {
           env = env;
-          buildInputs = devDeps ++ backend_module.nativeBuildDeps ++ backend_module.buildDeps;
+          buildInputs = devDeps ++ backendNativeBuildInputs ++ backendBuildInputs;
 
           shellHook = ''
             echo ""

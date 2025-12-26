@@ -74,15 +74,19 @@ async fn main() {
         .expect("Could not bind a TcpListener to the backend port.");
 
     let directory_routes = Router::new()
+        // TODO: Make name part of the body.
         .route("/{parent_id}/{name}", post(api::directory::create::create))
         .route("/{directory_id}", delete(api::directory::delete::delete))
         // TODO: Make this endpoint accept rename too
         .route("/{directory_id}", patch(api::directory::r#move::r#move));
 
-    let image_routes = Router::new()
+    let asset_routes = Router::new()
+        .route("/{asset_id}/socket", get(api::image::tiles::websocket))
+        // TODO: Rename image_id to asset_id.
+        // TODO: Make name part of the body.
         .route("/{parent_id}/{name}", post(api::image::upload::upload))
         .route("/{image_id}", delete(api::image::delete::delete))
-        // TODO: Make this endpoint accept rename too
+        // TODO: Make this endpoint accept rename too.
         .route("/{image_id}", patch(api::image::r#move::r#move))
         .route(
             "/{image_id}/properties",
@@ -97,16 +101,16 @@ async fn main() {
             get(api::image::annotations::annotations),
         );
 
-    let store_routes = Router::new().route("/{store_id}", get(api::store::get::get));
+    let store_routes = Router::new()
+        .route("/{store_id}", get(api::store::get::get))
+        .nest("/{store_id}/directory", directory_routes)
+        .nest("/{store_id}/asset", asset_routes);
 
     let api_routes = Router::new()
-        .nest("/directory/{store_id}", directory_routes)
-        .nest("/image/{store_id}", image_routes)
         .nest("/store", store_routes)
         .route("/registry", get(api::registry::registry))
         .route("/generators", get(api::generators::generators))
-        .route("/websocket", get(api::websocket::websocket))
-        .route("/websocket/{store_id}/{asset_id}", get(api::image::tiles::websocket));
+        .route("/broadcast", get(api::websocket::websocket));
 
     let static_routes = ServiceBuilder::new().service(ServeDir::new("_static"));
 

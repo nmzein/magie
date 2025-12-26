@@ -9,15 +9,15 @@
 
 <div class="panel ml-auto w-fit select-none">
 	{#each geometries as layer}
-		<div class="flex flex-col gap-[5px] p-[10px]">
-			<div class="flex flex-row items-center gap-[10px]">
+		<div class="flex flex-col gap-1.25 p-2.5">
+			<div class="flex flex-row items-center gap-2.5">
 				<ColourPicker id={'fill-' + layer.tag} bind:value={layer.fill} />
 				<span class="flex-1 text-sm">
 					{layer.tag}
 				</span>
 				<Switch bind:checked={layer.visible} />
 			</div>
-			<div class="flex flex-row items-center gap-[10px]">
+			<div class="flex flex-row items-center gap-2.5">
 				<span class="text-[15px]"> α </span>
 				<Slider
 					id={'opacity-' + layer.tag}

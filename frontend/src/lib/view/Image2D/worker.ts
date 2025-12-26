@@ -1,5 +1,6 @@
-import { C_TILE_TAG, S_TILE_TAG } from '$constants';
+import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
+import { AssetClientMsgTag } from '$types';
 import type { Image2DLayer } from './types';
 
 type TileCache = {
@@ -82,14 +83,12 @@ function connect(wsUrl: string) {
 }
 
 async function handleTile(event: MessageEvent) {
-	const data = new Uint8Array(event.data);
-	const dataView = new DataView(data.buffer);
-	if (dataView.getUint8(0) !== S_TILE_TAG) return;
-
-	const level = dataView.getUint32(1);
-	const x = dataView.getUint32(5);
-	const y = dataView.getUint32(9);
-	const tileData = data.slice(21);
+	const r = new BinaryReader(event.data);
+	const _tag = r.u8();
+	const level = r.u32();
+	const x = r.u32();
+	const y = r.u32();
+	const tileData = r.bytes();
 
 	if (!metadata) return;
 
@@ -148,14 +147,13 @@ function requestTiles(tiles: TileIdentifier[]) {
 
 		pendingTileRequests.add(tileKey);
 
-		const buffer = new ArrayBuffer(1 + 3 * 4);
-		const view = new DataView(buffer);
-		view.setUint8(0, C_TILE_TAG);
-		view.setUint32(1, tile.level);
-		view.setUint32(5, tile.x);
-		view.setUint32(9, tile.y);
+		const w = new BinaryWriter(1 + 3 * 4);
+		w.u8(AssetClientMsgTag.Tile);
+		w.u32(tile.level);
+		w.u32(tile.x);
+		w.u32(tile.y);
 
-		socketManager.send(new Uint8Array(buffer));
+		socketManager.send(w.finish());
 	}
 }
 

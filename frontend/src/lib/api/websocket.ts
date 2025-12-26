@@ -1,14 +1,7 @@
-import {
-	WEBSOCKET_URL,
-	S_ERROR_TAG,
-	S_DIRECTORY_CREATE_TAG,
-	S_DIRECTORY_DELETE_TAG,
-	S_DIRECTORY_MOVE_TAG,
-	S_DIRECTORY_RENAME_TAG,
-	S_DIRECTORY_TAG,
-	S_TILE_TAG
-} from '$constants';
+import { BROADCAST_URL } from '$constants';
+import { BinaryReader } from '$lib/helpers/codec';
 import { registry } from '$states';
+import { DirectoryServerMsgTag, GeneralServerMsgTag } from '$types';
 
 let socket: WebSocket;
 
@@ -19,52 +12,53 @@ export function send(data: Uint8Array): boolean {
 }
 
 async function receive(event: MessageEvent) {
-	const data = new Uint8Array(event.data);
-	const dataView = new DataView(data.buffer);
+	const r = new BinaryReader(event.data);
+	const tag = r.u8();
 
-	switch (dataView.getUint8(0)) {
-		case S_ERROR_TAG:
-			console.log('Error');
+	switch (tag) {
+		case GeneralServerMsgTag.Error:
+			console.log('Error', r.string());
 			break;
-		case S_TILE_TAG:
-			break;
-		case S_DIRECTORY_TAG:
-			switch (dataView.getUint8(1)) {
-				case S_DIRECTORY_CREATE_TAG: {
-					const storeId = dataView.getUint32(6);
-					const parentId = dataView.getUint32(10);
-					const id = dataView.getUint32(14);
-					const name = new TextDecoder().decode(data.slice(26)); // Skip 8 bytes encoding length.
+		case GeneralServerMsgTag.Tile:
+			const subtag = r.u8();
+			switch (subtag) {
+				case DirectoryServerMsgTag.Create: {
+					const storeId = r.u32();
+					const parentId = r.u32();
+					const directoryId = r.u32();
+					const name = r.string();
 
-					registry.add('Directory', storeId, parentId, id, name);
+					registry.add('Directory', storeId, parentId, directoryId, name);
 					break;
 				}
-				case S_DIRECTORY_DELETE_TAG: {
-					const storeId = dataView.getUint32(6);
-					const id = dataView.getUint32(10);
+				case DirectoryServerMsgTag.Delete: {
+					const storeId = r.u32();
+					const directoryId = r.u32();
 
-					registry.delete(storeId, id);
+					registry.delete(storeId, directoryId);
 					break;
 				}
-				case S_DIRECTORY_MOVE_TAG: {
-					const storeId = dataView.getUint32(6);
-					const id = dataView.getUint32(10);
-					const destinationId = dataView.getUint32(14);
+				case DirectoryServerMsgTag.Move: {
+					const storeId = r.u32();
+					const directoryId = r.u32();
+					const destinationId = r.u32();
 
-					registry.move(storeId, id, destinationId);
+					registry.move(storeId, directoryId, destinationId);
 					break;
 				}
-				case S_DIRECTORY_RENAME_TAG: {
+				case DirectoryServerMsgTag.Rename: {
 					console.log('TODO: Implement rename.');
 					break;
 				}
 			}
 			break;
 	}
+
+	if (r.remaining() > 0) throw Error('Unexpected data remaining');
 }
 
 export function connect() {
-	socket = new WebSocket(WEBSOCKET_URL);
+	socket = new WebSocket(BROADCAST_URL);
 	socket.binaryType = 'arraybuffer';
 	socket.addEventListener('message', receive);
 }

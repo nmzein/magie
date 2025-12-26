@@ -2,7 +2,7 @@ pub use crate::{
     log::{Check, Error, Logger},
     types::{
         database::DatabaseManager,
-        messages::{DirectoryServerMsg, ServerMsg},
+        messages::{DirectoryServerMsg, GeneralServerMsg},
         socket::ClientSocketManager,
     },
 };

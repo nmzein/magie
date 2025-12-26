@@ -4,7 +4,7 @@ import { views } from '$states';
 import type { Image2DLayer } from './types.ts';
 import type { Geometry2DLayer } from '$view/Geometry2D/types.ts';
 import Viewer from './viewer.svelte.ts';
-import { WEBSOCKET_URL } from '$constants';
+import { WEBSOCKET_BASE_URL } from '$constants';
 
 class Image2DState {
 	width: number;
@@ -49,7 +49,7 @@ export async function load(storeId: number, parentId: number, assetId: number, n
 		active: true,
 		viewer: new Viewer({
 			canvasId: `asset-${storeId}-${assetId}`,
-			websocketUrl: `${WEBSOCKET_URL}/${storeId}/${assetId}`,
+			websocketUrl: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
 			metadata: properties.metadata
 		})
 	};
