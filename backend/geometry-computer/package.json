@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "main": "index.js",
   "type": "module",
+  "scripts": {
+    "build": ""
+  },
   "dependencies": {
     "@gltf-transform/core": "4.2.1",
     "three": "0.180.0"

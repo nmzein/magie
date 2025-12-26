@@ -385,7 +385,7 @@ fn translate_annotations(
     // Compute annotation positions and normals.
     match Command::new("node")
         .arg("--max-old-space-size=4096")
-        .arg("./geometry-computer/index.js")
+        .arg("./backend/geometry-computer/index.js")
         .arg(translated_annotations_path)
         .arg(final_annotations_path)
         .output()

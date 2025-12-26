@@ -55,6 +55,32 @@
           zstd
         ];
 
+        devDeps = with pkgs; [
+          bun
+          cargo
+          rustfmt
+        ];
+
+        geometry-computer = pkgs.buildNpmPackage {
+          pname = "geometry-computer";
+          version = "0.0.0";
+          src = ./backend/geometry-computer;
+          nodejs = pkgs.nodejs_24;
+
+          env = env;
+          npmDeps = pkgs.importNpmLock {
+            npmRoot = ./backend/geometry-computer;
+          };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            mv ./** $out
+            runHook postInstall
+          '';
+        };
+
         backend = craneLib.buildPackage {
           pname = "backend";
           src = craneLib.cleanCargoSource ./backend;
@@ -87,12 +113,6 @@
           '';
         };
 
-        devDeps = with pkgs; [
-          bun
-          cargo
-          rustfmt
-        ];
-
         # Combined application
         magie = pkgs.stdenv.mkDerivation {
           pname = "magie";
@@ -100,7 +120,9 @@
           buildCommand = ''
             mkdir -p $out
             mkdir -p $out/_static/
+            mkdir -p $out/geometry-computer/
             cp ${backend}/bin/* $out
+            cp -r ${geometry-computer}/* $out/geometry-computer/
             cp -r ${frontend}/build/* $out/_static/
           '';
         };
@@ -110,26 +132,20 @@
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
           ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
-          echo ""
-          if [ -n "$FRONTEND_PORT" ]; then
-            echo "> Frontend ............. http://localhost:$FRONTEND_PORT"
-            echo "> Backend  ............. http://localhost:$PUBLIC_PORT"
-          else
-            echo "> Running ............. http://localhost:$PUBLIC_PORT"
-          fi
+          echo "> Running ............. http://localhost:$PUBLIC_PORT"
           exec ${self.packages.${system}.default}/core "$@"
         '';
 
         podmanRunScript = pkgs.writeShellScriptBin "podman" ''
           echo "Loading podman container..."
           podman load < ${self.packages.${system}.container}
-          podman run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+          podman run --rm -it -p $PUBLIC_PORT:$PUBLIC_PORT -e CONTAINER=true localhost/magie:latest
         '';
 
         dockerRunScript = pkgs.writeShellScriptBin "docker" ''
           echo "Loading docker container..."
           docker load < ${self.packages.${system}.container}
-          docker run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+          docker run --rm -it -p $PUBLIC_PORT:$PUBLIC_PORT -e CONTAINER=true localhost/magie:latest
         '';
 
         devRunScript = pkgs.writeShellScriptBin "dev" ''
