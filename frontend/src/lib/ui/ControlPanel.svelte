@@ -71,7 +71,7 @@
 								class:opacity-30={!defined(viewerManager.activeViewer)}
 							>
 								{defined(viewerManager.activeViewer)
-									? truncateNumber(viewerManager.activeViewer.instance.scale)
+									? truncateNumber(viewerManager.activeViewer.instance.scale / 2)
 									: '1.0'}x
 							</button>
 							<Tabs.Trigger
@@ -102,17 +102,9 @@
 							<Tabs.Trigger value="info" disabled={true}>
 								<Icon name="info" class="h-9 w-9" />
 							</Tabs.Trigger>
-						</Tabs.TriggerList>
 
-						<Tabs.TriggerList id="drawing">
-							<Tabs.Trigger value="move">
-								<Icon name="cursor" class="h-9 w-9" />
-							</Tabs.Trigger>
-							<Tabs.Trigger value="freehand-draw" disabled>
-								<Icon name="freehand" class="h-9 w-9" />
-							</Tabs.Trigger>
-							<Tabs.Trigger value="square" disabled>
-								<Icon name="square" class="h-9 w-9" />
+							<Tabs.Trigger value="info" disabled={true}>
+								<Icon name="shapes" class="h-9 w-9" />
 							</Tabs.Trigger>
 						</Tabs.TriggerList>
 
