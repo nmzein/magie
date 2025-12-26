@@ -34,15 +34,15 @@
 
 <Button
 	bind:component={button}
-	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-[10px] pb-[7.5px] hover:backdrop-blur-[15px]"
+	class="hover:bg-primary/10 active:bg-primary/20 flex h-fit flex-col items-center rounded-lg px-2.5 pb-[7.5px] hover:backdrop-blur-[15px]"
 	{onkeydown}
 >
-	<Icon name="directory" class="h-[90px] w-[90px]" />
+	<Icon name="directory" class="h-22.5 w-22.5" />
 	<!-- svelte-ignore a11y_autofocus -->
 	<input
 		autofocus
 		type="text"
-		class="bg-primary/15 mt-[-5px] h-7 w-full grow rounded-[inherit] px-[10px] py-[5px] text-center focus:outline-none"
+		class="bg-primary/15 -mt-1.25 h-7 w-full grow rounded-[inherit] px-2.5 py-1.25 text-center focus:outline-none"
 		bind:value={name}
 		placeholder=""
 	/>
