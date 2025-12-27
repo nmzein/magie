@@ -180,6 +180,7 @@
             contents = [pkgs.coreutils];
             config = {
               Cmd = ["${runScript}/bin/run"];
+              # FIXME: Use PUBLIC_PORT.
               ExposedPorts = {
                 "3000/tcp" = {};
               };

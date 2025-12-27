@@ -73,7 +73,7 @@
 <div
 	class="h-fit max-h-full w-fit max-w-full"
 	style="transform: translate({position.x}px, {position.y}px);"
-	{@attach resizeObserver((rect) => (bounds = rect))}
+	{@attach resizeObserver((el) => (bounds = el.getBoundingClientRect()))}
 >
 	{@render children()}
 </div>

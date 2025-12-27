@@ -11,16 +11,10 @@ export const boundingClientRect = (callback: (rect: DOMRect) => void): Attachmen
 	};
 };
 
-export const resizeObserver = (callback: (rect: DOMRect) => void): Attachment => {
+export const resizeObserver = (callback: (element: Element) => void): Attachment => {
 	return (element) => {
-		function update() {
-			callback(element.getBoundingClientRect());
-		}
-
-		const observer = new globalThis.ResizeObserver(update);
+		const observer = new ResizeObserver((entries, _observer) => callback(entries[0].target));
 		observer.observe(element);
-
-		update();
 
 		return () => observer.disconnect();
 	};
