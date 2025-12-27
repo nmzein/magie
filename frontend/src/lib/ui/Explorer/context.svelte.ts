@@ -1,4 +1,5 @@
-import { Context, PersistedState, StateHistory } from 'runed';
+import { PersistedState, StateHistory } from 'runed';
+import { Context } from '$lib/helpers/context.ts';
 import type { Directory, Asset, UploaderOptions } from '$types';
 import { registry, repository, clipboard, viewerManager } from '$states';
 import { http } from '$api';
@@ -8,7 +9,7 @@ import { SvelteSet } from 'svelte/reactivity';
 export const ROOT_ID = 0;
 export const BIN_ID = 1;
 
-export const context = new Context<Explorer>('');
+export const context = new Context<Explorer>();
 
 export class Explorer {
 	#selected = new SvelteSet<number>();

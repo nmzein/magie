@@ -1,6 +1,6 @@
-import { Context } from 'runed';
+import { Context } from '$lib/helpers/context.ts';
 
-export const context = new Context<PagesState>('');
+export const context = new Context<PagesState>();
 
 export type PagesClasses = { page: string; nav: string };
 
