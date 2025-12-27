@@ -2,7 +2,7 @@
 	import { clipboard, contextMenu, SelectionBoxState } from '$states';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
-	import { BoundingClientRect } from '$actions';
+	import { boundingClientRect } from '$attachments';
 	import { defined } from '$helpers';
 	import { context, BIN_ID } from './context.svelte.ts';
 
@@ -149,7 +149,7 @@
 		};
 		selection.update();
 	}}
-	use:BoundingClientRect={(v) => (selection.parentBounds = v)}
+	{@attach boundingClientRect((rect) => (selection.parentBounds = rect))}
 	class="@container h-102 rounded-br-[10px] select-none
            {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}

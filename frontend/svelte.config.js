@@ -15,7 +15,7 @@ const config = {
 		}),
 
 		alias: {
-			$actions: './src/lib/actions',
+			$attachments: './src/lib/attachments.ts',
 			$api: './src/lib/api',
 			$components: './src/lib/components',
 			$constants: './src/lib/constants.ts',

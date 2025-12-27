@@ -5,7 +5,7 @@
 	import Icon from '$icon';
 	import { http } from '$api';
 	import { twMerge } from 'tailwind-merge';
-	import { BoundingClientRect } from '$actions';
+	import { boundingClientRect } from '$attachments';
 	import { context } from './context.svelte.ts';
 
 	const explorer = context.get();
@@ -117,7 +117,7 @@
 	}
 </script>
 
-<div use:BoundingClientRect={(v) => (itemBounds = v)} class="h-fit">
+<div {@attach boundingClientRect((rect) => (itemBounds = rect))} class="h-fit">
 	<button
 		class={twMerge(
 			`hover:bg-primary/10 active:bg-primary/20 focus:bg-primary/10 focus:outline-none ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40 focus:bg-accent/30' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
