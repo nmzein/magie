@@ -2,68 +2,92 @@ import type { Asset } from '$lib/states/viewer-manager.svelte';
 import type { ImageBitmapCache } from './cache';
 import type { TileIdentifier } from './worker';
 
-// FIXME: Don't hardcode.
-const TILE_SIZE = 1024;
+const TILE_SIZE = 1024; // FIXME: Don't hardcode.
+const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
 export class Renderer {
-	asset: Asset;
-	offscreenCanvas: OffscreenCanvas;
-	ctx: OffscreenCanvasRenderingContext2D;
-	offset = { x: 0, y: 0 };
-	scale = 1;
+	#asset: Asset;
+	#offscreenCanvas: OffscreenCanvas;
+	#ctx: OffscreenCanvasRenderingContext2D;
+	#offset = { x: 0, y: 0 };
+	#scale = 1;
+	#currentLevel = 0;
 
 	constructor(asset: Asset, offscreenCanvas: OffscreenCanvas, width: number, height: number) {
-		this.asset = asset;
+		this.#asset = asset;
+		this.#offscreenCanvas = offscreenCanvas;
 
-		this.offscreenCanvas = offscreenCanvas;
-		offscreenCanvas.width = width;
-		offscreenCanvas.height = height;
+		this.#offscreenCanvas.width = width;
+		this.#offscreenCanvas.height = height;
 
-		const ctx = offscreenCanvas.getContext('2d', { alpha: false });
+		const ctx = this.#offscreenCanvas.getContext('2d', { alpha: false });
 		if (!ctx) throw new Error('Failed to create 2D rendering context');
 
-		this.ctx = ctx;
-		this.ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
-
-		// const lowestResolution =
-		// 	asset.layers[this.#maxLevel].width * asset.layers[this.#maxLevel].height;
-
-		// // Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
-		// for (let i = this.#minLevel; i < this.#maxLevel; i++) {
-		// 	this.#scaleBreakpoints.push(
-		// 		Math.sqrt((asset.layers[i].width * asset.layers[i].height) / lowestResolution)
-		// 	);
-		// }
+		this.#ctx = ctx;
+		this.#ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
 	}
 
 	updateCanvasDimensions(width: number, height: number) {
-		this.offscreenCanvas.width = width;
-		this.offscreenCanvas.height = height;
+		this.#offscreenCanvas.width = width;
+		this.#offscreenCanvas.height = height;
 	}
 
 	updateTransforms(offset: { x: number; y: number }, scale: number) {
-		this.offset = offset;
-		this.scale = scale;
+		this.#offset = offset;
+		this.#scale = scale;
+	}
+
+	#chooseLayer(): number {
+		const layers = this.#asset.layers;
+		const baseWidth = layers[0].width;
+
+		let bestLevel = this.#currentLevel;
+		let bestError = Infinity;
+
+		for (let i = 0; i < layers.length; i++) {
+			const layer = layers[i];
+
+			// How many base pixels one layer pixel represents
+			const layerPixelScale = baseWidth / layer.width;
+
+			// How many screen pixels one layer pixel occupies
+			const screenPixelsPerLayerPixel = this.#scale * layerPixelScale;
+
+			const error = Math.abs(screenPixelsPerLayerPixel - TARGET_PIXELS_PER_LAYER_PIXEL);
+
+			if (error < bestError) {
+				bestError = error;
+				bestLevel = i;
+			}
+		}
+
+		this.#currentLevel = bestLevel;
+		return bestLevel;
 	}
 
 	calculateVisibleTiles(): TileIdentifier[] {
-		const CTS = TILE_SIZE * this.scale;
-		const layer = this.asset.layers[0];
+		const level = this.#chooseLayer();
+		const layer = this.#asset.layers[level];
 		if (!layer) return [];
 
-		const startX = Math.max(0, Math.floor(-this.offset.x / CTS));
+		const layerPixelScale = this.#asset.layers[0].width / layer.width;
+
+		// Tile size in *screen space*
+		const tileScreenSize = TILE_SIZE * this.#scale * layerPixelScale;
+
+		const startX = Math.max(0, Math.floor(-this.#offset.x / tileScreenSize));
 		const endX = Math.min(
 			layer.cols - 1,
-			Math.ceil((this.offscreenCanvas.width - this.offset.x) / CTS)
+			Math.ceil((this.#offscreenCanvas.width - this.#offset.x) / tileScreenSize)
 		);
-		const startY = Math.max(0, Math.floor(-this.offset.y / CTS));
+
+		const startY = Math.max(0, Math.floor(-this.#offset.y / tileScreenSize));
 		const endY = Math.min(
 			layer.rows - 1,
-			Math.ceil((this.offscreenCanvas.height - this.offset.y) / CTS)
+			Math.ceil((this.#offscreenCanvas.height - this.#offset.y) / tileScreenSize)
 		);
 
 		const visible: TileIdentifier[] = [];
-		const level = 0;
 
 		for (let x = startX; x <= endX; x++) {
 			for (let y = startY; y <= endY; y++) {
@@ -79,21 +103,35 @@ export class Renderer {
 		tiles: TileIdentifier[],
 		debugCallback?: (ctx: OffscreenCanvasRenderingContext2D) => void
 	) {
-		// Reset and clear.
-		this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-		this.ctx.clearRect(0, 0, this.offscreenCanvas.width, this.offscreenCanvas.height);
+		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
+		this.#ctx.clearRect(0, 0, this.#offscreenCanvas.width, this.#offscreenCanvas.height);
 
-		// Draw tiles.
-		this.ctx.setTransform(this.scale, 0, 0, this.scale, this.offset.x, this.offset.y);
+		if (tiles.length === 0) return;
+
+		const level = tiles[0].level;
+		const layer = this.#asset.layers[level];
+
+		const layerPixelScale = this.#asset.layers[0].width / layer.width;
+
+		// Final transform:
+		// layer pixels → base pixels → screen pixels
+		this.#ctx.setTransform(
+			this.#scale * layerPixelScale,
+			0,
+			0,
+			this.#scale * layerPixelScale,
+			this.#offset.x,
+			this.#offset.y
+		);
+
 		for (const tile of tiles) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
 			const bmp = cache.get(key);
 			if (!bmp) continue;
-			this.ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+			this.#ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 		}
 
-		debugCallback?.(this.ctx);
-
-		this.ctx.restore();
+		debugCallback?.(this.#ctx);
 	}
 }

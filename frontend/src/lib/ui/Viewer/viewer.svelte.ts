@@ -17,7 +17,7 @@ export default class Viewer {
 	#offset = $state({ x: 0, y: 0 });
 
 	#minScale = 1;
-	#maxScale = 200;
+	#maxScale = 1000;
 	#scale = $state(2);
 	#scaleFactor = 1;
 
