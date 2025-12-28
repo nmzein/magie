@@ -32,7 +32,7 @@ prettyplease = { version = "0.2.37", default-features = false }
 proc-macro2 = { version = "1.0.104", default-features = false }
 quote = { version = "1.0.42", default-features = false }
 rayon = { version = "1.11.0", default-features = false }
-rusqlite = "0.36.0"
+rusqlite = "0.38.0"
 serde = { version = "1.0.228", features = ["serde_derive"] }
 serde_json = { version = "1.0.148", default-features = false }
 syn = { version = "2.0.111", default-features = false }

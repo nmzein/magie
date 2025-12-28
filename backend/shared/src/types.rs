@@ -19,7 +19,7 @@ pub struct Address {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationLayers {
-    count: usize,
+    count: u32,
     layers: HashMap<String, AnnotationLayer>,
     colours: Vec<String>,
 }
@@ -54,7 +54,7 @@ impl AnnotationLayers {
 
     pub fn insert(&mut self, tag: String, geometry: Vec<[f64; 2]>) {
         let layer = self.layers.entry(tag.clone()).or_insert_with(|| {
-            let fill = &self.colours[self.count % self.colours.len()];
+            let fill = &self.colours[(self.count % (self.colours.len() as u32)) as usize];
             let new_layer = AnnotationLayer::new(self.count, tag, fill.into());
             self.count += 1;
             new_layer
@@ -70,7 +70,7 @@ impl AnnotationLayers {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationLayer {
-    pub id: usize,
+    pub id: u32,
     pub tag: String,
     pub visible: bool,
     pub opacity: f32,
@@ -80,7 +80,7 @@ pub struct AnnotationLayer {
 }
 
 impl AnnotationLayer {
-    pub fn new(id: usize, tag: String, fill: String) -> Self {
+    pub fn new(id: u32, tag: String, fill: String) -> Self {
         Self {
             id,
             tag,
