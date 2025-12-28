@@ -168,8 +168,10 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
         quote! { #name_lit, }
     });
 
-    let extensions = extensions.iter().map(|ext| {
-        let ext_lit = LitStr::new(&ext, proc_macro2::Span::call_site());
+    let mut extensions_sorted: Vec<_> = extensions.iter().collect();
+    extensions_sorted.sort_by(|a, b| a.cmp(b));
+    let extensions = extensions_sorted.into_iter().map(|ext| {
+        let ext_lit = LitStr::new(ext, proc_macro2::Span::call_site());
         quote! { #ext_lit, }
     });
 

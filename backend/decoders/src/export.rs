@@ -76,16 +76,16 @@ pub fn names() -> Vec<&'static str> {
 }
 pub fn extensions() -> Vec<&'static str> {
     vec![
-        "svs",
-        "vmu",
-        "mrxs",
-        "vms",
-        "dcm",
-        "tiff",
-        "svslide",
         "bif",
+        "dcm",
+        "mrxs",
         "ndpi",
         "scn",
+        "svs",
+        "svslide",
         "tif",
+        "tiff",
+        "vms",
+        "vmu",
     ]
 }
