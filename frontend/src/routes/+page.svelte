@@ -20,8 +20,8 @@
 	});
 </script>
 
-{#each viewerManager.viewers as viewer (viewer.instance.asset.assetId)}
-	<Viewer bind:instance={viewer.instance} />
+{#each viewerManager.viewers as [id, _] (id)}
+	<Viewer viewer={viewerManager.viewers.get(id)!} />
 {/each}
 
 <ControlPanel />

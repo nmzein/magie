@@ -22,21 +22,13 @@ export default class Viewer {
 
 	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
 	#sharedInts = new Int32Array(this.#sharedBuf);
-	#canvasId: string;
-	#canvas: HTMLCanvasElement | undefined = $state();
-	#worker: Worker | undefined = $state();
+	#id: string;
+	#canvas!: HTMLCanvasElement;
+	#worker: Worker | undefined;
 
-	constructor({
-		canvasId,
-		websocketUrl,
-		asset
-	}: {
-		canvasId: string;
-		websocketUrl: string;
-		asset: Asset;
-	}) {
+	constructor({ id, websocketUrl, asset }: { id: string; websocketUrl: string; asset: Asset }) {
 		this.asset = asset;
-		this.#canvasId = canvasId;
+		this.#id = id;
 		this.#maxLevel = asset.layers.length - 1;
 		this.#currentLevel = this.#maxLevel;
 
@@ -59,10 +51,10 @@ export default class Viewer {
 		$effect.root(() => {
 			$effect(() => {
 				untrack(() => {
-					this.#canvas = document.getElementById(this.#canvasId) as HTMLCanvasElement | undefined;
+					const canvas = document.getElementById(this.#id) as HTMLCanvasElement | undefined;
+					if (!canvas) throw Error('Canvas element not found');
 
-					if (!this.#canvas) throw Error('Canvas element not found');
-
+					this.#canvas = canvas;
 					this.resetScale();
 
 					const offscreen = this.#canvas.transferControlToOffscreen();
@@ -120,8 +112,8 @@ export default class Viewer {
 		});
 	}
 
-	get canvasId() {
-		return this.#canvasId;
+	get id() {
+		return this.#id;
 	}
 
 	get isDragging() {
@@ -196,8 +188,8 @@ export default class Viewer {
 	// FIXME: default to half canvas width/height
 	zoom(
 		delta: number,
-		mouseX: number = screen.availWidth / 2,
-		mouseY: number = screen.availHeight / 2,
+		mouseX: number = this.#canvas.width / 2,
+		mouseY: number = this.#canvas.height / 2,
 		dpr: number = window.devicePixelRatio
 	) {
 		const prevScale = this.#scale;

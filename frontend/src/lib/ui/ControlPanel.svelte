@@ -54,16 +54,16 @@
 						<Tabs.TriggerList id="zooming">
 							<Tabs.Trigger
 								sideEffect={() => {
-									viewerManager.activeViewer?.instance.zoom(-100);
+									viewerManager.activeViewer?.zoom(-100);
 								}}
 								disabled={!defined(viewerManager.activeViewer) ||
-									viewerManager.activeViewer?.instance.atMaxScale()}
+									viewerManager.activeViewer?.atMaxScale()}
 							>
 								<Icon name="zoom-in" class="h-9 w-9" />
 							</Tabs.Trigger>
 							<button
 								onclick={() => {
-									viewerManager.activeViewer?.instance.resetScale();
+									viewerManager.activeViewer?.resetScale();
 								}}
 								disabled={!defined(viewerManager.activeViewer)}
 								class="my-1.25 text-center select-none"
@@ -71,15 +71,15 @@
 								class:opacity-30={!defined(viewerManager.activeViewer)}
 							>
 								{defined(viewerManager.activeViewer)
-									? truncateNumber(viewerManager.activeViewer.instance.scale / 2)
+									? truncateNumber(viewerManager.activeViewer.scale / 2)
 									: '1.0'}x
 							</button>
 							<Tabs.Trigger
 								sideEffect={() => {
-									viewerManager.activeViewer?.instance.zoom(100);
+									viewerManager.activeViewer?.zoom(100);
 								}}
 								disabled={!defined(viewerManager.activeViewer) ||
-									viewerManager.activeViewer?.instance.atMinScale()}
+									viewerManager.activeViewer?.atMinScale()}
 							>
 								<Icon name="zoom-out" class="h-9 w-9" />
 							</Tabs.Trigger>
@@ -95,7 +95,7 @@
 							<!-- <Tabs.Trigger
 								value="control"
 								disabled={!defined(viewerManager.activeViewer) ||
-									viewerManager.activeViewer?.instance.asset.geometries.length === 0}
+									viewerManager.activeViewer?.asset.geometries.length === 0}
 							>
 								<Icon name="control" class="h-9 w-9" />
 							</Tabs.Trigger> -->

@@ -2,6 +2,7 @@ import { http } from '$api';
 import { defined } from '$helpers';
 import Viewer from '$ui/Viewer/viewer.svelte.ts';
 import { WEBSOCKET_BASE_URL } from '$constants';
+import { SvelteMap } from 'svelte/reactivity';
 
 export type Layer = {
 	level: number;
@@ -23,15 +24,16 @@ export type Asset = {
 };
 
 export type ViewerState = {
-	instanceId: string;
 	instance: Viewer;
+	position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 };
 
 export class ViewerManager {
-	viewers: ViewerState[] = $state([]);
-	activeViewer: ViewerState | undefined = $state();
-
-	constructor() {}
+	viewers: SvelteMap<string, Viewer> = new SvelteMap();
+	activeViewerId: string | undefined = $state();
+	activeViewer: Viewer | undefined = $derived(
+		this.activeViewerId ? this.viewers.get(this.activeViewerId) : undefined
+	);
 
 	async load(storeId: number, parentId: number, assetId: number, name: string) {
 		const properties = await http.asset.properties(storeId, assetId);
@@ -50,17 +52,13 @@ export class ViewerManager {
 		};
 
 		const instanceId = `viewer-${storeId}-${assetId}`;
-		const instance = new Viewer({
-			canvasId: instanceId,
+		const viewer = new Viewer({
+			id: `viewer-${storeId}-${assetId}`,
 			websocketUrl: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
 			asset
 		});
-		const viewer = {
-			instanceId,
-			instance
-		};
 
-		this.viewers.push(viewer);
-		this.activeViewer = viewer;
+		this.viewers.set(instanceId, viewer);
+		this.activeViewerId = instanceId;
 	}
 }
