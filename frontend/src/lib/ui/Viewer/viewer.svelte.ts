@@ -179,12 +179,10 @@ export default class Viewer {
 		this.#mouseDown = false;
 	}
 
-	// FIXME: centering when no mouse pos.
 	zoom(
 		delta: number,
 		mouseX: number = this.#canvas.width / (2 * window.devicePixelRatio),
-		mouseY: number = this.#canvas.height / (2 * window.devicePixelRatio),
-		dpr: number = window.devicePixelRatio
+		mouseY: number = this.#canvas.height / (2 * window.devicePixelRatio)
 	) {
 		const prevScale = this.#scale;
 
@@ -196,8 +194,8 @@ export default class Viewer {
 		if (nextScale === prevScale) return;
 
 		// Screen → canvas
-		const canvasX = mouseX * dpr;
-		const canvasY = mouseY * dpr;
+		const canvasX = mouseX * window.devicePixelRatio;
+		const canvasY = mouseY * window.devicePixelRatio;
 
 		// Keep cursor anchored during zoom
 		const scaleRatio = nextScale / prevScale;
