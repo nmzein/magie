@@ -23,7 +23,7 @@ export class WebSocketManager {
 	private _maxDelay = 30000;
 	private _factor = 2;
 	private _binaryType: 'blob' | 'arraybuffer' = 'arraybuffer';
-	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'connecting';
+	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'disconnected';
 	private _pending = new SvelteSet<string>();
 
 	private _onOpen?: WebSocketManagerOptions['onOpen'];
