@@ -1,5 +1,5 @@
 export class BinaryReader {
-	#view: DataView;
+	#view: DataView<ArrayBuffer>;
 	#offset: number;
 
 	constructor(data: MessageEvent<any>['data']) {
@@ -31,7 +31,7 @@ export class BinaryReader {
 	}
 
 	/** length-prefixed bytes: u32 + payload */
-	bytes(le = true): Uint8Array {
+	bytes(le = true): Uint8Array<ArrayBuffer> {
 		const len = this.u32(le);
 		const _cap = this.u32(le);
 		const start = this.#offset;
