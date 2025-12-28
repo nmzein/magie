@@ -4,6 +4,7 @@ export type WebSocketManagerOptions = {
 	minDelay?: number;
 	maxDelay?: number;
 	factor?: number;
+	binaryType?: 'blob' | 'arraybuffer';
 	onOpen?: (socket: WebSocket) => void;
 	onMessage?: (event: MessageEvent) => void | Promise<void>;
 	onError?: (error: Event) => void;
@@ -14,10 +15,11 @@ export class WebSocketManager {
 	private _url: string;
 	private _socket: WebSocket | null = null;
 	private _reconnectAttempts = 0;
-	private _maxReconnectAttempts: number;
-	private _minDelay: number;
-	private _maxDelay: number;
-	private _factor: number;
+	private _maxReconnectAttempts = 5;
+	private _minDelay = 1000;
+	private _maxDelay = 30000;
+	private _factor = 2;
+	private _binaryType: 'blob' | 'arraybuffer' = 'arraybuffer';
 	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'connecting';
 
 	private _onOpen?: (socket: WebSocket) => void;
@@ -27,10 +29,13 @@ export class WebSocketManager {
 
 	constructor(options: WebSocketManagerOptions) {
 		this._url = options.url;
-		this._maxReconnectAttempts = options.maxReconnectAttempts ?? 5;
-		this._minDelay = options.minDelay ?? 1000;
-		this._maxDelay = options.maxDelay ?? 30000;
-		this._factor = options.factor ?? 2;
+
+		options.maxReconnectAttempts !== undefined &&
+			(this._maxReconnectAttempts = options.maxReconnectAttempts);
+		options.minDelay !== undefined && (this._minDelay = options.minDelay);
+		options.maxDelay !== undefined && (this._maxDelay = options.maxDelay);
+		options.factor !== undefined && (this._factor = options.factor);
+		options.binaryType && (this._binaryType = options.binaryType);
 
 		this._onOpen = options.onOpen;
 		this._onMessage = options.onMessage;
@@ -44,7 +49,7 @@ export class WebSocketManager {
 
 	connect() {
 		this._socket = new WebSocket(this._url);
-		this._socket.binaryType = 'arraybuffer';
+		this._socket.binaryType = this._binaryType;
 
 		this._socket.onopen = () => {
 			this._state = 'connected';

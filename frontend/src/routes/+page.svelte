@@ -9,7 +9,9 @@
 	import { viewerManager } from '$states';
 
 	$effect(() => {
-		websocket.connect();
+		if (websocket.socket.state === 'disconnected') {
+			websocket.socket.connect();
+		}
 
 		let stats = new Stats();
 		document.body.appendChild(stats.dom);

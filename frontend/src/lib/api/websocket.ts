@@ -1,15 +1,14 @@
 import { BROADCAST_URL } from '$constants';
 import { BinaryReader } from '$lib/helpers/codec';
+import { WebSocketManager } from '$lib/helpers/network';
 import { registry } from '$states';
 import { DirectoryServerMsgTag, GeneralServerMsgTag } from '$types';
 
-let socket: WebSocket;
-
-export function send(data: Uint8Array): boolean {
-	if (socket.readyState !== WebSocket.OPEN) return false;
-	socket.send(data);
-	return true;
-}
+export let socket = new WebSocketManager({
+	url: BROADCAST_URL,
+	onMessage: receive,
+	onError: (error) => console.error(error)
+});
 
 async function receive(event: MessageEvent) {
 	const r = new BinaryReader(event.data);
@@ -55,10 +54,4 @@ async function receive(event: MessageEvent) {
 	}
 
 	if (r.remaining() > 0) throw Error('Unexpected data remaining');
-}
-
-export function connect() {
-	socket = new WebSocket(BROADCAST_URL);
-	socket.binaryType = 'arraybuffer';
-	socket.addEventListener('message', receive);
 }
