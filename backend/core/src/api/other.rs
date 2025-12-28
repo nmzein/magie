@@ -30,7 +30,7 @@ struct Modules<'a> {
 
 pub async fn modules(Extension(mut logger): Extension<Logger<'_>>) -> Response {
     let generators = generators::export::names();
-    let decoders = decoders::export::names();
+    let decoders = decoders::export::extensions();
     let encoders = encoders::export::names();
 
     logger.success(StatusCode::OK, "Retrieved modules.");

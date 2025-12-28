@@ -74,3 +74,18 @@ pub fn get(extension: &str, image_path: &Path) -> Option<Box<dyn Decoder>> {
 pub fn names() -> Vec<&'static str> {
     vec!["OpenSlide"]
 }
+pub fn extensions() -> Vec<&'static str> {
+    vec![
+        "svs",
+        "vmu",
+        "mrxs",
+        "vms",
+        "dcm",
+        "tiff",
+        "svslide",
+        "bif",
+        "ndpi",
+        "scn",
+        "tif",
+    ]
+}

@@ -1,7 +1,7 @@
 use quote::quote;
 use shared::functions::{declare_modules, find_modules};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::{self, File},
 };
 use syn::{Expr, Ident, ImplItem, Item, Lit, LitStr, Stmt, parse_file, parse2};
@@ -122,8 +122,9 @@ fn extract_module_info(decoders: Vec<String>) -> Vec<ModuleInfo> {
 fn create_extension_map(
     module_infos: &[ModuleInfo],
     decoders: &[String],
-) -> HashMap<String, Vec<String>> {
+) -> (HashMap<String, Vec<String>>, HashSet<String>) {
     let mut extensions_map: HashMap<String, Vec<String>> = HashMap::new();
+    let mut extensions: HashSet<String> = HashSet::new();
 
     for (info, decoder) in module_infos.iter().zip(decoders) {
         for ext in &info.extensions {
@@ -131,15 +132,17 @@ fn create_extension_map(
                 .entry(ext.clone())
                 .or_default()
                 .push(decoder.clone());
+
+            extensions.insert(ext.clone());
         }
     }
 
-    extensions_map
+    (extensions_map, extensions)
 }
 
 fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
     let module_infos = extract_module_info(decoders.to_vec());
-    let extension_map = create_extension_map(&module_infos, decoders);
+    let (extension_map, extensions) = create_extension_map(&module_infos, decoders);
     let mut extension_map: Vec<_> = extension_map.into_iter().collect();
     extension_map.sort_by(|a, b| a.0.cmp(&b.0));
 
@@ -165,6 +168,11 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
         quote! { #name_lit, }
     });
 
+    let extensions = extensions.iter().map(|ext| {
+        let ext_lit = LitStr::new(&ext, proc_macro2::Span::call_site());
+        quote! { #ext_lit, }
+    });
+
     if decoders.is_empty() {
         quote! {
             /// Auto-generated file. Any changes will be overwritten.
@@ -175,6 +183,10 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
             }
 
             pub fn names() -> Vec<&'static str> {
+                vec![]
+            }
+
+            pub fn extensions() -> Vec<&'static str> {
                 vec![]
             }
         }
@@ -193,6 +205,12 @@ fn generate_export(decoders: &[String]) -> proc_macro2::TokenStream {
             pub fn names() -> Vec<&'static str> {
                 vec![
                     #(#names)*
+                ]
+            }
+
+            pub fn extensions() -> Vec<&'static str> {
+                vec![
+                    #(#extensions)*
                 ]
             }
         }
