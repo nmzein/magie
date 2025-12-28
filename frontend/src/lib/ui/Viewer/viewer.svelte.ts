@@ -58,11 +58,11 @@ export default class Viewer {
 							type: 'init',
 							data: {
 								canvas: offscreen,
+								sharedBuf: this.#sharedBuf,
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
 								wsUrl: websocketUrl,
-								asset: JSON.stringify(this.asset),
-								sharedBuf: this.#sharedBuf
+								asset: JSON.stringify(this.asset)
 							}
 						},
 						[offscreen]
@@ -79,24 +79,25 @@ export default class Viewer {
 
 					this.#canvas.addEventListener('mousedown', this.onmousedown);
 					this.#canvas.addEventListener('touchstart', this.ontouchstart);
+					this.#canvas.addEventListener('resize', this.onresize);
+					this.#canvas.addEventListener('wheel', this.onwheel);
 
-					window.addEventListener('resize', this.onresize);
 					window.addEventListener('mousemove', this.onmousemove);
 					window.addEventListener('touchmove', this.ontouchmove);
 					window.addEventListener('mouseup', this.onmouseup);
 					window.addEventListener('touchend', this.ontouchend);
-					window.addEventListener('wheel', this.onwheel);
 
 					return () => {
 						this.#canvas?.removeEventListener('mousedown', this.onmousedown);
 						this.#canvas?.removeEventListener('touchstart', this.ontouchstart);
+						this.#canvas?.removeEventListener('resize', this.onresize);
+						this.#canvas?.removeEventListener('wheel', this.onwheel);
 
-						window.removeEventListener('resize', this.onresize);
 						window.removeEventListener('mousemove', this.onmousemove);
 						window.removeEventListener('touchmove', this.ontouchmove);
 						window.removeEventListener('onmouseup', this.onmouseup);
 						window.removeEventListener('ontouchend', this.ontouchend);
-						window.removeEventListener('wheel', this.onwheel);
+
 						this.#worker?.postMessage({ type: 'close' });
 						this.#worker?.terminate();
 					};
@@ -181,8 +182,8 @@ export default class Viewer {
 	// FIXME: centering when no mouse pos.
 	zoom(
 		delta: number,
-		mouseX: number = this.#canvas.width / 2,
-		mouseY: number = this.#canvas.height / 2,
+		mouseX: number = this.#canvas.width / (2 * window.devicePixelRatio),
+		mouseY: number = this.#canvas.height / (2 * window.devicePixelRatio),
 		dpr: number = window.devicePixelRatio
 	) {
 		const prevScale = this.#scale;
