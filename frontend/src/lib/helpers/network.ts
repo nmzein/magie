@@ -1,3 +1,5 @@
+import { SvelteSet } from 'svelte/reactivity';
+
 export type WebSocketManagerOptions = {
 	url: string;
 	maxReconnectAttempts?: number;
@@ -6,11 +8,12 @@ export type WebSocketManagerOptions = {
 	factor?: number;
 	binaryType?: 'blob' | 'arraybuffer';
 	onOpen?: (socket: WebSocket) => void;
-	onMessage?: (event: MessageEvent) => void | Promise<void>;
+	onMessage?: (event: MessageEvent) => void | Promise<void> | string | Promise<string>;
 	onError?: (error: Event) => void;
 	onClose?: (event: CloseEvent, willReconnect: boolean) => void;
 };
 
+// TODO: Cache any messages sent before opening.
 export class WebSocketManager {
 	private _url: string;
 	private _socket: WebSocket | null = null;
@@ -21,11 +24,12 @@ export class WebSocketManager {
 	private _factor = 2;
 	private _binaryType: 'blob' | 'arraybuffer' = 'arraybuffer';
 	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'connecting';
+	private _pending = new SvelteSet<string>();
 
-	private _onOpen?: (socket: WebSocket) => void;
-	private _onMessage?: (event: MessageEvent) => void | Promise<void>;
-	private _onError?: (error: Event) => void;
-	private _onClose?: (event: CloseEvent, willReconnect: boolean) => void;
+	private _onOpen?: WebSocketManagerOptions['onOpen'];
+	private _onMessage?: WebSocketManagerOptions['onMessage'];
+	private _onError?: WebSocketManagerOptions['onError'];
+	private _onClose?: WebSocketManagerOptions['onClose'];
 
 	constructor(options: WebSocketManagerOptions) {
 		this._url = options.url;
@@ -57,8 +61,11 @@ export class WebSocketManager {
 			this._onOpen?.(this._socket!);
 		};
 
-		this._socket.onmessage = (event) => {
-			this._onMessage?.(event);
+		this._socket.onmessage = async (event) => {
+			const key = await this._onMessage?.(event);
+			if (key) {
+				this._pending.delete(key);
+			}
 		};
 
 		this._socket.onerror = (error) => {
@@ -90,10 +97,27 @@ export class WebSocketManager {
 		return Math.min(expDelay, this._maxDelay);
 	}
 
-	send(data: string | ArrayBuffer | Blob | ArrayBufferView) {
-		if (this._socket && this._socket.readyState === WebSocket.OPEN) {
-			this._socket.send(data);
+	send(data: string | ArrayBuffer | Blob | ArrayBufferView, key?: string, force = false) {
+		if (
+			!this._socket ||
+			this._socket.readyState !== WebSocket.OPEN ||
+			(key && this._pending.has(key) && !force) // Already requested and force was not specified.
+		)
+			return;
+
+		this._socket.send(data);
+
+		if (key) {
+			this._pending.add(key);
 		}
+	}
+
+	pending(key: string) {
+		return this._pending.has(key);
+	}
+
+	numPending() {
+		return this._pending.size;
 	}
 
 	disconnect() {

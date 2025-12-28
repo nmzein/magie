@@ -210,19 +210,20 @@ export default class Viewer {
 	markDirty() {
 		if (!this.#sharedInts) return;
 
-		// [0] canvas width
-		this.#sharedInts[0] = Math.round(window.innerWidth * window.devicePixelRatio);
-		// [1] canvas height
-		this.#sharedInts[1] = Math.round(window.innerHeight * window.devicePixelRatio);
-		// [2] #offset x
-		this.#sharedInts[2] = Math.round(this.#offset.x);
-		// [3] #offset y
-		this.#sharedInts[3] = Math.round(this.#offset.y);
-		// [4] scale * 1e6
+		// [1] canvas width
+		this.#sharedInts[1] = Math.round(window.innerWidth * window.devicePixelRatio);
+		// [2] canvas height
+		this.#sharedInts[2] = Math.round(window.innerHeight * window.devicePixelRatio);
+		// [3] offset x
+		this.#sharedInts[3] = Math.round(this.#offset.x);
+		// [4] offset y
+		this.#sharedInts[4] = Math.round(this.#offset.y);
+		// [5] scale * 1e6
 		const actualScale = this.#scale * this.#scaleFactor;
-		this.#sharedInts[4] = Math.floor(actualScale * 1e6);
-		// [5] dirty flag
-		Atomics.store(this.#sharedInts, 5, 1);
+		this.#sharedInts[5] = Math.floor(actualScale * 1e6);
+
+		// [0] dirty flag
+		Atomics.store(this.#sharedInts, 0, 1);
 	}
 
 	onmousedown(e: MouseEvent) {

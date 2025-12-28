@@ -2,32 +2,17 @@ import { AssetClientMsgTag } from '$types';
 import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
 import type { Asset } from '$lib/states/viewer-manager.svelte';
+import { Renderer } from './renderer';
+import { Cacher } from './cacher';
 
-type TileCache = {
-	[key: string]: ImageBitmap;
-};
+export type TileIdentifier = { level: number; x: number; y: number };
 
-type TileIdentifier = { level: number; x: number; y: number };
+let asset: Asset;
+let sharedInts: Int32Array;
 
-const TILE_SIZE = 1024;
-
-let offscreenCanvas: OffscreenCanvas | null = null;
-let ctx: OffscreenCanvasRenderingContext2D | null = null;
-let socketManager: WebSocketManager | null = null;
-let tileCache: TileCache = {};
-let pendingTileRequests = new Set<string>();
-let asset: Asset | null = null;
-
-// SharedArrayBuffer-backed transform
-let sharedInts: Int32Array | null = null;
-
-// Track which tiles are currently in view
-let visibleTiles: TileIdentifier[] = [];
-
-// Track last transform/size
-let lastWidth = 0;
-let lastHeight = 0;
-let lastTransform = { offsetX: 0, offsetY: 0, scale: 1 };
+let renderer: Renderer;
+let cache: Cacher;
+let socketManager: WebSocketManager;
 
 self.onmessage = function (e) {
 	const { type, data } = e.data;
@@ -35,63 +20,28 @@ self.onmessage = function (e) {
 	switch (type) {
 		case 'init':
 			asset = JSON.parse(data.asset);
+			sharedInts = new Int32Array(data.sharedBuf);
 
-			// const lowestResolution =
-			// 	asset.layers[this.#maxLevel].width * asset.layers[this.#maxLevel].height;
+			renderer = new Renderer(asset, data.canvas, data.width, data.height);
+			cache = new Cacher();
+			socketManager = new WebSocketManager({
+				url: data.wsUrl,
+				onOpen: () => self.postMessage({ type: 'connected' }),
+				onMessage: handleTile,
+				onError: (error) => self.postMessage({ type: 'error', error }),
+				onClose: (_, willReconnect) => self.postMessage({ type: 'disconnected' })
+			});
 
-			// // Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
-			// for (let i = this.#minLevel; i < this.#maxLevel; i++) {
-			// 	this.#scaleBreakpoints.push(
-			// 		Math.sqrt((asset.layers[i].width * asset.layers[i].height) / lowestResolution)
-			// 	);
-			// }
-
-			initCanvas(data.canvas, data.width, data.height);
-			if (data.sharedBuf) sharedInts = new Int32Array(data.sharedBuf);
-			connect(data.wsUrl);
+			socketManager.connect();
 			requestAnimationFrame(loop);
+
 			break;
 		case 'close':
-			close();
+			cache?.clear();
+			socketManager?.disconnect();
 			break;
 	}
 };
-
-function initCanvas(canvas: OffscreenCanvas, width: number, height: number) {
-	offscreenCanvas = canvas;
-	ctx = canvas.getContext('2d', { alpha: false });
-	if (!ctx || !offscreenCanvas) return;
-
-	offscreenCanvas.width = width;
-	offscreenCanvas.height = height;
-	lastWidth = width;
-	lastHeight = height;
-	ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
-}
-
-function connect(wsUrl: string) {
-	socketManager = new WebSocketManager({
-		url: wsUrl,
-		maxReconnectAttempts: 8,
-		minDelay: 500, // start at 0.5s
-		maxDelay: 20000, // cap at 20s
-		factor: 2, // exponential growth
-		onOpen: () => {
-			self.postMessage({ type: 'connected' });
-		},
-		onMessage: async (event) => {
-			await handleTile(event);
-		},
-		onError: (error) => {
-			self.postMessage({ type: 'error', error });
-		},
-		onClose: (_, willReconnect) => {
-			self.postMessage({ type: 'disconnected' });
-		}
-	});
-
-	socketManager.connect();
-}
 
 async function handleTile(event: MessageEvent) {
 	const r = new BinaryReader(event.data);
@@ -101,173 +51,95 @@ async function handleTile(event: MessageEvent) {
 	const y = r.u32();
 	const tileData = r.bytes();
 
-	if (!asset) return;
-
-	const tileKey = `${level}_${x}_${y}`;
+	const key = `${level}_${x}_${y}`;
 	try {
 		const blob = new Blob([tileData], { type: 'image/jpeg' });
 		const imageBitmap = await createImageBitmap(blob);
 
-		tileCache[tileKey] = imageBitmap;
-		pendingTileRequests.delete(tileKey);
-
-		renderVisibleTiles();
+		cache.set(key, imageBitmap);
+		setDirty();
 	} catch (error) {
 		console.error('Error processing tile:', error);
-		pendingTileRequests.delete(tileKey);
-	}
-}
-
-function calculateVisibleTiles(
-	transformer: { offsetX: number; offsetY: number; scale: number },
-	width: number,
-	height: number
-): TileIdentifier[] {
-	if (!asset) return [];
-
-	const CTS = TILE_SIZE * transformer.scale;
-	const layer = asset.layers[0];
-	if (!layer) return [];
-
-	const startX = Math.max(0, Math.floor(-transformer.offsetX / CTS));
-	const endX = Math.min(layer.cols - 1, Math.ceil((width - transformer.offsetX) / CTS));
-	const startY = Math.max(0, Math.floor(-transformer.offsetY / CTS));
-	const endY = Math.min(layer.rows - 1, Math.ceil((height - transformer.offsetY) / CTS));
-
-	const visible: TileIdentifier[] = [];
-	const level = 0;
-
-	for (let x = startX; x <= endX; x++) {
-		for (let y = startY; y <= endY; y++) {
-			visible.push({ level, x, y });
-		}
 	}
 
-	return visible;
+	return key;
 }
 
 function requestTiles(tiles: TileIdentifier[]) {
-	if (socketManager?.state !== 'connected' || !asset) return;
-
 	for (const tile of tiles) {
-		const tileKey = `${tile.level}_${tile.x}_${tile.y}`;
-		if (tileCache[tileKey] || pendingTileRequests.has(tileKey)) continue;
+		const key = `${tile.level}_${tile.x}_${tile.y}`;
+		if (cache.has(key) || socketManager.pending(key)) continue;
 
 		const layer = asset.layers[tile.level];
 		if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
-
-		pendingTileRequests.add(tileKey);
 
 		const w = new BinaryWriter(1 + 3 * 4);
 		w.u8(AssetClientMsgTag.Tile);
 		w.u32(tile.level);
 		w.u32(tile.x);
 		w.u32(tile.y);
+		const req = w.finish();
 
-		socketManager.send(w.finish());
+		socketManager.send(req, key);
 	}
+}
+
+function setClean() {
+	return Atomics.compareExchange(sharedInts, 0, 1, 0);
+}
+
+function setDirty() {
+	return Atomics.store(sharedInts, 0, 1);
 }
 
 function loop() {
-	if (!ctx || !asset || !offscreenCanvas || !sharedInts) {
-		requestAnimationFrame(loop);
-		return;
-	}
-
-	const dirty = Atomics.load(sharedInts, 5);
+	const dirty = setClean();
 	if (dirty === 1) {
-		Atomics.store(sharedInts, 5, 0);
+		const canvasWidth = sharedInts[1];
+		const canvasHeight = sharedInts[2];
 
-		const canvasWidth = sharedInts[0];
-		const canvasHeight = sharedInts[1];
-		const offsetX = sharedInts[2];
-		const offsetY = sharedInts[3];
-		const scale = sharedInts[4] / 1e6;
+		const offset = { x: sharedInts[3], y: sharedInts[4] };
+		const scale = sharedInts[5] / 1e6;
 
-		lastWidth = canvasWidth;
-		lastHeight = canvasHeight;
-		lastTransform = { offsetX, offsetY, scale };
-
-		offscreenCanvas.width = canvasWidth;
-		offscreenCanvas.height = canvasHeight;
-
-		visibleTiles = calculateVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
+		renderer.updateCanvasDimensions(canvasWidth, canvasHeight);
+		renderer.updateTransforms(offset, scale);
+		const visibleTiles = renderer.calculateVisibleTiles();
 
 		requestTiles(visibleTiles);
-		renderVisibleTiles({ offsetX, offsetY, scale }, canvasWidth, canvasHeight);
+
+		const debugCallback = (ctx: OffscreenCanvasRenderingContext2D) => {
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.save();
+
+			const panelWidth = 230;
+			const panelHeight = 120;
+			const padding = 10;
+
+			// Background box
+			ctx.fillStyle = 'rgba(0,0,0,0.6)';
+			ctx.fillRect(padding, canvasHeight - panelHeight - padding, panelWidth, panelHeight);
+
+			// Text
+			ctx.fillStyle = '#00FF00';
+			ctx.font = '12px monospace';
+
+			let y = canvasHeight - panelHeight - padding + 18;
+			const lineHeight = 14;
+
+			ctx.fillText(`offset: ${offset.x}, ${offset.y}`, padding + 8, y);
+			y += lineHeight;
+			ctx.fillText(`scale: ${scale.toFixed(5)}`, padding + 8, y);
+			y += lineHeight;
+			ctx.fillText(`visibleTiles: ${visibleTiles.length}`, padding + 8, y);
+			y += lineHeight;
+			ctx.fillText(`pending: ${socketManager.numPending()}`, padding + 8, y);
+			y += lineHeight;
+			ctx.fillText(`socket: ${socketManager.state}`, padding + 8, y);
+			y += lineHeight;
+		};
+
+		renderer.renderVisibleTiles(cache, visibleTiles, debugCallback);
 	}
 
 	requestAnimationFrame(loop);
-}
-
-function renderVisibleTiles(transformer = lastTransform, width = lastWidth, height = lastHeight) {
-	if (!ctx || !offscreenCanvas || !asset) return;
-
-	const scale = transformer.scale;
-	const offsetX = transformer.offsetX;
-	const offsetY = transformer.offsetY;
-
-	// Reset and clear
-	ctx.setTransform(1, 0, 0, 1, 0, 0);
-	ctx.clearRect(0, 0, width, height);
-
-	// Draw tiles
-	ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
-	for (const tile of visibleTiles) {
-		const key = `${tile.level}_${tile.x}_${tile.y}`;
-		const bmp = tileCache[key];
-		if (!bmp) continue;
-		ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-	}
-
-	// ---- Debug overlay (bottom-left) ----
-	ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transforms for UI
-	ctx.save();
-
-	const panelWidth = 230;
-	const panelHeight = 120;
-	const padding = 10;
-
-	// Background box
-	ctx.fillStyle = 'rgba(0,0,0,0.6)';
-	ctx.fillRect(padding, height - panelHeight - padding, panelWidth, panelHeight);
-
-	// Text
-	ctx.fillStyle = '#00FF00';
-	ctx.font = '12px monospace';
-
-	let y = height - panelHeight - padding + 18;
-	const lineHeight = 14;
-
-	ctx.fillText(`offsetX: ${offsetX}`, padding + 8, y);
-	y += lineHeight;
-	ctx.fillText(`offsetY: ${offsetY}`, padding + 8, y);
-	y += lineHeight;
-	ctx.fillText(`scale: ${scale.toFixed(5)}`, padding + 8, y);
-	y += lineHeight;
-	ctx.fillText(`visibleTiles: ${visibleTiles.length}`, padding + 8, y);
-	y += lineHeight;
-	ctx.fillText(`pending: ${pendingTileRequests.size}`, padding + 8, y);
-	y += lineHeight;
-	ctx.fillText(`socket: ${socketManager?.state}`, padding + 8, y);
-	y += lineHeight;
-
-	ctx.restore();
-}
-
-function close() {
-	socketManager?.disconnect();
-	socketManager = null;
-
-	for (const bmp of Object.values(tileCache)) {
-		try {
-			bmp.close();
-		} catch {}
-	}
-
-	tileCache = {};
-	pendingTileRequests.clear();
-	asset = null;
-	offscreenCanvas = null;
-	ctx = null;
 }
