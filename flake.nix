@@ -6,19 +6,29 @@
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+      crane,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlays = [ (import rust-overlay) ];
         craneLib = crane.mkLib pkgs;
         pkgs = import nixpkgs { inherit system overlays; };
 
-        config = builtins.fromTOML (builtins.readFile ./config.toml);
+        config = fromTOML (builtins.readFile ./config.toml);
         env = {
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
           BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include";
           PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
-        } // config.env;
+        }
+        // config.env;
 
         backendNativeBuildInputs = with pkgs; [
           clang
@@ -56,9 +66,9 @@
         ];
 
         devDeps = with pkgs; [
-          bun
           cargo
           rustfmt
+          rust-analyzer
         ];
 
         geometry-computer = pkgs.buildNpmPackage {
@@ -131,7 +141,9 @@
         runScript = pkgs.writeShellScriptBin "run" ''
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
-          ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
+          ${pkgs.lib.concatStringsSep "\n" (
+            pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env
+          )}
           echo "> Running ............. http://localhost:$PUBLIC_PORT"
           exec ${self.packages.${system}.default}/core "$@"
         '';
@@ -179,12 +191,12 @@
           container = pkgs.dockerTools.buildLayeredImage {
             name = "magie";
             tag = "latest";
-            contents = [pkgs.coreutils];
+            contents = [ pkgs.coreutils ];
             config = {
-              Cmd = ["${runScript}/bin/run"];
+              Cmd = [ "${runScript}/bin/run" ];
               # FIXME: Use PUBLIC_PORT.
               ExposedPorts = {
-                "3000/tcp" = {};
+                "3000/tcp" = { };
               };
               Volumes = {
                 "/_databases" = { };
