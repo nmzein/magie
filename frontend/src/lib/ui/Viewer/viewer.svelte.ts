@@ -2,6 +2,12 @@ import { untrack } from 'svelte';
 import { clamp } from '$helpers';
 import type { Asset } from '$lib/states/viewer-manager.svelte.ts';
 
+type ViewerOptions = {
+	id: string;
+	websocketUrl: string;
+	asset: Asset;
+};
+
 export default class Viewer {
 	asset: Asset;
 
@@ -14,11 +20,9 @@ export default class Viewer {
 	#maxScale = 200;
 	#scale = $state(2);
 	#scaleFactor = 1;
-	#scaleBreakpoints: number[] = [];
 
 	#minLevel = 0;
 	#maxLevel: number;
-	#currentLevel: number = $state(0);
 
 	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
 	#sharedInts = new Int32Array(this.#sharedBuf);
@@ -26,21 +30,10 @@ export default class Viewer {
 	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
 
-	constructor({ id, websocketUrl, asset }: { id: string; websocketUrl: string; asset: Asset }) {
+	constructor({ id, websocketUrl, asset }: ViewerOptions) {
 		this.asset = asset;
 		this.#id = id;
 		this.#maxLevel = asset.layers.length - 1;
-		this.#currentLevel = this.#maxLevel;
-
-		const lowestResolution =
-			asset.layers[this.#maxLevel].width * asset.layers[this.#maxLevel].height;
-
-		// Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
-		for (let i = this.#minLevel; i < this.#maxLevel; i++) {
-			this.#scaleBreakpoints.push(
-				Math.sqrt((asset.layers[i].width * asset.layers[i].height) / lowestResolution)
-			);
-		}
 
 		this.onmousedown = this.onmousedown.bind(this);
 		this.onmousemove = this.onmousemove.bind(this);
@@ -185,7 +178,7 @@ export default class Viewer {
 		this.#mouseDown = false;
 	}
 
-	// FIXME: default to half canvas width/height
+	// FIXME: centering when no mouse pos.
 	zoom(
 		delta: number,
 		mouseX: number = this.#canvas.width / 2,
@@ -267,48 +260,4 @@ export default class Viewer {
 	onresize() {
 		this.markDirty();
 	}
-
-	// #handleLevelChange(delta: number) {
-	// 	if (
-	// 		this.#currentLevel === undefined ||
-	// 		this.#maxLevel === undefined ||
-	// 		this.#scaleBreakpoints === undefined
-	// 	)
-	// 		return;
-
-	// 	// If at highest detail level and zooming in,
-	// 	// or if at lowest detail level and zooming out, do nothing.
-	// 	if (
-	// 		(this.#currentLevel == this.#minLevel && delta < 0) ||
-	// 		(this.#currentLevel == this.#maxLevel && delta > 0)
-	// 	) {
-	// 		console.log(
-	// 			'At level',
-	// 			this.#currentLevel,
-	// 			'and zooming',
-	// 			delta < 0 ? 'in' : 'out' + '. Skip computation.'
-	// 		);
-	// 		return;
-	// 	}
-
-	// 	// If zooming out (not at lowest detail)
-	// 	// check current breakpoint (at #currentLevel)
-	// 	// if scale < sB[cL] then cL += 1 (move to lower reso.)
-	// 	// e.g. sB = [32, 8] and currently at level 1 and zooming out
-	// 	// desired result: move to level 2 (cL + 1)
-	// 	// should happen when: scale < 8 (sB[cl])
-	// 	// result: cL += 1 (cL = 2)
-	// 	if (delta > 0 && this.#scale < this.#scaleBreakpoints[this.#currentLevel]) {
-	// 		this.#currentLevel += 1;
-	// 		console.log('Switching to lower resolution level:', this.#currentLevel + '.');
-	// 	}
-
-	// 	// If zooming in (not at highest detail),
-	// 	// check next breakpoint (at #currentLevel - 1)
-	// 	// if scale > sB[cL - 1] then cL -= 1 (move to higher reso.)
-	// 	if (delta < 0 && this.#scale > this.#scaleBreakpoints[this.#currentLevel - 1]) {
-	// 		this.#currentLevel -= 1;
-	// 		console.log('Switching to higher resolution level:', this.#currentLevel + '.');
-	// 	}
-	// }
 }

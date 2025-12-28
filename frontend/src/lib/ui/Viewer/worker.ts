@@ -34,8 +34,19 @@ self.onmessage = function (e) {
 
 	switch (type) {
 		case 'init':
-			initCanvas(data.canvas, data.width, data.height);
 			asset = JSON.parse(data.asset);
+
+			// const lowestResolution =
+			// 	asset.layers[this.#maxLevel].width * asset.layers[this.#maxLevel].height;
+
+			// // Start at highest resolution (minLevel) and go till second lowest (maxLevel - 1).
+			// for (let i = this.#minLevel; i < this.#maxLevel; i++) {
+			// 	this.#scaleBreakpoints.push(
+			// 		Math.sqrt((asset.layers[i].width * asset.layers[i].height) / lowestResolution)
+			// 	);
+			// }
+
+			initCanvas(data.canvas, data.width, data.height);
 			if (data.sharedBuf) sharedInts = new Int32Array(data.sharedBuf);
 			connect(data.wsUrl);
 			requestAnimationFrame(loop);
