@@ -29,14 +29,14 @@ dashmap = { version = "6.1.0", default-features = false }
 futures-util = { version = "0.3.31", default-features = false }
 image = { version = "0.25.9", default-features = false }
 prettyplease = { version = "0.2.37", default-features = false }
-proc-macro2 = { version = "1.0.103", default-features = false }
+proc-macro2 = { version = "1.0.104", default-features = false }
 quote = { version = "1.0.42", default-features = false }
 rayon = { version = "1.11.0", default-features = false }
 rusqlite = "0.36.0"
 serde = { version = "1.0.228", features = ["serde_derive"] }
-serde_json = { version = "1.0.146", default-features = false }
+serde_json = { version = "1.0.148", default-features = false }
 syn = { version = "2.0.111", default-features = false }
-tempfile = { version = "3.23.0", default-features = false }
+tempfile = { version = "3.24.0", default-features = false }
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.8", default-features = false, features = [

@@ -24,7 +24,7 @@
           clang
           cmake
           nasm
-          rust-bin.stable."1.90.0".default
+          rust-bin.stable."1.92.0".default
           llvmPackages.libclang
           pkg-config
         ];
