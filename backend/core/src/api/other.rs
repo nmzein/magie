@@ -20,3 +20,24 @@ pub async fn registry(
         }
     }
 }
+
+#[derive(Serialize)]
+struct Modules<'a> {
+    generators: Vec<&'a str>,
+    decoders: Vec<&'a str>,
+    encoders: Vec<&'a str>,
+}
+
+pub async fn modules(Extension(mut logger): Extension<Logger<'_>>) -> Response {
+    let generators = generators::export::names();
+    let decoders = decoders::export::names();
+    let encoders = encoders::export::names();
+
+    logger.success(StatusCode::OK, "Retrieved modules.");
+
+    Json(Modules {
+        generators,
+        decoders,
+        encoders,
+    }).into_response()
+}

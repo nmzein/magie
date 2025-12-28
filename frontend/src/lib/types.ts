@@ -3,6 +3,12 @@ export type Store = {
 	name: string;
 };
 
+export type Modules = {
+	generators: string[];
+	decoders: string[];
+	encoders: string[];
+};
+
 export type Directory = {
 	type: 'Directory';
 	parentId: number;

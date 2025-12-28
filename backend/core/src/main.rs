@@ -104,8 +104,8 @@ async fn main() {
 
     let api_routes = Router::new()
         .nest("/store", store_routes)
-        .route("/registry", get(api::registry::registry))
-        .route("/generators", get(api::generators::generators))
+        .route("/registry", get(api::other::registry))
+        .route("/modules", get(api::other::modules))
         .route("/broadcast", get(api::websocket::websocket));
 
     let static_routes = ServiceBuilder::new().service(ServeDir::new("_static"));

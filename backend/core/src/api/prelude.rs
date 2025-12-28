@@ -13,5 +13,5 @@ pub use axum::{
     http::StatusCode,
     response::{IntoResponse, Json, Response},
 };
-pub use serde::Deserialize;
+pub use serde::{Deserialize, Serialize};
 pub use std::sync::Arc;

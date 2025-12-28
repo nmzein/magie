@@ -5,18 +5,18 @@ import * as websocket from './websocket.ts';
 
 import { HTTP_BASE_URL } from '$constants';
 import { request } from '$helpers';
-import type { Store } from '$types';
+import type { Modules, Store } from '$types';
 
 async function registry(): Promise<Store[] | null> {
 	return await request.get({ url: `${HTTP_BASE_URL}/api/registry` });
 }
 
-async function generators(): Promise<string[] | null> {
-	return await request.get({ url: `${HTTP_BASE_URL}/api/generators` });
+async function modules(): Promise<Modules | null> {
+	return await request.get({ url: `${HTTP_BASE_URL}/api/modules` });
 }
 
 const http = (() => {
-	return { asset, directory, store, registry, generators };
+	return { asset, directory, store, registry, modules };
 })();
 
 export { http, websocket };
