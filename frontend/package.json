@@ -44,6 +44,6 @@
 		"unplugin-icons": "22.5.0"
 	},
 	"overrides": {
-		"cookie": "1.0.2"
+		"cookie": "1.1.1"
 	}
 }
