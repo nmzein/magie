@@ -3,15 +3,15 @@ import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
 import type { Asset } from '$lib/states/viewer-manager.svelte';
 import { Renderer } from './renderer';
-import { Cacher } from './cacher';
+import { ImageBitmapCache } from './cache';
 
 export type TileIdentifier = { level: number; x: number; y: number };
 
 let asset: Asset;
 let sharedInts: Int32Array;
 
+let cache = new ImageBitmapCache();
 let renderer: Renderer;
-let cache: Cacher;
 let socketManager: WebSocketManager;
 
 self.onmessage = function (e) {
@@ -23,7 +23,6 @@ self.onmessage = function (e) {
 			sharedInts = new Int32Array(data.sharedBuf);
 
 			renderer = new Renderer(asset, data.canvas, data.width, data.height);
-			cache = new Cacher();
 			socketManager = new WebSocketManager({
 				url: data.wsUrl,
 				onOpen: () => self.postMessage({ type: 'connected' }),
@@ -37,7 +36,7 @@ self.onmessage = function (e) {
 
 			break;
 		case 'close':
-			cache?.clear();
+			cache.clear();
 			socketManager?.disconnect();
 			break;
 	}

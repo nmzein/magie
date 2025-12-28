@@ -1,5 +1,5 @@
 import type { Asset } from '$lib/states/viewer-manager.svelte';
-import type { Cacher } from './cacher';
+import type { ImageBitmapCache } from './cache';
 import type { TileIdentifier } from './worker';
 
 // FIXME: Don't hardcode.
@@ -75,7 +75,7 @@ export class Renderer {
 	}
 
 	renderVisibleTiles(
-		cache: Cacher,
+		cache: ImageBitmapCache,
 		tiles: TileIdentifier[],
 		debugCallback?: (ctx: OffscreenCanvasRenderingContext2D) => void
 	) {

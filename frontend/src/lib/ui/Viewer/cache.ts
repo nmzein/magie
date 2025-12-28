@@ -1,9 +1,5 @@
-type TileCache = {
-	[key: string]: ImageBitmap;
-};
-
-export class Cacher {
-	cache: TileCache = {};
+export class ImageBitmapCache {
+	cache: { [key: string]: ImageBitmap } = {};
 
 	get(key: string): ImageBitmap | undefined {
 		return this.cache[key];
