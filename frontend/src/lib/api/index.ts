@@ -1,7 +1,7 @@
 import * as asset from './asset.ts';
 import * as directory from './directory.ts';
 import * as store from './store.ts';
-import * as websocket from './websocket.ts';
+import * as broadcast from './broadcast.ts';
 
 import { HTTP_BASE_URL } from '$constants';
 import { request } from '$helpers';
@@ -19,4 +19,4 @@ const http = (() => {
 	return { asset, directory, store, registry, modules };
 })();
 
-export { http, websocket };
+export { http, broadcast };

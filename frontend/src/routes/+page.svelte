@@ -5,12 +5,12 @@
 	import Stats from 'three/examples/jsm/libs/stats.module.js';
 	import ControlPanel from '$ui/ControlPanel.svelte';
 	import Viewer from '$ui/Viewer/Viewer.svelte';
-	import { websocket } from '$api';
+	import { broadcast } from '$api';
 	import { viewerManager } from '$states';
 
 	$effect(() => {
-		if (websocket.socket.state === 'disconnected') {
-			websocket.socket.connect();
+		if (broadcast.socket.state === 'disconnected') {
+			broadcast.socket.connect();
 		}
 
 		let stats = new Stats();
