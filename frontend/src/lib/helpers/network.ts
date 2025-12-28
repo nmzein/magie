@@ -62,7 +62,11 @@ export class WebSocketManager {
 		};
 
 		this._socket.onerror = (error) => {
-			this._onError?.(error);
+			if (this._onError) {
+				this._onError(error);
+			} else {
+				console.error(error);
+			}
 		};
 
 		this._socket.onclose = (event) => {

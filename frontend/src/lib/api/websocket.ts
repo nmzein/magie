@@ -6,8 +6,7 @@ import { DirectoryServerMsgTag, GeneralServerMsgTag } from '$types';
 
 export let socket = new WebSocketManager({
 	url: BROADCAST_URL,
-	onMessage: receive,
-	onError: (error) => console.error(error)
+	onMessage: receive
 });
 
 async function receive(event: MessageEvent) {
