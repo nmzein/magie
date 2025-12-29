@@ -39,12 +39,13 @@ export type Point = { x: number; y: number };
 export const DEFAULT_POINT: Point = { x: 0, y: 0 };
 
 export const AssetClientMsgTag = {
-	Tile: 0
+	Error: 0,
+	Tile: 1
 };
 
 export const GeneralServerMsgTag = {
 	Error: 0,
-	Tile: 1
+	Directory: 1
 };
 
 export const DirectoryServerMsgTag = {

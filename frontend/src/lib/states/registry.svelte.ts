@@ -11,6 +11,7 @@ export class Registry {
 		if (this.#registry) {
 			return Array.from(this.#registry.values());
 		}
+		return undefined;
 	}
 
 	storeProperties(storeId: number): Store | undefined {

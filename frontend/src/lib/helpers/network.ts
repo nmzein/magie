@@ -34,12 +34,12 @@ export class WebSocketManager {
 	constructor(options: WebSocketManagerOptions) {
 		this._url = options.url;
 
-		options.maxReconnectAttempts !== undefined &&
-			(this._maxReconnectAttempts = options.maxReconnectAttempts);
-		options.minDelay !== undefined && (this._minDelay = options.minDelay);
-		options.maxDelay !== undefined && (this._maxDelay = options.maxDelay);
-		options.factor !== undefined && (this._factor = options.factor);
-		options.binaryType && (this._binaryType = options.binaryType);
+		if (options.maxReconnectAttempts !== undefined)
+			this._maxReconnectAttempts = options.maxReconnectAttempts;
+		if (options.minDelay !== undefined) this._minDelay = options.minDelay;
+		if (options.maxDelay !== undefined) this._maxDelay = options.maxDelay;
+		if (options.factor !== undefined) this._factor = options.factor;
+		if (options.binaryType !== undefined) this._binaryType = options.binaryType;
 
 		this._onOpen = options.onOpen;
 		this._onMessage = options.onMessage;
@@ -93,7 +93,7 @@ export class WebSocketManager {
 
 	// Exponential backoff.
 	private getReconnectDelay(attempt: number): number {
-		const expDelay = this._minDelay * Math.pow(this._factor, attempt - 1);
+		const expDelay = this._minDelay * this._factor ** (attempt - 1);
 		return Math.min(expDelay, this._maxDelay);
 	}
 

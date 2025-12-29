@@ -10,11 +10,11 @@ export type TileIdentifier = { level: number; x: number; y: number };
 let asset: Asset;
 let sharedInts: Int32Array;
 
-let cache = new ImageBitmapCache();
+const cache = new ImageBitmapCache();
 let renderer: Renderer;
 let socketManager: WebSocketManager;
 
-self.onmessage = function (e) {
+self.onmessage = (e) => {
 	const { type, data } = e.data;
 
 	switch (type) {
@@ -28,7 +28,7 @@ self.onmessage = function (e) {
 				onOpen: () => self.postMessage({ type: 'connected' }),
 				onMessage: handleTile,
 				onError: (error) => self.postMessage({ type: 'error', error }),
-				onClose: (_, willReconnect) => self.postMessage({ type: 'disconnected' })
+				onClose: (_, __) => self.postMessage({ type: 'disconnected' })
 			});
 
 			socketManager.connect();

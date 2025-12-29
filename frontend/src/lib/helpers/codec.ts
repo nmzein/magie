@@ -2,7 +2,7 @@ export class BinaryReader {
 	#view: DataView<ArrayBuffer>;
 	#offset: number;
 
-	constructor(data: MessageEvent<any>['data']) {
+	constructor(data: MessageEvent['data']) {
 		const array = new Uint8Array(data);
 		this.#view = new DataView(array.buffer, array.byteOffset, array.byteLength);
 		this.#offset = 0;
@@ -21,6 +21,18 @@ export class BinaryReader {
 	u32(le = true) {
 		const v = this.#view.getUint32(this.#offset, le);
 		this.#offset += 4;
+		return v;
+	}
+
+	i8() {
+		const v = this.#view.getInt8(this.#offset);
+		this.#offset += 1;
+		return v;
+	}
+
+	i16(le = true) {
+		const v = this.#view.getInt16(this.#offset, le);
+		this.#offset += 2;
 		return v;
 	}
 
@@ -79,6 +91,16 @@ export class BinaryWriter {
 	u32(v: number, le = true) {
 		this.#view.setUint32(this.#offset, v, le);
 		this.#offset += 4;
+	}
+
+	i8(v: number) {
+		this.#view.setInt8(this.#offset, v);
+		this.#offset += 1;
+	}
+
+	i16(v: number, le = true) {
+		this.#view.setInt16(this.#offset, v, le);
+		this.#offset += 2;
 	}
 
 	i32(v: number, le = true) {
