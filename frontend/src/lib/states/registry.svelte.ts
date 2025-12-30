@@ -32,6 +32,7 @@ export class Registry {
 		if (type === 'Directory') {
 			store.set(id, {
 				type,
+				storeId,
 				parentId,
 				id,
 				name,
@@ -40,6 +41,7 @@ export class Registry {
 		} else {
 			store.set(id, {
 				type,
+				storeId,
 				parentId,
 				id,
 				name

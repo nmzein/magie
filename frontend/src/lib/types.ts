@@ -11,17 +11,43 @@ export type Modules = {
 
 export type Directory = {
 	type: 'Directory';
+	storeId: number;
 	parentId: number;
 	id: number;
 	name: string;
 	children: number[];
 };
 
-export type Asset = {
+export type Asset<L = TiledImageLayer | GltfLayer> = {
 	type: 'Asset';
+	storeId: number;
 	parentId: number;
 	id: number;
 	name: string;
+	metadata: AssetMetadata<L>;
+};
+
+export type AssetMetadata<L> = {
+	width: number;
+	height: number;
+	layers: L[];
+};
+
+export type TiledImageLayer = {
+	level: number;
+	cols: number;
+	rows: number;
+	width: number;
+	height: number;
+};
+
+export type GltfLayer = {
+	id: number;
+	tag: string;
+	visible: boolean;
+	opacity: number;
+	fill: string;
+	stroke: string;
 };
 
 export type UploaderOptions = {

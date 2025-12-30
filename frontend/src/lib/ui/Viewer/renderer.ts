@@ -1,19 +1,25 @@
-import type { Asset } from '$lib/states/viewer-manager.svelte';
+import type { Asset, Point, TiledImageLayer } from '$types';
 import type { ImageBitmapCache } from './cache';
+import { Bytes } from './shared';
 import type { TileIdentifier } from './worker';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
-export class Renderer {
-	#asset: Asset;
+export class TiledImageRenderer {
+	#asset: Asset<TiledImageLayer>;
 	#offscreenCanvas: OffscreenCanvas;
 	#ctx: OffscreenCanvasRenderingContext2D;
 	#offset = { x: 0, y: 0 };
 	#scale = 1;
 	#currentLevel = 0;
 
-	constructor(asset: Asset, offscreenCanvas: OffscreenCanvas, width: number, height: number) {
+	constructor(
+		asset: Asset<TiledImageLayer>,
+		offscreenCanvas: OffscreenCanvas,
+		width: number,
+		height: number
+	) {
 		this.#asset = asset;
 		this.#offscreenCanvas = offscreenCanvas;
 
@@ -27,19 +33,15 @@ export class Renderer {
 		this.#ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
 	}
 
-	updateCanvasDimensions(width: number, height: number) {
-		this.#offscreenCanvas.width = width;
-		this.#offscreenCanvas.height = height;
-	}
-
-	updateTransforms(offset: { x: number; y: number }, scale: number) {
+	updateTransforms(dims: { width: number; height: number }, offset: Point, scale: number) {
+		this.#offscreenCanvas.width = dims.width;
+		this.#offscreenCanvas.height = dims.height;
 		this.#offset = offset;
 		this.#scale = scale;
 	}
 
 	#chooseLayer(): number {
-		const layers = this.#asset.layers;
-		const baseWidth = layers[0].width;
+		const layers = this.#asset.metadata.layers;
 
 		let bestLevel = this.#currentLevel;
 		let bestError = Infinity;
@@ -48,7 +50,7 @@ export class Renderer {
 			const layer = layers[i];
 
 			// How many base pixels one layer pixel represents
-			const layerPixelScale = baseWidth / layer.width;
+			const layerPixelScale = this.#asset.metadata.width / layer.width;
 
 			// How many screen pixels one layer pixel occupies
 			const screenPixelsPerLayerPixel = this.#scale * layerPixelScale;
@@ -65,14 +67,14 @@ export class Renderer {
 		return bestLevel;
 	}
 
-	calculateVisibleTiles(): TileIdentifier[] {
+	visible(shared: Int32Array): TileIdentifier[] {
 		const level = this.#chooseLayer();
-		const layer = this.#asset.layers[level];
+		const layer = this.#asset.metadata.layers[level];
 		if (!layer) return [];
 
-		const layerPixelScale = this.#asset.layers[0].width / layer.width;
+		const layerPixelScale = this.#asset.metadata.width / layer.width;
 
-		// Tile size in *screen space*
+		// Tile size in screen space.
 		const tileScreenSize = TILE_SIZE * this.#scale * layerPixelScale;
 
 		const startX = Math.max(0, Math.floor(-this.#offset.x / tileScreenSize));
@@ -95,23 +97,21 @@ export class Renderer {
 			}
 		}
 
+		shared[Bytes.Debug.VisibleTiles] = visible.length;
+
 		return visible;
 	}
 
-	renderVisibleTiles(
-		cache: ImageBitmapCache,
-		tiles: TileIdentifier[],
-		debugCallback?: (ctx: OffscreenCanvasRenderingContext2D) => void
-	) {
+	render(tiles: TileIdentifier[], cache: ImageBitmapCache, _shared: Int32Array): TileIdentifier[] {
+		if (tiles.length === 0) return [];
+
 		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
 		this.#ctx.clearRect(0, 0, this.#offscreenCanvas.width, this.#offscreenCanvas.height);
 
-		if (tiles.length === 0) return;
-
 		const level = tiles[0].level;
-		const layer = this.#asset.layers[level];
+		const layer = this.#asset.metadata.layers[level];
 
-		const layerPixelScale = this.#asset.layers[0].width / layer.width;
+		const layerPixelScale = this.#asset.metadata.width / layer.width;
 
 		// Final transform:
 		// layer pixels → base pixels → screen pixels
@@ -132,6 +132,6 @@ export class Renderer {
 			this.#ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 		}
 
-		debugCallback?.(this.#ctx);
+		return tiles;
 	}
 }

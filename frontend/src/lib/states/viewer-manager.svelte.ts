@@ -3,25 +3,7 @@ import { defined } from '$helpers';
 import Viewer from '$ui/Viewer/viewer.svelte.ts';
 import { WEBSOCKET_BASE_URL } from '$constants';
 import { SvelteMap } from 'svelte/reactivity';
-
-export type Layer = {
-	level: number;
-	cols: number;
-	rows: number;
-	width: number;
-	height: number;
-};
-
-export type Asset = {
-	storeId: number;
-	parentId: number;
-	assetId: number;
-	name: string;
-	width: number;
-	height: number;
-	levels: number;
-	layers: Layer[];
-};
+import type { Asset, TiledImageLayer } from '$types';
 
 export type ViewerState = {
 	instance: Viewer;
@@ -40,15 +22,17 @@ export class ViewerManager {
 
 		if (!defined(properties) || properties.metadata.length === 0) return;
 
-		const asset: Asset = {
+		const asset: Asset<TiledImageLayer> = {
+			type: 'Asset',
 			storeId,
 			parentId,
-			assetId,
+			id: assetId,
 			name,
-			width: properties.metadata[0].width,
-			height: properties.metadata[0].height,
-			levels: properties.metadata.length,
-			layers: properties.metadata
+			metadata: {
+				width: properties.metadata[0].width,
+				height: properties.metadata[0].height,
+				layers: properties.metadata
+			}
 		};
 
 		const instanceId = `viewer-${storeId}-${assetId}`;

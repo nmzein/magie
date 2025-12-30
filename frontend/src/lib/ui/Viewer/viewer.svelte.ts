@@ -1,6 +1,7 @@
 import { untrack } from 'svelte';
 import { clamp } from '$helpers';
-import type { Asset } from '$lib/states/viewer-manager.svelte.ts';
+import type { Asset } from '$types';
+import { Bytes, NUM_BYTES } from './shared';
 
 type ViewerOptions = {
 	id: string;
@@ -9,7 +10,8 @@ type ViewerOptions = {
 };
 
 export default class Viewer {
-	asset: Asset;
+	#id: string;
+	#asset: Asset;
 
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
@@ -21,19 +23,14 @@ export default class Viewer {
 	#scale = $state(2);
 	#scaleFactor = 1;
 
-	#minLevel = 0;
-	#maxLevel: number;
-
-	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * 6);
-	#sharedInts = new Int32Array(this.#sharedBuf);
-	#id: string;
+	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * NUM_BYTES);
+	#shared = new Int32Array(this.#sharedBuf);
 	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
 
 	constructor({ id, websocketUrl, asset }: ViewerOptions) {
-		this.asset = asset;
 		this.#id = id;
-		this.#maxLevel = asset.layers.length - 1;
+		this.#asset = asset;
 
 		this.onmousedown = this.onmousedown.bind(this);
 		this.onmousemove = this.onmousemove.bind(this);
@@ -62,7 +59,7 @@ export default class Viewer {
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
 								wsUrl: websocketUrl,
-								asset: JSON.stringify(this.asset)
+								asset: JSON.stringify(this.#asset)
 							}
 						},
 						[offscreen]
@@ -126,21 +123,15 @@ export default class Viewer {
 		return this.#scale === this.#maxScale;
 	}
 
-	get maxLevel(): number {
-		return this.#maxLevel;
-	}
-
 	resetScale() {
 		if (!this.#canvas) return;
 
 		this.#scale = 2;
 
-		const { width, height } = this.#canvas.getBoundingClientRect();
-
-		const canvasWidth = width * window.devicePixelRatio;
-		const canvasHeight = height * window.devicePixelRatio;
-		const imageWidth = this.asset.layers[this.#minLevel].width;
-		const imageHeight = this.asset.layers[this.#minLevel].height;
+		const canvasWidth = this.#canvas.width * window.devicePixelRatio;
+		const canvasHeight = this.#canvas.height * window.devicePixelRatio;
+		const imageWidth = this.#asset.metadata.width;
+		const imageHeight = this.#asset.metadata.height;
 
 		// Fit to smallest dimension (ensures entire image is visible)
 		const scaleX = canvasWidth / imageWidth;
@@ -207,22 +198,20 @@ export default class Viewer {
 	}
 
 	markDirty() {
-		if (!this.#sharedInts) return;
-
 		// [1] canvas width
-		this.#sharedInts[1] = Math.round(window.innerWidth * window.devicePixelRatio);
+		this.#shared[Bytes.Width] = Math.round(window.innerWidth * window.devicePixelRatio);
 		// [2] canvas height
-		this.#sharedInts[2] = Math.round(window.innerHeight * window.devicePixelRatio);
+		this.#shared[Bytes.Height] = Math.round(window.innerHeight * window.devicePixelRatio);
 		// [3] offset x
-		this.#sharedInts[3] = Math.round(this.#offset.x);
+		this.#shared[Bytes.OffsetX] = Math.round(this.#offset.x);
 		// [4] offset y
-		this.#sharedInts[4] = Math.round(this.#offset.y);
+		this.#shared[Bytes.OffsetY] = Math.round(this.#offset.y);
 		// [5] scale * 1e6
 		const actualScale = this.#scale * this.#scaleFactor;
-		this.#sharedInts[5] = Math.floor(actualScale * 1e6);
+		this.#shared[Bytes.Scale] = Math.floor(actualScale * 1e6);
 
 		// [0] dirty flag
-		Atomics.store(this.#sharedInts, 0, 1);
+		Atomics.store(this.#shared, Bytes.Dirty, 1);
 	}
 
 	onmousedown(e: MouseEvent) {
