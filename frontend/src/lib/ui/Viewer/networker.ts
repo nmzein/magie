@@ -2,19 +2,21 @@ import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
 import { AssetClientMsgTag, type Asset, type TiledImageLayer } from '$types';
 import { ImageBitmapCache } from './cache';
-import { setDirty, type TileIdentifier } from './worker';
+import { shared } from './shared';
+import { type TileIdentifier } from './worker';
 
 export class TiledImageNetworker {
 	#asset: Asset<TiledImageLayer>;
 	#socketManager: WebSocketManager<ImageBitmapCache>;
+	#cache: ImageBitmapCache;
 
-	constructor(asset: Asset<TiledImageLayer>, wsUrl: string) {
+	constructor(asset: Asset<TiledImageLayer>, url: string, cache: ImageBitmapCache) {
+		this.#cache = cache;
 		this.#asset = asset;
 		this.#socketManager = new WebSocketManager({
-			url: wsUrl,
-			cache: new ImageBitmapCache(),
+			url,
 			onOpen: () => self.postMessage({ type: 'connected' }),
-			onMessage: this.#handleMessage,
+			onMessage: (event) => this.#handleMessage(event),
 			onError: (error) => self.postMessage({ type: 'error', error }),
 			onClose: (_, __) => self.postMessage({ type: 'disconnected' })
 		});
@@ -22,11 +24,7 @@ export class TiledImageNetworker {
 		this.#socketManager.connect();
 	}
 
-	get cache() {
-		return this.#socketManager.cache;
-	}
-
-	async #handleMessage(event: MessageEvent, cache: ImageBitmapCache) {
+	async #handleMessage(event: MessageEvent) {
 		const r = new BinaryReader(event.data);
 		const _tag = r.u8();
 		const level = r.u32();
@@ -39,7 +37,8 @@ export class TiledImageNetworker {
 			const blob = new Blob([tileData], { type: 'image/jpeg' });
 			const imageBitmap = await createImageBitmap(blob);
 
-			cache.set(key, imageBitmap);
+			this.#cache.set(key, imageBitmap);
+			shared.setDirty();
 		} catch (error) {
 			console.error('Error processing tile:', error);
 		}
@@ -50,7 +49,7 @@ export class TiledImageNetworker {
 	request(tiles: TileIdentifier[]) {
 		for (const tile of tiles) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
-			if (this.cache.has(key) || this.#socketManager.pending(key)) continue;
+			if (this.#cache.has(key) || this.#socketManager.pending(key)) continue;
 
 			const layer = this.#asset.metadata.layers[tile.level];
 			if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;

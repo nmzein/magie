@@ -12,15 +12,18 @@ export class TiledImageRenderer {
 	#offset = { x: 0, y: 0 };
 	#scale = 1;
 	#currentLevel = 0;
+	#cache: ImageBitmapCache;
 
 	constructor(
 		asset: Asset<TiledImageLayer>,
 		offscreenCanvas: OffscreenCanvas,
 		width: number,
-		height: number
+		height: number,
+		cache: ImageBitmapCache
 	) {
 		this.#asset = asset;
 		this.#offscreenCanvas = offscreenCanvas;
+		this.#cache = cache;
 
 		this.#offscreenCanvas.width = width;
 		this.#offscreenCanvas.height = height;
@@ -99,7 +102,7 @@ export class TiledImageRenderer {
 		return visible;
 	}
 
-	render(tiles: TileIdentifier[], cache: ImageBitmapCache): TileIdentifier[] {
+	render(tiles: TileIdentifier[]): TileIdentifier[] {
 		if (tiles.length === 0) return [];
 
 		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -123,7 +126,7 @@ export class TiledImageRenderer {
 
 		for (const tile of tiles) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
-			const bmp = cache.get(key);
+			const bmp = this.#cache.get(key);
 			if (!bmp) continue;
 
 			this.#ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);

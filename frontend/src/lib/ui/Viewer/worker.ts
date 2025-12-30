@@ -1,13 +1,10 @@
 import { type Asset, type TiledImageLayer } from '$types';
 import { TiledImageRenderer } from './renderer';
 import { TiledImageNetworker } from './networker';
+import { Fields, shared } from './shared';
 import { ImageBitmapCache } from './cache';
-import { Fields } from './shared';
 
 export type TileIdentifier = { level: number; x: number; y: number };
-
-let asset: Asset<TiledImageLayer>;
-let shared: Int32Array;
 
 let cache: ImageBitmapCache;
 let renderer: TiledImageRenderer;
@@ -18,44 +15,34 @@ self.onmessage = (e) => {
 
 	switch (type) {
 		case 'init':
-			asset = JSON.parse(data.asset);
-			shared = new Int32Array(data.sharedBuf);
+			const asset: Asset<TiledImageLayer> = JSON.parse(data.asset);
+			shared.init(data.sharedBuf);
 
 			cache = new ImageBitmapCache();
-			renderer = new TiledImageRenderer(asset, data.canvas, data.width, data.height);
-			networker = new TiledImageNetworker(asset, data.wsUrl);
+			renderer = new TiledImageRenderer(asset, data.canvas, data.width, data.height, cache);
+			networker = new TiledImageNetworker(asset, data.url, cache);
 
 			requestAnimationFrame(loop);
 
 			break;
 		case 'close':
-			cache.clear();
 			networker.close();
 			break;
 	}
 };
 
-function setClean() {
-	return Atomics.compareExchange(shared, Fields.Dirty, 1, 0);
-}
-
-export function setDirty() {
-	return Atomics.store(shared, Fields.Dirty, 1);
-}
-
 function loop() {
-	const dirty = setClean();
+	const dirty = shared.setClean();
 	if (dirty === 1) {
-		const dims = { width: shared[Fields.Width], height: shared[Fields.Height] };
-		const offset = { x: shared[Fields.OffsetX], y: shared[Fields.OffsetY] };
-		const scale = shared[Fields.Scale] / 1e6;
+		const dims = { width: shared.get(Fields.Width), height: shared.get(Fields.Height) };
+		const offset = { x: shared.get(Fields.OffsetX), y: shared.get(Fields.OffsetY) };
+		const scale = shared.get(Fields.Scale) / 1e6;
 
 		renderer.updateTransforms(dims, offset, scale);
-		const requests = renderer.visible();
 
+		const requests = renderer.visible();
 		networker.request(requests);
-		renderer.render(requests, networker.cache);
-		setDirty();
+		renderer.render(requests);
 	}
 
 	requestAnimationFrame(loop);

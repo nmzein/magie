@@ -1,21 +1,20 @@
 import { SvelteSet } from 'svelte/reactivity';
 
-export type WebSocketManagerOptions<C = void> = {
+export type WebSocketManagerOptions = {
 	url: string;
-	cache: C;
 	maxReconnectAttempts?: number;
 	minDelay?: number;
 	maxDelay?: number;
 	factor?: number;
 	binaryType?: 'blob' | 'arraybuffer';
 	onOpen?: (socket: WebSocket) => void;
-	onMessage?: (event: MessageEvent, cache: C) => void | Promise<void> | string | Promise<string>;
+	onMessage?: (event: MessageEvent) => void | Promise<void> | string | Promise<string>;
 	onError?: (error: Event) => void;
 	onClose?: (event: CloseEvent, willReconnect: boolean) => void;
 };
 
 // TODO: Cache any messages sent before opening.
-export class WebSocketManager<C = void> {
+export class WebSocketManager {
 	private _url: string;
 	private _socket: WebSocket | null = null;
 	private _reconnectAttempts = 0;
@@ -27,15 +26,13 @@ export class WebSocketManager<C = void> {
 	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'disconnected';
 	private _pending = new SvelteSet<string>();
 
-	private _cache: C;
 	private _onOpen?: WebSocketManagerOptions['onOpen'];
-	private _onMessage?: WebSocketManagerOptions<C>['onMessage'];
+	private _onMessage?: WebSocketManagerOptions['onMessage'];
 	private _onError?: WebSocketManagerOptions['onError'];
 	private _onClose?: WebSocketManagerOptions['onClose'];
 
-	constructor(options: WebSocketManagerOptions<C>) {
+	constructor(options: WebSocketManagerOptions) {
 		this._url = options.url;
-		this._cache = options.cache;
 
 		if (options.maxReconnectAttempts !== undefined)
 			this._maxReconnectAttempts = options.maxReconnectAttempts;
@@ -54,10 +51,6 @@ export class WebSocketManager<C = void> {
 		return this._state;
 	}
 
-	get cache() {
-		return this._cache;
-	}
-
 	connect() {
 		this._socket = new WebSocket(this._url);
 		this._socket.binaryType = this._binaryType;
@@ -69,7 +62,7 @@ export class WebSocketManager<C = void> {
 		};
 
 		this._socket.onmessage = async (event) => {
-			const key = await this._onMessage?.(event, this._cache);
+			const key = await this._onMessage?.(event);
 			if (key) this._pending.delete(key);
 		};
 

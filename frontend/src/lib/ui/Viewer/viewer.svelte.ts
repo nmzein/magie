@@ -58,7 +58,7 @@ export default class Viewer {
 								sharedBuf: this.#sharedBuf,
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
-								wsUrl: websocketUrl,
+								url: websocketUrl,
 								asset: JSON.stringify(this.#asset)
 							}
 						},
