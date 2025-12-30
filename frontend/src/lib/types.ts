@@ -65,6 +65,10 @@ export type Point = { x: number; y: number };
 export const DEFAULT_POINT: Point = { x: 0, y: 0 };
 
 export const AssetClientMsgTag = {
+	Tile: 0
+};
+
+export const AssetServerMsgTag = {
 	Error: 0,
 	Tile: 1
 };

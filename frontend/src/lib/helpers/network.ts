@@ -69,7 +69,6 @@ export class WebSocketManager<C = void> {
 		};
 
 		this._socket.onmessage = async (event) => {
-			console.log('Got messagess');
 			const key = await this._onMessage?.(event, this._cache);
 			if (key) this._pending.delete(key);
 		};

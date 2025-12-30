@@ -34,7 +34,6 @@ export class TiledImageNetworker {
 		const x = r.u32();
 		const y = r.u32();
 		const tileData = r.bytes();
-		console.log('Got message', _tag, level, x, y);
 
 		const key = `${level}_${x}_${y}`;
 		try {
