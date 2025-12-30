@@ -1,7 +1,7 @@
 import { untrack } from 'svelte';
 import { clamp } from '$helpers';
 import type { Asset } from '$types';
-import { Bytes, NUM_BYTES } from './shared';
+import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
 	id: string;
@@ -23,7 +23,7 @@ export default class Viewer {
 	#scale = $state(2);
 	#scaleFactor = 1;
 
-	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * NUM_BYTES);
+	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * NUM_FIELDS);
 	#shared = new Int32Array(this.#sharedBuf);
 	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
@@ -128,8 +128,10 @@ export default class Viewer {
 
 		this.#scale = 2;
 
-		const canvasWidth = this.#canvas.width * window.devicePixelRatio;
-		const canvasHeight = this.#canvas.height * window.devicePixelRatio;
+		const { width, height } = this.#canvas.getBoundingClientRect();
+
+		const canvasWidth = width * window.devicePixelRatio;
+		const canvasHeight = height * window.devicePixelRatio;
 		const imageWidth = this.#asset.metadata.width;
 		const imageHeight = this.#asset.metadata.height;
 
@@ -199,19 +201,19 @@ export default class Viewer {
 
 	markDirty() {
 		// [1] canvas width
-		this.#shared[Bytes.Width] = Math.round(window.innerWidth * window.devicePixelRatio);
+		this.#shared[Fields.Width] = Math.round(window.innerWidth * window.devicePixelRatio);
 		// [2] canvas height
-		this.#shared[Bytes.Height] = Math.round(window.innerHeight * window.devicePixelRatio);
+		this.#shared[Fields.Height] = Math.round(window.innerHeight * window.devicePixelRatio);
 		// [3] offset x
-		this.#shared[Bytes.OffsetX] = Math.round(this.#offset.x);
+		this.#shared[Fields.OffsetX] = Math.round(this.#offset.x);
 		// [4] offset y
-		this.#shared[Bytes.OffsetY] = Math.round(this.#offset.y);
+		this.#shared[Fields.OffsetY] = Math.round(this.#offset.y);
 		// [5] scale * 1e6
 		const actualScale = this.#scale * this.#scaleFactor;
-		this.#shared[Bytes.Scale] = Math.floor(actualScale * 1e6);
+		this.#shared[Fields.Scale] = Math.floor(actualScale * 1e6);
 
 		// [0] dirty flag
-		Atomics.store(this.#shared, Bytes.Dirty, 1);
+		Atomics.store(this.#shared, Fields.Dirty, 1);
 	}
 
 	onmousedown(e: MouseEvent) {

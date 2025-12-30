@@ -1,6 +1,6 @@
-export const NUM_BYTES = 8;
+export const NUM_FIELDS = 8;
 
-export const Bytes = {
+export const Fields = {
 	Dirty: 0,
 	Width: 1,
 	Height: 2,

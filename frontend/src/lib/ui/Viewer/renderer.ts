@@ -1,6 +1,5 @@
 import type { Asset, Point, TiledImageLayer } from '$types';
 import type { ImageBitmapCache } from './cache';
-import { Bytes } from './shared';
 import type { TileIdentifier } from './worker';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
@@ -67,7 +66,7 @@ export class TiledImageRenderer {
 		return bestLevel;
 	}
 
-	visible(shared: Int32Array): TileIdentifier[] {
+	visible(): TileIdentifier[] {
 		const level = this.#chooseLayer();
 		const layer = this.#asset.metadata.layers[level];
 		if (!layer) return [];
@@ -97,12 +96,10 @@ export class TiledImageRenderer {
 			}
 		}
 
-		shared[Bytes.Debug.VisibleTiles] = visible.length;
-
 		return visible;
 	}
 
-	render(tiles: TileIdentifier[], cache: ImageBitmapCache, _shared: Int32Array): TileIdentifier[] {
+	render(tiles: TileIdentifier[], cache: ImageBitmapCache): TileIdentifier[] {
 		if (tiles.length === 0) return [];
 
 		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);

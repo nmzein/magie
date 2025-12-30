@@ -2,7 +2,6 @@ import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
 import { AssetClientMsgTag, type Asset, type TiledImageLayer } from '$types';
 import { ImageBitmapCache } from './cache';
-import { Bytes } from './shared';
 import { setDirty, type TileIdentifier } from './worker';
 
 export class TiledImageNetworker {
@@ -41,7 +40,6 @@ export class TiledImageNetworker {
 			const imageBitmap = await createImageBitmap(blob);
 
 			cache.set(key, imageBitmap);
-			setDirty();
 		} catch (error) {
 			console.error('Error processing tile:', error);
 		}
@@ -49,7 +47,7 @@ export class TiledImageNetworker {
 		return key;
 	}
 
-	request(tiles: TileIdentifier[], shared: Int32Array) {
+	request(tiles: TileIdentifier[]) {
 		for (const tile of tiles) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
 			if (this.cache.has(key) || this.#socketManager.pending(key)) continue;
@@ -65,8 +63,6 @@ export class TiledImageNetworker {
 			const req = w.finish();
 
 			this.#socketManager.send(req, key);
-
-			shared[Bytes.Debug.PendingTiles] = this.#socketManager.numPending();
 		}
 	}
 
