@@ -1,4 +1,4 @@
-export class BinaryReader {
+export class ByteReader {
 	#view: DataView<ArrayBuffer>;
 	#offset: number;
 
@@ -42,7 +42,6 @@ export class BinaryReader {
 		return v;
 	}
 
-	/** length-prefixed bytes: u32 + payload */
 	bytes(le = true): Uint8Array<ArrayBuffer> {
 		const len = this.u32(le);
 		const _cap = this.u32(le);
@@ -52,7 +51,6 @@ export class BinaryReader {
 		return new Uint8Array(this.#view.buffer, this.#view.byteOffset + start, len);
 	}
 
-	/** length-prefixed UTF-8 string: u32 + bytes */
 	string(le = true): string {
 		const bytes = this.bytes(le);
 		return new TextDecoder('utf-8').decode(bytes);
@@ -67,7 +65,7 @@ export class BinaryReader {
 	}
 }
 
-export class BinaryWriter {
+export class ByteWriter {
 	#buf: Uint8Array;
 	#view: DataView;
 	#offset: number;

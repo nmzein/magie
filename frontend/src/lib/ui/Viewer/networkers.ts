@@ -1,6 +1,6 @@
 import { STORE_URL } from '$constants';
 import { zip } from '$lib/helpers/array';
-import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
+import { ByteReader, ByteWriter } from '$lib/helpers/byte';
 import { WebSocketManager } from '$lib/helpers/network';
 import {
 	AssetClientMsgTag,
@@ -51,7 +51,7 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 	}
 
 	async #handleMessage(event: MessageEvent) {
-		const r = new BinaryReader(event.data);
+		const r = new ByteReader(event.data);
 		const _tag = r.u8();
 		const level = r.u32();
 		const x = r.u32();
@@ -80,7 +80,7 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 			const layer = this.#metadata.layers[tile.level];
 			if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
 
-			const w = new BinaryWriter(1 + 3 * 4);
+			const w = new ByteWriter(1 + 3 * 4);
 			w.u8(AssetClientMsgTag.Tile);
 			w.u32(tile.level);
 			w.u32(tile.x);
