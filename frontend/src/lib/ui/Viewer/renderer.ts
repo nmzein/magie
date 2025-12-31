@@ -1,4 +1,4 @@
-import type { Asset, Point, TiledImageLayer } from '$types';
+import type { Point, TiledImageAssetMetadata } from '$types';
 import type { ImageBitmapCache } from './cache';
 import type { TileIdentifier } from './worker';
 
@@ -6,7 +6,7 @@ const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
 export class TiledImageRenderer {
-	#asset: Asset<TiledImageLayer>;
+	#metadata: TiledImageAssetMetadata;
 	#offscreenCanvas: OffscreenCanvas;
 	#ctx: OffscreenCanvasRenderingContext2D;
 	#offset = { x: 0, y: 0 };
@@ -15,13 +15,13 @@ export class TiledImageRenderer {
 	#cache: ImageBitmapCache;
 
 	constructor(
-		asset: Asset<TiledImageLayer>,
+		metadata: TiledImageAssetMetadata,
 		offscreenCanvas: OffscreenCanvas,
 		width: number,
 		height: number,
 		cache: ImageBitmapCache
 	) {
-		this.#asset = asset;
+		this.#metadata = metadata;
 		this.#offscreenCanvas = offscreenCanvas;
 		this.#cache = cache;
 
@@ -43,7 +43,7 @@ export class TiledImageRenderer {
 	}
 
 	#chooseLayer(): number {
-		const layers = this.#asset.metadata.layers;
+		const layers = this.#metadata.layers;
 
 		let bestLevel = this.#currentLevel;
 		let bestError = Infinity;
@@ -52,7 +52,7 @@ export class TiledImageRenderer {
 			const layer = layers[i];
 
 			// How many base pixels one layer pixel represents
-			const layerPixelScale = this.#asset.metadata.width / layer.width;
+			const layerPixelScale = this.#metadata.width / layer.width;
 
 			// How many screen pixels one layer pixel occupies
 			const screenPixelsPerLayerPixel = this.#scale * layerPixelScale;
@@ -71,10 +71,10 @@ export class TiledImageRenderer {
 
 	visible(): TileIdentifier[] {
 		const level = this.#chooseLayer();
-		const layer = this.#asset.metadata.layers[level];
+		const layer = this.#metadata.layers[level];
 		if (!layer) return [];
 
-		const layerPixelScale = this.#asset.metadata.width / layer.width;
+		const layerPixelScale = this.#metadata.width / layer.width;
 
 		// Tile size in screen space.
 		const tileScreenSize = TILE_SIZE * this.#scale * layerPixelScale;
@@ -109,9 +109,9 @@ export class TiledImageRenderer {
 		this.#ctx.clearRect(0, 0, this.#offscreenCanvas.width, this.#offscreenCanvas.height);
 
 		const level = tiles[0].level;
-		const layer = this.#asset.metadata.layers[level];
+		const layer = this.#metadata.layers[level];
 
-		const layerPixelScale = this.#asset.metadata.width / layer.width;
+		const layerPixelScale = this.#metadata.width / layer.width;
 
 		// Final transform:
 		// layer pixels → base pixels → screen pixels

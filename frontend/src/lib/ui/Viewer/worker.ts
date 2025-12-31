@@ -1,4 +1,4 @@
-import { type Asset, type TiledImageLayer } from '$types';
+import type { AssetMetadata } from '$types';
 import { TiledImageRenderer } from './renderer';
 import { TiledImageNetworker } from './networker';
 import { Fields, shared } from './shared';
@@ -14,20 +14,24 @@ self.onmessage = (e) => {
 	const { type, data } = e.data;
 
 	switch (type) {
-		case 'init':
-			const asset: Asset<TiledImageLayer> = JSON.parse(data.asset);
+		case 'init': {
+			const metadata: AssetMetadata = JSON.parse(data.metadata);
 			shared.init(data.sharedBuf);
 
-			cache = new ImageBitmapCache();
-			renderer = new TiledImageRenderer(asset, data.canvas, data.width, data.height, cache);
-			networker = new TiledImageNetworker(asset, data.url, cache);
+			if (metadata.type === 'tiled-image') {
+				cache = new ImageBitmapCache();
+				renderer = new TiledImageRenderer(metadata, data.canvas, data.width, data.height, cache);
+				networker = new TiledImageNetworker(metadata, cache);
+			}
 
 			requestAnimationFrame(loop);
 
 			break;
-		case 'close':
+		}
+		case 'close': {
 			networker.close();
 			break;
+		}
 	}
 };
 

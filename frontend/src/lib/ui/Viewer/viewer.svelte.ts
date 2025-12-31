@@ -1,17 +1,16 @@
 import { untrack } from 'svelte';
 import { clamp } from '$helpers';
-import type { Asset } from '$types';
+import type { AssetMetadata } from '$types';
 import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
 	id: string;
-	websocketUrl: string;
-	asset: Asset;
+	metadata: AssetMetadata;
 };
 
 export default class Viewer {
-	#id: string;
-	#asset: Asset;
+	#id: ViewerOptions['id'];
+	#metadata: ViewerOptions['metadata'];
 
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
@@ -28,9 +27,9 @@ export default class Viewer {
 	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
 
-	constructor({ id, websocketUrl, asset }: ViewerOptions) {
+	constructor({ id, metadata }: ViewerOptions) {
 		this.#id = id;
-		this.#asset = asset;
+		this.#metadata = metadata;
 
 		this.onmousedown = this.onmousedown.bind(this);
 		this.onmousemove = this.onmousemove.bind(this);
@@ -58,8 +57,7 @@ export default class Viewer {
 								sharedBuf: this.#sharedBuf,
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
-								url: websocketUrl,
-								asset: JSON.stringify(this.#asset)
+								metadata: JSON.stringify(this.#metadata)
 							}
 						},
 						[offscreen]
@@ -132,8 +130,8 @@ export default class Viewer {
 
 		const canvasWidth = width * window.devicePixelRatio;
 		const canvasHeight = height * window.devicePixelRatio;
-		const imageWidth = this.#asset.metadata.width;
-		const imageHeight = this.#asset.metadata.height;
+		const imageWidth = this.#metadata.width;
+		const imageHeight = this.#metadata.height;
 
 		// Fit to smallest dimension (ensures entire image is visible)
 		const scaleX = canvasWidth / imageWidth;

@@ -1,20 +1,20 @@
 import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
-import { AssetClientMsgTag, type Asset, type TiledImageLayer } from '$types';
+import { AssetClientMsgTag, type TiledImageAssetMetadata } from '$types';
 import { ImageBitmapCache } from './cache';
 import { shared } from './shared';
 import { type TileIdentifier } from './worker';
 
 export class TiledImageNetworker {
-	#asset: Asset<TiledImageLayer>;
-	#socketManager: WebSocketManager<ImageBitmapCache>;
+	#metadata: TiledImageAssetMetadata;
+	#socketManager: WebSocketManager;
 	#cache: ImageBitmapCache;
 
-	constructor(asset: Asset<TiledImageLayer>, url: string, cache: ImageBitmapCache) {
+	constructor(metadata: TiledImageAssetMetadata, cache: ImageBitmapCache) {
 		this.#cache = cache;
-		this.#asset = asset;
+		this.#metadata = metadata;
 		this.#socketManager = new WebSocketManager({
-			url,
+			url: metadata.url,
 			onOpen: () => self.postMessage({ type: 'connected' }),
 			onMessage: (event) => this.#handleMessage(event),
 			onError: (error) => self.postMessage({ type: 'error', error }),
@@ -51,7 +51,7 @@ export class TiledImageNetworker {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
 			if (this.#cache.has(key) || this.#socketManager.pending(key)) continue;
 
-			const layer = this.#asset.metadata.layers[tile.level];
+			const layer = this.#metadata.layers[tile.level];
 			if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
 
 			const w = new BinaryWriter(1 + 3 * 4);

@@ -18,20 +18,31 @@ export type Directory = {
 	children: number[];
 };
 
-export type Asset<L = TiledImageLayer | GltfLayer> = {
+export type Asset = {
 	type: 'Asset';
 	storeId: number;
 	parentId: number;
 	id: number;
 	name: string;
-	metadata: AssetMetadata<L>;
 };
 
-export type AssetMetadata<L> = {
-	width: number;
-	height: number;
-	layers: L[];
-};
+export type AssetMetadata =
+	| {
+			type: 'tiled-image';
+			width: number;
+			height: number;
+			url: string;
+			layers: TiledImageLayer[];
+	  }
+	| {
+			type: 'gltf';
+			width: number;
+			height: number;
+			layers: GltfLayer[];
+	  };
+
+export type TiledImageAssetMetadata = Extract<AssetMetadata, { type: 'tiled-image' }>;
+export type GltfAssetMetadata = Extract<AssetMetadata, { type: 'gltf' }>;
 
 export type TiledImageLayer = {
 	level: number;
@@ -42,6 +53,7 @@ export type TiledImageLayer = {
 };
 
 export type GltfLayer = {
+	url: string;
 	id: number;
 	tag: string;
 	visible: boolean;
