@@ -1,8 +1,6 @@
 import { STORE_URL } from '$constants';
 import { request, defined } from '$helpers';
-import type { Layer } from '$lib/states/viewer-manager.svelte';
-import type { UploaderOptions } from '$types';
-import type { Geometry2DLayer } from '$view/Geometry2D/types';
+import type { GltfLayer, TiledImageLayer, UploaderOptions } from '$types';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
 const gltfLoader = new GLTFLoader();
@@ -10,7 +8,7 @@ const gltfLoader = new GLTFLoader();
 export async function properties(
 	storeId: number,
 	assetId: number
-): Promise<{ metadata: Layer[]; annotations: Geometry2DLayer[] } | null> {
+): Promise<{ metadata: TiledImageLayer[]; annotations: GltfLayer[] } | null> {
 	return await request.get({ url: `${STORE_URL}/${storeId}/asset/${assetId}/properties` });
 }
 

@@ -3,7 +3,7 @@
 	import type { GLTF } from 'three/examples/jsm/Addons.js';
 	import { defined } from '$helpers';
 	import Layer from './Layer.svelte';
-	import type { Geometry2DLayer } from './types.ts';
+	import type { GltfLayer } from '$types';
 
 	let {
 		width,
@@ -13,7 +13,7 @@
 	}: {
 		width: number;
 		height: number;
-		geometries: Geometry2DLayer[];
+		geometries: GltfLayer[];
 		fetch: (id: number) => Promise<GLTF>;
 	} = $props();
 

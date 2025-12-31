@@ -34,13 +34,22 @@ export class ViewerManager {
 		const instanceId = `viewer-${storeId}-${assetId}`;
 		const viewer = new Viewer({
 			id: `viewer-${storeId}-${assetId}`,
-			metadata: {
-				type: 'tiled-image',
-				url: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
-				width: properties.metadata[0].width,
-				height: properties.metadata[0].height,
-				layers: properties.metadata
-			}
+			primary: 1,
+			layers: [
+				{
+					type: 'gltf',
+					width: properties.metadata[0].width,
+					height: properties.metadata[0].height,
+					layers: properties.annotations
+				},
+				{
+					type: 'tiled-image',
+					url: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
+					width: properties.metadata[0].width,
+					height: properties.metadata[0].height,
+					layers: properties.metadata
+				}
+			]
 		});
 
 		this.viewers.clear();

@@ -1,16 +1,34 @@
 import { BinaryReader, BinaryWriter } from '$lib/helpers/codec';
 import { WebSocketManager } from '$lib/helpers/network';
-import { AssetClientMsgTag, type TiledImageAssetMetadata } from '$types';
-import { ImageBitmapCache } from './cache';
+import { AssetClientMsgTag, type AssetMetadata, type TiledImageAssetMetadata } from '$types';
+import { type Cache, ImageBitmapCache } from './cache';
 import { shared } from './shared';
 import { type TileIdentifier } from './worker';
 
-export class TiledImageNetworker {
+export class Networker<T, C> {
+	constructor(metadata: AssetMetadata, cache: Cache<C>) {
+		if (new.target === Networker) {
+			throw new Error('Networker is abstract and cannot be instantiated');
+		}
+	}
+
+	request(requests: T[]) {
+		throw new Error('request(1) must be implemented');
+	}
+
+	close() {
+		throw new Error('close() must be implemented');
+	}
+}
+
+export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> {
 	#metadata: TiledImageAssetMetadata;
 	#socketManager: WebSocketManager;
 	#cache: ImageBitmapCache;
 
 	constructor(metadata: TiledImageAssetMetadata, cache: ImageBitmapCache) {
+		super(metadata, cache);
+
 		this.#cache = cache;
 		this.#metadata = metadata;
 		this.#socketManager = new WebSocketManager({

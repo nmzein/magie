@@ -5,12 +5,14 @@ import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
 	id: string;
-	metadata: AssetMetadata;
+	primary: number;
+	layers: AssetMetadata[];
 };
 
 export default class Viewer {
 	#id: ViewerOptions['id'];
-	#metadata: ViewerOptions['metadata'];
+	#primary: ViewerOptions['primary'];
+	#layers: ViewerOptions['layers'];
 
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
@@ -27,9 +29,14 @@ export default class Viewer {
 	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
 
-	constructor({ id, metadata }: ViewerOptions) {
+	constructor({ id, primary, layers }: ViewerOptions) {
+		if (primary < 0 || primary >= layers.length) {
+			throw Error('Invalid primary layer index');
+		}
+
 		this.#id = id;
-		this.#metadata = metadata;
+		this.#primary = primary;
+		this.#layers = layers;
 
 		this.onmousedown = this.onmousedown.bind(this);
 		this.onmousemove = this.onmousemove.bind(this);
@@ -57,7 +64,8 @@ export default class Viewer {
 								sharedBuf: this.#sharedBuf,
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
-								metadata: JSON.stringify(this.#metadata)
+								primary: this.#primary,
+								layers: JSON.stringify(this.#layers)
 							}
 						},
 						[offscreen]
@@ -130,8 +138,9 @@ export default class Viewer {
 
 		const canvasWidth = width * window.devicePixelRatio;
 		const canvasHeight = height * window.devicePixelRatio;
-		const imageWidth = this.#metadata.width;
-		const imageHeight = this.#metadata.height;
+
+		const imageWidth = this.#layers[this.#primary].width;
+		const imageHeight = this.#layers[this.#primary].height;
 
 		// Fit to smallest dimension (ensures entire image is visible)
 		const scaleX = canvasWidth / imageWidth;

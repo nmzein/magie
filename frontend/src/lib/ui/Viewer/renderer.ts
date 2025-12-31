@@ -1,11 +1,37 @@
-import type { Point, TiledImageAssetMetadata } from '$types';
-import type { ImageBitmapCache } from './cache';
+import type { AssetMetadata, Point, TiledImageAssetMetadata } from '$types';
+import type { Cache, ImageBitmapCache } from './cache';
 import type { TileIdentifier } from './worker';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
-export class TiledImageRenderer {
+export class Renderer<T, C> {
+	constructor(
+		metadata: AssetMetadata,
+		offscreenCanvas: OffscreenCanvas,
+		width: number,
+		height: number,
+		cache: Cache<C>
+	) {
+		if (new.target === Renderer) {
+			throw new Error('Renderer is abstract and cannot be instantiated');
+		}
+	}
+
+	updateTransforms(dims: { width: number; height: number }, offset: Point, scale: number) {
+		throw new Error('updateTransforms(3) must be implemented');
+	}
+
+	visible(): T[] {
+		throw new Error('visible() must be implemented');
+	}
+
+	render(requests: T[]) {
+		throw new Error('render(1) must be implemented');
+	}
+}
+
+export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 	#metadata: TiledImageAssetMetadata;
 	#offscreenCanvas: OffscreenCanvas;
 	#ctx: OffscreenCanvasRenderingContext2D;
@@ -21,6 +47,8 @@ export class TiledImageRenderer {
 		height: number,
 		cache: ImageBitmapCache
 	) {
+		super(metadata, offscreenCanvas, width, height, cache);
+
 		this.#metadata = metadata;
 		this.#offscreenCanvas = offscreenCanvas;
 		this.#cache = cache;
@@ -102,7 +130,7 @@ export class TiledImageRenderer {
 		return visible;
 	}
 
-	render(tiles: TileIdentifier[]): TileIdentifier[] {
+	render(tiles: TileIdentifier[]) {
 		if (tiles.length === 0) return [];
 
 		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -131,7 +159,5 @@ export class TiledImageRenderer {
 
 			this.#ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 		}
-
-		return tiles;
 	}
 }

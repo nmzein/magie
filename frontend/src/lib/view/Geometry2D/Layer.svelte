@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { MeshBasicMaterial, type Mesh } from 'three';
 	import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-	import type { Geometry2DLayer } from './types.ts';
+	import type { GltfLayer } from '$types';
 	import { defined } from '$helpers';
 	import { onMount } from 'svelte';
 
 	type Props = {
-		layer: Geometry2DLayer;
+		layer: GltfLayer;
 		fetch: (id: number) => Promise<GLTF>;
 		render: (tag: string, mesh: Mesh) => void;
 	};

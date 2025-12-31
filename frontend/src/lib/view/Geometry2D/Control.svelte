@@ -2,9 +2,9 @@
 	import Switch from '$components/Switch.svelte';
 	import Slider from '$components/Slider.svelte';
 	import ColourPicker from '$components/ColourPicker.svelte';
-	import type { Geometry2DLayer } from './types.ts';
+	import type { GltfLayer } from '$types';
 
-	let { geometries = $bindable() }: { geometries: Geometry2DLayer[] } = $props();
+	let { geometries = $bindable() }: { geometries: GltfLayer[] } = $props();
 </script>
 
 <div class="panel ml-auto w-fit select-none">
