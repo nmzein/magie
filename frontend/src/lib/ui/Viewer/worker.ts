@@ -77,8 +77,8 @@ self.onmessage = (e) => {
 };
 
 function loop() {
-	const dirty = shared.setClean();
-	if (dirty === 1) {
+	const wasDirty = shared.setCleanIfDirty();
+	if (wasDirty) {
 		const dims = { width: shared.get(Fields.Width), height: shared.get(Fields.Height) };
 		const offset = { x: shared.get(Fields.OffsetX), y: shared.get(Fields.OffsetY) };
 		const scale = shared.get(Fields.Scale) / 1e6;

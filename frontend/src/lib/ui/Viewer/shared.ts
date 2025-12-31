@@ -32,8 +32,8 @@ class Shared {
 		Atomics.store(this.shared, Fields.Dirty, 1);
 	}
 
-	setClean(): number {
-		return Atomics.compareExchange(this.shared, Fields.Dirty, 1, 0);
+	setCleanIfDirty(): boolean {
+		return Atomics.compareExchange(this.shared, Fields.Dirty, 1, 0) === 1;
 	}
 }
 
