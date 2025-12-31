@@ -8,8 +8,8 @@ import type {
 import type { GLTF } from 'three/examples/jsm/Addons.js';
 import type { Store, GltfStore, ImageBitmapStore } from './stores';
 import type { GltfLayerIdentifier, TileIdentifier } from './worker';
-import { Mesh, MeshBasicMaterial, OrthographicCamera, Scene, WebGLRenderer } from 'three';
-import { zip } from '$lib/helpers/array';
+import { Mesh, MeshBasicMaterial, OrthographicCamera, Scene, Vector2, WebGLRenderer } from 'three';
+import { Color } from 'three';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
@@ -164,11 +164,11 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 	}
 
 	render(dims: Dimensions, offset: Point, scale: number): GltfLayerIdentifier[] {
-		// Top-left anchored ortho camera
+		// Top-left anchored ortho camera.
 		this.#camera.right = dims.width / scale;
 		this.#camera.bottom = -dims.height / scale;
 
-		// Camera center in world space
+		// Camera center in world space.
 		this.#camera.position.x = -offset.x / scale;
 		this.#camera.position.y = offset.y / scale;
 
@@ -180,40 +180,36 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 			let mesh = this.#meshes.get(layer.tag);
 
-			if (!mesh || layer.dirty) {
+			if (!mesh) {
 				const node = file.scene.children[0];
 				if (node?.type !== 'Mesh') continue;
 
 				mesh = node as Mesh;
-
 				mesh.name = layer.tag;
+				mesh.visible = layer.visible;
 				mesh.material = new MeshBasicMaterial({
 					color: layer.fill,
 					opacity: layer.opacity,
 					transparent: true
 				});
 
-				mesh.visible = layer.visible;
-
-				// IMPORTANT:
-				// GLTF coordinates must already be in *base pixel space*
-				// No scale / offset here.
 				mesh.position.set(0, 0, 0);
-
-				if (!this.#meshes.has(layer.tag)) {
-					this.#scene.add(mesh);
-				}
-
+				this.#scene.add(mesh);
 				this.#meshes.set(layer.tag, mesh);
-				layer.dirty = false;
 			} else {
-				// Dynamic properties
 				mesh.visible = layer.visible;
+				(mesh.material as MeshBasicMaterial).color = new Color(layer.fill);
 				(mesh.material as MeshBasicMaterial).opacity = layer.opacity;
 			}
+			layer.dirty = false;
 		}
 
-		this.#renderer.setSize(dims.width, dims.height, false);
+		// Only resize if dimensions changed.
+		const rendererSize = this.#renderer.getSize(new Vector2());
+		if (rendererSize.x !== dims.width || rendererSize.y !== dims.height) {
+			this.#renderer.setSize(dims.width, dims.height, false);
+		}
+
 		this.#renderer.render(this.#scene, this.#camera);
 
 		return this.#metadata.layers.filter((l) => l.visible);
