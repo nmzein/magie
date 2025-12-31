@@ -32,7 +32,7 @@ pub async fn annotations(
         };
 
     // Read the binary content of the GLB file.
-    match std::fs::read(path) {
+    match std::fs::read(&path) {
         Ok(file_data) => {
             logger.success(StatusCode::OK, "Annotation layer retrieved successfully.");
 
@@ -53,7 +53,10 @@ pub async fn annotations(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Error::ResourceExistence,
                 "IA-E01",
-                "Failed to retrieve GLB annotation layer file.",
+                &format!(
+                    "Failed to retrieve GLB annotation layer file: {}",
+                    path.display()
+                ),
                 Some(e.into()),
             );
         }

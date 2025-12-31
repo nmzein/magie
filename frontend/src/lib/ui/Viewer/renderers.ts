@@ -8,12 +8,19 @@ import type {
 import type { GLTF } from 'three/examples/jsm/Addons.js';
 import type { Store, GltfStore, ImageBitmapStore } from './stores';
 import type { GltfLayerIdentifier, TileIdentifier } from './worker';
+import { Mesh, MeshBasicMaterial, OrthographicCamera, Scene, WebGLRenderer } from 'three';
+import { zip } from '$lib/helpers/array';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
 export class Renderer<T, S> {
-	constructor(metadata: AssetMetadata, store: Store<S>, ctx: OffscreenCanvasRenderingContext2D) {
+	constructor(
+		metadata: AssetMetadata,
+		store: Store<S>,
+		canvas: OffscreenCanvas,
+		ctx: OffscreenCanvasRenderingContext2D | WebGL2RenderingContext
+	) {
 		if (new.target === Renderer) {
 			throw new Error('Renderer is abstract and cannot be instantiated');
 		}
@@ -33,9 +40,10 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 	constructor(
 		metadata: TiledImageAssetMetadata,
 		store: ImageBitmapStore,
+		canvas: OffscreenCanvas,
 		ctx: OffscreenCanvasRenderingContext2D
 	) {
-		super(metadata, store, ctx);
+		super(metadata, store, canvas, ctx);
 
 		this.#metadata = metadata;
 		this.#store = store;
@@ -125,21 +133,89 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 
 export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 	#metadata: GltfAssetMetadata;
-	#ctx: OffscreenCanvasRenderingContext2D;
 	#store: GltfStore;
+
+	#scene: Scene;
+	#camera: OrthographicCamera;
+	#renderer: WebGLRenderer;
+	#meshes: Map<string, Mesh> = new Map();
 
 	constructor(
 		metadata: GltfAssetMetadata,
 		store: GltfStore,
-		ctx: OffscreenCanvasRenderingContext2D
+		canvas: OffscreenCanvas,
+		ctx: WebGL2RenderingContext
 	) {
-		super(metadata, store, ctx);
+		super(metadata, store, canvas, ctx);
+
 		this.#metadata = metadata;
-		this.#ctx = ctx;
 		this.#store = store;
+		this.#scene = new Scene();
+		this.#camera = new OrthographicCamera(0, metadata.width, 0, -1 * metadata.height, 0.1, 10);
+		this.#camera.position.z = 1;
+
+		this.#renderer = new WebGLRenderer({
+			canvas,
+			context: ctx,
+			alpha: true,
+			precision: 'highp',
+			powerPreference: 'high-performance'
+		});
 	}
 
 	render(dims: Dimensions, offset: Point, scale: number): GltfLayerIdentifier[] {
-		return [];
+		// Top-left anchored ortho camera
+		this.#camera.right = dims.width / scale;
+		this.#camera.bottom = -dims.height / scale;
+
+		// Camera center in world space
+		this.#camera.position.x = -offset.x / scale;
+		this.#camera.position.y = offset.y / scale;
+
+		this.#camera.updateProjectionMatrix();
+
+		for (const [url, file] of this.#store.getAll()) {
+			const layer = this.#metadata.layers.find((l) => l.url === url);
+			if (!layer || !layer.visible) continue;
+
+			let mesh = this.#meshes.get(layer.tag);
+
+			if (!mesh || layer.dirty) {
+				const node = file.scene.children[0];
+				if (node?.type !== 'Mesh') continue;
+
+				mesh = node as Mesh;
+
+				mesh.name = layer.tag;
+				mesh.material = new MeshBasicMaterial({
+					color: layer.fill,
+					opacity: layer.opacity,
+					transparent: true
+				});
+
+				mesh.visible = layer.visible;
+
+				// IMPORTANT:
+				// GLTF coordinates must already be in *base pixel space*
+				// No scale / offset here.
+				mesh.position.set(0, 0, 0);
+
+				if (!this.#meshes.has(layer.tag)) {
+					this.#scene.add(mesh);
+				}
+
+				this.#meshes.set(layer.tag, mesh);
+				layer.dirty = false;
+			} else {
+				// Dynamic properties
+				mesh.visible = layer.visible;
+				(mesh.material as MeshBasicMaterial).opacity = layer.opacity;
+			}
+		}
+
+		this.#renderer.setSize(dims.width, dims.height, false);
+		this.#renderer.render(this.#scene, this.#camera);
+
+		return this.#metadata.layers.filter((l) => l.visible);
 	}
 }

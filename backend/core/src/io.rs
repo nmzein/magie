@@ -1,7 +1,6 @@
 use crate::{
     constants::{
-        ANNOTATIONS_DIRECTORY, LOCAL_DATABASES_PATH, LOCAL_STORES_PATH, MAX_THUMBNAIL_SIZE,
-        UPLOADED_DIRECTORY,
+        ANNOTATIONS_DIRECTORY, DATABASES_PATH, MAX_THUMBNAIL_SIZE, STORES_PATH, UPLOADED_DIRECTORY,
     },
     types::messages::TileServerMsg,
 };
@@ -19,26 +18,25 @@ use std::{
 use tempfile::NamedTempFile;
 
 pub fn create_store_database(store_id: u32) -> Result<String> {
-    let path = Path::new(LOCAL_DATABASES_PATH).join(format!("s{store_id}.sqlite"));
+    let path = Path::new(DATABASES_PATH)
+        .join(format!("s{store_id}.sqlite"))
+        .to_str()
+        .ok_or(anyhow::anyhow!("Failed to convert path to string"))?
+        .to_owned();
 
     fs::File::create(&path)?;
 
-    // FIXME: Dont prefix with "../", should not be location aware.
-    Ok(format!(
-        "sqlite://../{}",
-        path.to_str()
-            .ok_or(anyhow::anyhow!("Failed to convert path to string"))?
-    ))
+    Ok(path)
 }
 
 pub fn create_store(store_id: u32) -> Result<PathBuf> {
-    let path = Path::new(LOCAL_STORES_PATH).join(format!("s{store_id}"));
+    let path = Path::new(STORES_PATH).join(format!("s{store_id}"));
     fs::create_dir_all(&path)?;
     Ok(path)
 }
 
 pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
-    let path = Path::new(LOCAL_STORES_PATH)
+    let path = Path::new(STORES_PATH)
         .join(format!("s{store_id}"))
         .join(format!("i{image_id}"));
 
@@ -51,7 +49,7 @@ pub fn create(store_id: u32, image_id: u32) -> Result<PathBuf> {
 }
 
 pub fn delete(store_id: u32, image_id: u32) -> Result<()> {
-    let path = Path::new(LOCAL_STORES_PATH)
+    let path = Path::new(STORES_PATH)
         .join(format!("s{store_id}"))
         .join(format!("i{image_id}"));
 

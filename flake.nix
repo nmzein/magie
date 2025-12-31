@@ -161,9 +161,7 @@
         '';
 
         devRunScript = pkgs.writeShellScriptBin "dev" ''
-          ([ -e ./backend/_stores ] || ln -s ../_stores ./backend/_stores) && \
-            ([ -e ./backend/_databases ] || ln -s ../_databases ./backend/_databases) && \
-            cd backend && cargo run & \
+          cd backend && cargo run & \
           cd backend/geometry-computer && npm install & \
           cd frontend && npm install && npm run dev
         '';

@@ -97,28 +97,39 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 }
 
 export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
-	#gltfLoader: GLTFLoader;
+	// #metadata: GltfAssetMetadata;
 	#store: GltfStore;
+	#pending: Set<string> = new Set();
+	#gltfLoader: GLTFLoader;
 
 	constructor(metadata: GltfAssetMetadata, store: GltfStore) {
 		super(metadata, store);
 
+		// this.#metadata = metadata;
 		this.#store = store;
 		this.#gltfLoader = new GLTFLoader();
 	}
 
-	async request(layers: GltfLayerIdentifier[]) {
-		const files = await Promise.all(
-			layers.map(async (layer) => {
-				return await this.#gltfLoader.loadAsync(
-					`${STORE_URL}/${layer.storeId}/asset/${layer.assetId}/annotations/${layer.layerId}`
-				);
-			})
-		);
+	async request(requests: GltfLayerIdentifier[]) {
+		for (const layer of requests) {
+			if (this.#store.has(layer.url) || this.#pending.has(layer.url)) {
+				continue;
+			}
 
-		for (const [layer, file] of zip(layers, files)) {
-			const key = `${layer.storeId}_${layer.assetId}_${layer.layerId}`;
-			this.#store.set(key, file);
+			this.#pending.add(layer.url);
+
+			this.#gltfLoader
+				.loadAsync(layer.url)
+				.then((gltf) => {
+					this.#store.set(layer.url, gltf);
+					shared.setDirty();
+				})
+				.catch((err) => {
+					console.error(`Failed to load ${layer.url}`, err);
+				})
+				.finally(() => {
+					this.#pending.delete(layer.url);
+				});
 		}
 	}
 

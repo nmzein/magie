@@ -2,11 +2,27 @@ import { STORE_URL } from '$constants';
 import { request, defined } from '$helpers';
 import type { GltfLayer, TiledImageLayer, UploaderOptions } from '$types';
 
-export async function properties(
-	storeId: number,
-	assetId: number
-): Promise<{ metadata: TiledImageLayer[]; annotations: GltfLayer[] } | null> {
-	return await request.get({ url: `${STORE_URL}/${storeId}/asset/${assetId}/properties` });
+type Properties = {
+	metadata: TiledImageLayer[];
+	annotations: GltfLayer[];
+};
+
+export async function properties(storeId: number, assetId: number): Promise<Properties | null> {
+	const properties = (await request.get({
+		url: `${STORE_URL}/${storeId}/asset/${assetId}/properties`
+	})) as Properties | null;
+
+	if (!defined(properties)) return null;
+
+	properties.annotations = properties.annotations.map((a) => ({
+		...a,
+		url: `${STORE_URL}/${storeId}/asset/${assetId}/annotations/${a.id}`,
+		dirty: true
+	}));
+
+	console.log('Returned', properties);
+
+	return properties;
 }
 
 export async function thumbnail(

@@ -5,6 +5,10 @@ export class Store<T> {
 		throw new Error('get(1) must be implemented');
 	}
 
+	getAll(): [string, T][] {
+		throw new Error('getAll(0) must be implemented');
+	}
+
 	set(key: string, value: T): void {
 		throw new Error('set(2) must be implemented');
 	}
@@ -23,6 +27,10 @@ export class ImageBitmapStore extends Store<ImageBitmap> {
 
 	get(key: string): ImageBitmap | undefined {
 		return this.#store[key];
+	}
+
+	getAll(): [string, ImageBitmap][] {
+		return Object.entries(this.#store);
 	}
 
 	set(key: string, value: ImageBitmap): void {
@@ -48,6 +56,10 @@ export class GltfStore extends Store<GLTF> {
 
 	get(key: string): GLTF | undefined {
 		return this.#store[key];
+	}
+
+	getAll(): [string, GLTF][] {
+		return Object.entries(this.#store);
 	}
 
 	set(key: string, value: GLTF): void {

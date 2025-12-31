@@ -54,16 +54,17 @@ export default class Viewer {
 
 					this.#div = div;
 
-					const canvasDefs = [{ ctx: '2d' }, { ctx: 'webgl' }];
+					const canvasDefs = [{ ctx: '2d' }, { ctx: 'webgl2' }];
 
 					for (const index of canvasDefs.keys()) {
 						const canvasEl = document.createElement('canvas');
+
 						canvasEl.width = window.innerWidth * window.devicePixelRatio;
 						canvasEl.height = window.innerHeight * window.devicePixelRatio;
 						canvasEl.style.position = 'absolute';
 						canvasEl.style.width = `100%`;
 						canvasEl.style.height = `100%`;
-						// canvasEl.style.zIndex = (Number(div.style.zIndex) + index).toString();
+						canvasEl.style.zIndex = (Number(div.style.zIndex) + index).toString();
 						div.appendChild(canvasEl);
 
 						this.#canvases.push(canvasEl);

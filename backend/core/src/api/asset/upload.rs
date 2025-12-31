@@ -146,14 +146,17 @@ pub async fn upload(
         None => None,
     };
 
-    let Ok(asset_id) = crate::db::counter::counter(&dbm, store_id) else {
-        return logger.error(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Error::ResourceCreation,
-            "AU-E06",
-            "Failed to generate image ID.",
-            None,
-        );
+    let asset_id = match crate::db::counter::counter(&dbm, store_id) {
+        Ok(id) => id,
+        Err(e) => {
+            return logger.error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Error::ResourceCreation,
+                "AU-E06",
+                "Failed to generate image ID.",
+                Some(e),
+            );
+        }
     };
 
     // Create a directory in local store for the image.
@@ -385,7 +388,7 @@ fn translate_annotations(
     // Compute annotation positions and normals.
     match Command::new("node")
         .arg("--max-old-space-size=4096")
-        .arg("./backend/geometry-computer/index.js")
+        .arg("geometry-computer/index.js")
         .arg(translated_annotations_path)
         .arg(final_annotations_path)
         .output()

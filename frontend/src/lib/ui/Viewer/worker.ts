@@ -6,7 +6,7 @@ import { type Store, GltfStore, ImageBitmapStore } from './stores';
 import { zip } from '$lib/helpers/array';
 
 export type TileIdentifier = { level: number; x: number; y: number };
-export type GltfLayerIdentifier = { storeId: number; assetId: number; layerId: number };
+export type GltfLayerIdentifier = { url: string };
 
 let canvases: OffscreenCanvas[] = [];
 const stores: Store<any>[] = [];
@@ -31,7 +31,7 @@ self.onmessage = (e) => {
 			canvases = data.canvases;
 			setCanvasDims({ width: data.width, height: data.height });
 
-			const canvasDefs = JSON.parse(data.canvasDefs);
+			const canvasDefs: { ctx: '2d' | 'webgl2' }[] = JSON.parse(data.canvasDefs);
 			const contexts = [];
 
 			for (const [index, canvas] of canvases.entries()) {
@@ -48,14 +48,14 @@ self.onmessage = (e) => {
 					case 'tiled-image': {
 						const store = new ImageBitmapStore();
 						stores.push(store);
-						renderers.push(new TiledImageRenderer(layer, store, contexts[0]));
+						renderers.push(new TiledImageRenderer(layer, store, canvases[0], contexts[0]));
 						networkers.push(new TiledImageNetworker(layer, store));
 						break;
 					}
 					case 'gltf': {
 						const store = new GltfStore();
 						stores.push(store);
-						renderers.push(new GltfRenderer(layer, store, contexts[1]));
+						renderers.push(new GltfRenderer(layer, store, canvases[1], contexts[1]));
 						networkers.push(new GltfNetworker(layer, store));
 						break;
 					}

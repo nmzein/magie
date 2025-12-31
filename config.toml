@@ -1,7 +1,7 @@
 [env]
 PUBLIC_PORT = "3000"
 
-LOCAL_STORES_PATH = "./_stores/"
-LOCAL_DATABASES_PATH = "./_databases/"
+STORES_PATH = "/home/orca/Documents/magie/_stores/"
+DATABASES_PATH = "/home/orca/Documents/magie/_databases/"
 
 DEV_FRONTEND_PORT = "4000" # Used in development only to allow CORS.

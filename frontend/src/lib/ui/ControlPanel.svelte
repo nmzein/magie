@@ -23,7 +23,7 @@
 	let contentSpaceBounds: Bounds | undefined = $state();
 </script>
 
-<div class="pointer-events-none absolute flex w-full flex-row gap-2 overflow-hidden">
+<div class="pointer-events-none absolute z-100 flex w-full flex-row gap-2 overflow-hidden">
 	<Tabs.Root id="zooming" mode="buttons" {classes}>
 		<Tabs.Root id="applets" mode="collapsible-tab" {classes}>
 			<Tabs.Root id="drawing" mode="tab" currentTab="move" {classes}>

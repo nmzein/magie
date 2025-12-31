@@ -10,7 +10,7 @@ mod middleware;
 mod types;
 
 use crate::{
-    constants::{LOCAL_DATABASES_PATH, LOCAL_STORES_PATH, REGISTRY_PATH},
+    constants::{DATABASES_PATH, REGISTRY_PATH, STORES_PATH},
     types::{database::DatabaseManager, socket::ClientSocketManager},
 };
 use axum::{
@@ -37,7 +37,7 @@ async fn main() {
 
     let backend_url: &str = &format!("{host}:{port}");
 
-    let tmp_dir = PathBuf::from(LOCAL_STORES_PATH).join("tmp");
+    let tmp_dir = PathBuf::from(STORES_PATH).join("tmp");
 
     // TODO: Move to Nix flake.
     // SAFETY: Environment access only happens in single-threaded code.
@@ -47,18 +47,17 @@ async fn main() {
 
     // TODO: Move to Nix flake.
     // Create the necessary directories.
-    if !Path::new(LOCAL_STORES_PATH).exists() {
-        println!("Creating local stores directory at: {LOCAL_STORES_PATH}");
-        fs::create_dir_all(LOCAL_STORES_PATH).expect("Could not create local stores directory");
+    if !Path::new(STORES_PATH).exists() {
+        println!("Creating local stores directory at: {STORES_PATH}");
+        fs::create_dir_all(STORES_PATH).expect("Could not create local stores directory");
 
         println!("Creating local temporary file directory at: {tmp_dir:#?}");
         fs::create_dir_all(&tmp_dir).expect("Could not create local temporary file directory");
     }
 
-    if !Path::new(LOCAL_DATABASES_PATH).exists() {
-        println!("Creating local databases directory at: {LOCAL_DATABASES_PATH}");
-        fs::create_dir_all(LOCAL_DATABASES_PATH)
-            .expect("Could not create local databases directory");
+    if !Path::new(DATABASES_PATH).exists() {
+        println!("Creating local databases directory at: {DATABASES_PATH}");
+        fs::create_dir_all(DATABASES_PATH).expect("Could not create local databases directory");
     }
 
     if !Path::new(REGISTRY_PATH).exists() {

@@ -60,6 +60,7 @@ export type GltfLayer = {
 	opacity: number;
 	fill: string;
 	stroke: string;
+	dirty: boolean;
 };
 
 export type UploaderOptions = {
