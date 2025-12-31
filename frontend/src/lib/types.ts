@@ -73,6 +73,9 @@ export type UploaderOptions = {
 export type Bounds = { width: number; height: number; left: number; top: number };
 export const DEFAULT_BOUND: Bounds = { width: 0, height: 0, left: 0, top: 0 };
 
+export type Dimensions = { width: number; height: number };
+export const DEFAULT_DIMS: Dimensions = { width: 0, height: 0 };
+
 export type Point = { x: number; y: number };
 export const DEFAULT_POINT: Point = { x: 0, y: 0 };
 

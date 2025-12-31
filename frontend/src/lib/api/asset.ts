@@ -1,9 +1,6 @@
 import { STORE_URL } from '$constants';
 import { request, defined } from '$helpers';
 import type { GltfLayer, TiledImageLayer, UploaderOptions } from '$types';
-import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
-
-const gltfLoader = new GLTFLoader();
 
 export async function properties(
 	storeId: number,
@@ -24,12 +21,6 @@ export async function thumbnail(
 	const image = new Image();
 	image.src = URL.createObjectURL(blob);
 	return image;
-}
-
-export async function geometry2d(storeId: number, assetId: number, layerId: number): Promise<GLTF> {
-	return await gltfLoader.loadAsync(
-		`${STORE_URL}/${storeId}/asset/${assetId}/annotations/${layerId}`
-	);
 }
 
 export async function remove(storeId: number, assetId: number, mode: 'soft' | 'hard') {

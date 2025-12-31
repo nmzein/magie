@@ -1,13 +1,24 @@
-import type { AssetMetadata } from '$types';
-import { type Renderer, TiledImageRenderer } from './renderer';
-import { Networker, TiledImageNetworker } from './networker';
+import type { AssetMetadata, Dimensions } from '$types';
+import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
+import { GltfNetworker, Networker, TiledImageNetworker } from './networkers';
 import { Fields, shared } from './shared';
-import { ImageBitmapCache } from './cache';
+import { type Store, GltfStore, ImageBitmapStore } from './stores';
+import { zip } from '$lib/helpers/array';
 
 export type TileIdentifier = { level: number; x: number; y: number };
+export type GltfLayerIdentifier = { storeId: number; assetId: number; layerId: number };
 
+let canvases: OffscreenCanvas[] = [];
+const stores: Store<any>[] = [];
 const renderers: Renderer<any, any>[] = [];
 const networkers: Networker<any, any>[] = [];
+
+function setCanvasDims(dims: Dimensions) {
+	canvases.forEach((canvas) => {
+		canvas.width = dims.width;
+		canvas.height = dims.height;
+	});
+}
 
 self.onmessage = (e) => {
 	const { type, data } = e.data;
@@ -17,19 +28,30 @@ self.onmessage = (e) => {
 			const layers: AssetMetadata[] = JSON.parse(data.layers);
 			shared.init(data.sharedBuf);
 
+			canvases = data.canvases;
+			setCanvasDims({ width: data.width, height: data.height });
+			const contexts = canvases.map((canvas) => {
+				const ctx = canvas.getContext('2d', { alpha: false });
+				if (!ctx) throw Error('Failed to create 2D rendering context');
+
+				ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
+				return ctx;
+			});
+
 			for (const layer of layers.toReversed()) {
 				switch (layer.type) {
 					case 'tiled-image': {
-						const cache = new ImageBitmapCache();
-						renderers.push(
-							new TiledImageRenderer(layer, data.canvas, data.width, data.height, cache)
-						);
-						networkers.push(new TiledImageNetworker(layer, cache));
+						const store = new ImageBitmapStore();
+						stores.push(store);
+						renderers.push(new TiledImageRenderer(layer, store, contexts[0]));
+						networkers.push(new TiledImageNetworker(layer, store));
 						break;
 					}
 					case 'gltf': {
-						// renderer = new GLTFRenderer(layer, data.canvas, data.width, data.height);
-						// networker = new GLTFNetworker(layer);
+						const store = new GltfStore();
+						stores.push(store);
+						renderers.push(new GltfRenderer(layer, store, contexts[0]));
+						networkers.push(new GltfNetworker(layer, store));
 						break;
 					}
 				}
@@ -40,7 +62,8 @@ self.onmessage = (e) => {
 			break;
 		}
 		case 'close': {
-			for (const networker of networkers) {
+			for (const [store, networker] of zip(stores, networkers)) {
+				store.clear();
 				networker.close();
 			}
 			break;
@@ -55,12 +78,11 @@ function loop() {
 		const offset = { x: shared.get(Fields.OffsetX), y: shared.get(Fields.OffsetY) };
 		const scale = shared.get(Fields.Scale) / 1e6;
 
-		for (const [index, renderer] of renderers.entries()) {
-			renderer.updateTransforms(dims, offset, scale);
+		setCanvasDims(dims);
 
-			const requests = renderer.visible();
-			networkers[index].request(requests);
-			renderer.render(requests);
+		for (const [renderer, networker] of zip(renderers, networkers)) {
+			const requests = renderer.render(dims, offset, scale);
+			networker.request(requests);
 		}
 	}
 

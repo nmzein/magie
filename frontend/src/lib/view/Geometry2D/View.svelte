@@ -19,7 +19,7 @@
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 
-	const CANVAS_HEIGHT = 8000;
+	const CANVAS_HEIGHT = 2000;
 	const CANVAS_WIDTH = $derived(CANVAS_HEIGHT * (width / height));
 
 	// Create a renderer with a transparent canvas.
