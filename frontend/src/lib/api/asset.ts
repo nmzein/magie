@@ -20,8 +20,6 @@ export async function properties(storeId: number, assetId: number): Promise<Prop
 		dirty: true
 	}));
 
-	console.log('Returned', properties);
-
 	return properties;
 }
 

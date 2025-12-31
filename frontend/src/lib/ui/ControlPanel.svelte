@@ -88,7 +88,7 @@
 						<Tabs.TriggerList id="applets">
 							<Tabs.Trigger
 								value="explorer"
-								disabled={!defined(contentSpaceBounds) || !defined(registry.registry)}
+								disabled={!defined(contentSpaceBounds) || !registry.loaded}
 							>
 								<Icon name="explorer" class="h-9 w-9" />
 							</Tabs.Trigger>

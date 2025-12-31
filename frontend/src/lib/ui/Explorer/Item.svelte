@@ -128,7 +128,7 @@
 		{oncontextmenu}
 	>
 		{#if item.type === 'Asset'}
-			{#await http.asset.thumbnail(explorer.storeId, item.id)}
+			{#await http.asset.thumbnail(item.storeId, item.id)}
 				<div class="h-16"></div>
 			{:then thumbnail}
 				{#if thumbnail}

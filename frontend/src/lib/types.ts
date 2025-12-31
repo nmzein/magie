@@ -9,6 +9,8 @@ export type Modules = {
 	encoders: string[];
 };
 
+export type Entry = Directory | Asset;
+
 export type Directory = {
 	type: 'Directory';
 	storeId: number;
@@ -26,20 +28,17 @@ export type Asset = {
 	name: string;
 };
 
-export type AssetMetadata =
+export type AssetMetadata = { width: number; height: number } & (
 	| {
 			type: 'tiled-image';
-			width: number;
-			height: number;
 			url: string;
 			layers: TiledImageLayer[];
 	  }
 	| {
 			type: 'gltf';
-			width: number;
-			height: number;
 			layers: GltfLayer[];
-	  };
+	  }
+);
 
 export type TiledImageAssetMetadata = Extract<AssetMetadata, { type: 'tiled-image' }>;
 export type GltfAssetMetadata = Extract<AssetMetadata, { type: 'gltf' }>;

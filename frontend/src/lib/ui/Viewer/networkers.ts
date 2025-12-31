@@ -41,10 +41,8 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 		this.#metadata = metadata;
 		this.#socketManager = new WebSocketManager({
 			url: metadata.url,
-			onOpen: () => self.postMessage({ type: 'connected' }),
 			onMessage: (event) => this.#handleMessage(event),
-			onError: (error) => self.postMessage({ type: 'error', error }),
-			onClose: (_, __) => self.postMessage({ type: 'disconnected' })
+			onError: (error) => self.postMessage({ type: 'error', error })
 		});
 
 		this.#socketManager.connect();
@@ -97,7 +95,6 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 }
 
 export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
-	// #metadata: GltfAssetMetadata;
 	#store: GltfStore;
 	#pending: Set<string> = new Set();
 	#gltfLoader: GLTFLoader;
@@ -105,7 +102,6 @@ export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
 	constructor(metadata: GltfAssetMetadata, store: GltfStore) {
 		super(metadata, store);
 
-		// this.#metadata = metadata;
 		this.#store = store;
 		this.#gltfLoader = new GLTFLoader();
 	}

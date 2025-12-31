@@ -22,8 +22,10 @@
 	});
 </script>
 
-{#each viewerManager.viewers as [id, _] (id)}
-	<Viewer viewer={viewerManager.viewers.get(id)!} />
-{/each}
+<div class="absolute flex h-full w-full flex-col flex-wrap">
+	{#each viewerManager.viewers as [id, _] (id)}
+		<Viewer viewer={viewerManager.viewers.get(id)!} />
+	{/each}
+</div>
 
 <ControlPanel />

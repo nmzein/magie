@@ -104,11 +104,6 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 		if (visible.length === 0) return [];
 
 		// FIXME: Shouldn't be done here.
-		this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-		this.#ctx.clearRect(0, 0, dims.width, dims.height);
-
-		// FIXME: Shouldn't be done here.
-		// Final transform:
 		// layer pixels → base pixels → screen pixels
 		this.#ctx.setTransform(
 			scale * layerPixelScale,

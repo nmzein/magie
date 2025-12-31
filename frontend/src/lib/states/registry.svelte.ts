@@ -1,36 +1,38 @@
 import { http } from '$api';
-import type { Directory, Store, Asset } from '$types';
+import type { Store, Entry } from '$types';
 import { defined } from '$helpers';
 import { SvelteMap } from 'svelte/reactivity';
 
+type RegistryEntry = { properties: Store; items: SvelteMap<Entry['id'], Entry> };
+
 export class Registry {
-	#registry: SvelteMap<number, Store> | undefined = $state();
-	#stores = new SvelteMap<number, SvelteMap<number, Directory | Asset>>();
+	#loaded = $state(false);
+	#registry = new SvelteMap<Store['id'], RegistryEntry>();
 
-	get registry(): Store[] | undefined {
+	get loaded(): boolean {
+		return this.#loaded;
+	}
+
+	get stores(): Store[] {
 		if (this.#registry) {
-			return Array.from(this.#registry.values());
+			return Array.from(this.#registry.values()).map(({ properties }) => properties);
 		}
-		return undefined;
+		return [];
 	}
 
-	storeProperties(storeId: number): Store | undefined {
-		return this.#registry?.get(storeId);
-	}
-
-	store(storeId: number): SvelteMap<number, Directory | Asset> | undefined {
-		return this.#stores.get(storeId);
+	store(storeId: number): RegistryEntry | undefined {
+		return this.#registry.get(storeId);
 	}
 
 	add(type: 'Directory' | 'Asset', storeId: number, parentId: number, id: number, name: string) {
-		const store = this.#stores.get(storeId);
+		const store = this.#registry.get(storeId);
 		if (!defined(store)) return;
 
-		const parent = store.get(parentId);
+		const parent = store.items.get(parentId);
 		if (!defined(parent) || parent.type === 'Asset') return;
 
 		if (type === 'Directory') {
-			store.set(id, {
+			store.items.set(id, {
 				type,
 				storeId,
 				parentId,
@@ -39,7 +41,7 @@ export class Registry {
 				children: []
 			});
 		} else {
-			store.set(id, {
+			store.items.set(id, {
 				type,
 				storeId,
 				parentId,
@@ -48,54 +50,54 @@ export class Registry {
 			});
 		}
 
-		store.set(parent.id, {
+		store.items.set(parent.id, {
 			...parent,
 			children: parent.children.concat(id)
 		});
 	}
 
 	delete(storeId: number, id: number) {
-		const store = this.#stores.get(storeId);
+		const store = this.store(storeId);
 		if (!defined(store)) return;
 
-		const target = store.get(id);
+		const target = store.items.get(id);
 		if (!defined(target)) return;
 
-		const parent = store.get(target.parentId);
+		const parent = store.items.get(target.parentId);
 		if (!defined(parent) || parent.type === 'Asset') return;
 
-		store.delete(id);
+		store.items.delete(id);
 
-		store.set(parent.id, {
+		store.items.set(parent.id, {
 			...parent,
 			children: parent.children.filter((id) => id !== target.id)
 		});
 	}
 
 	move(storeId: number, id: number, destinationId: number) {
-		const store = this.#stores.get(storeId);
+		const store = this.store(storeId);
 		if (!defined(store)) return;
 
-		const target = store.get(id);
+		const target = store.items.get(id);
 		if (!defined(target)) return;
 
-		const parent = store.get(target.parentId);
+		const parent = store.items.get(target.parentId);
 		if (!defined(parent) || parent.type === 'Asset') return;
 
-		const destination = store.get(destinationId);
+		const destination = store.items.get(destinationId);
 		if (!defined(destination) || destination.type === 'Asset') return;
 
-		store.set(id, {
+		store.items.set(id, {
 			...target,
 			parentId: destination.id
 		});
 
-		store.set(parent.id, {
+		store.items.set(parent.id, {
 			...parent,
 			children: parent.children.filter((id) => id !== target.id)
 		});
 
-		store.set(destinationId, {
+		store.items.set(destination.id, {
 			...destination,
 			children: destination.children.concat(id)
 		});
@@ -104,20 +106,26 @@ export class Registry {
 	constructor() {
 		$effect.root(() => {
 			$effect(() => {
-				http.registry().then((registry) => {
+				http.registry().then(async (registry) => {
 					if (!defined(registry)) return;
-					this.#registry = new SvelteMap<number, Store>();
-					registry.forEach((store) => {
-						http.store.get(store.id).then((root) => {
-							if (!defined(root)) return;
-							this.#registry!.set(store.id, store);
-							const rootMap = new SvelteMap<number, Directory | Asset>();
-							root.forEach((item) => {
-								rootMap.set(item.id, item);
+
+					await Promise.all(
+						registry.map(async (store) => {
+							return await http.store.get(store.id).then((items) => {
+								if (!defined(items)) return;
+
+								const itemsMap: RegistryEntry['items'] = new SvelteMap();
+
+								for (const item of items) {
+									itemsMap.set(item.id, { ...item, storeId: store.id });
+								}
+
+								this.#registry.set(store.id, { properties: store, items: itemsMap });
 							});
-							this.#stores.set(store.id, rootMap);
-						});
-					});
+						})
+					);
+
+					this.#loaded = true;
 				});
 			});
 		});

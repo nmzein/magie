@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { twMerge } from 'tailwind-merge';
+	import type { ClassValue } from 'svelte/elements';
 
 	let {
 		id,
@@ -15,8 +16,8 @@
 		max: number;
 		step: number;
 		value: number;
-		inputClass?: string;
-		labelClass?: string;
+		inputClass?: ClassValue;
+		labelClass?: ClassValue;
 	} = $props();
 
 	let dragging = $state(false);

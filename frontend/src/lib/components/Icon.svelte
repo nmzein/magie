@@ -1,11 +1,13 @@
 <script lang="ts">
+	import type { ClassValue } from 'svelte/elements';
+
 	let {
 		name,
 		class: classes = '',
 		onclick = undefined
 	}: {
 		name: string;
-		class?: string;
+		class?: ClassValue;
 		onclick?: () => void;
 	} = $props();
 

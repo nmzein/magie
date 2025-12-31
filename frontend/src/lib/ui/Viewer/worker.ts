@@ -29,7 +29,6 @@ self.onmessage = (e) => {
 			shared.init(data.sharedBuf);
 
 			canvases = data.canvases;
-			setCanvasDims({ width: data.width, height: data.height });
 
 			const canvasDefs: { ctx: '2d' | 'webgl2' }[] = JSON.parse(data.canvasDefs);
 			const contexts = [];

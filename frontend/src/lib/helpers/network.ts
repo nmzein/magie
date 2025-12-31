@@ -1,4 +1,4 @@
-import { SvelteSet } from 'svelte/reactivity';
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 export type WebSocketManagerOptions = {
 	url: string;
@@ -13,7 +13,6 @@ export type WebSocketManagerOptions = {
 	onClose?: (event: CloseEvent, willReconnect: boolean) => void;
 };
 
-// TODO: Cache any messages sent before opening.
 export class WebSocketManager {
 	private _url: string;
 	private _socket: WebSocket | null = null;
@@ -25,6 +24,7 @@ export class WebSocketManager {
 	private _binaryType: 'blob' | 'arraybuffer' = 'arraybuffer';
 	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'disconnected';
 	private _pending = new SvelteSet<string>();
+	private _replay = new SvelteMap<string, () => void>();
 
 	private _onOpen?: WebSocketManagerOptions['onOpen'];
 	private _onMessage?: WebSocketManagerOptions['onMessage'];
@@ -58,6 +58,10 @@ export class WebSocketManager {
 		this._socket.onopen = () => {
 			this._state = 'connected';
 			this._reconnectAttempts = 0;
+			for (const [key, replay] of this._replay) {
+				replay();
+				this._replay.delete(key);
+			}
 			this._onOpen?.(this._socket!);
 		};
 
@@ -95,19 +99,18 @@ export class WebSocketManager {
 		return Math.min(expDelay, this._maxDelay);
 	}
 
-	send(data: string | ArrayBuffer | Blob | ArrayBufferView, key?: string, force = false) {
-		if (
-			!this._socket ||
-			this._socket.readyState !== WebSocket.OPEN ||
-			(key && this._pending.has(key) && !force) // Already requested and force was not specified.
-		)
+	send(data: string | ArrayBuffer | Blob | ArrayBufferView, key: string, force = false) {
+		// Already requested and force was not specified.
+		if (this._pending.has(key) && !force) return;
+
+		// If sent before socket open, queue for later replay.
+		if (!this._socket || this._socket.readyState !== WebSocket.OPEN) {
+			this._replay.set(key, () => this.send(data, key, force));
 			return;
+		}
 
 		this._socket.send(data);
-
-		if (key) {
-			this._pending.add(key);
-		}
+		this._pending.add(key);
 	}
 
 	pending(key: string) {

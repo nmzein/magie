@@ -1,7 +1,8 @@
 import { untrack } from 'svelte';
 import { clamp } from '$helpers';
-import { DEFAULT_POINT, type AssetMetadata } from '$types';
+import { DEFAULT_BOUND, DEFAULT_POINT, type AssetMetadata, type Bounds } from '$types';
 import { Fields, NUM_FIELDS } from './shared';
+import { on } from 'svelte/events';
 
 type ViewerOptions = {
 	id: string;
@@ -25,6 +26,7 @@ export default class Viewer {
 	#scaleFactor = 1;
 
 	#div!: HTMLDivElement;
+	#bounds: Bounds = $state(DEFAULT_BOUND);
 	#canvases: HTMLCanvasElement[] = [];
 	#offscreenCanvases: OffscreenCanvas[] = [];
 	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * NUM_FIELDS);
@@ -53,14 +55,15 @@ export default class Viewer {
 					if (!div) throw Error('Div element not found');
 
 					this.#div = div;
+					this.#bounds = this.#div.getBoundingClientRect();
 
 					const canvasDefs = [{ ctx: '2d' }, { ctx: 'webgl2' }];
 
 					for (const index of canvasDefs.keys()) {
 						const canvasEl = document.createElement('canvas');
 
-						canvasEl.width = window.innerWidth * window.devicePixelRatio;
-						canvasEl.height = window.innerHeight * window.devicePixelRatio;
+						canvasEl.width = this.#bounds.width * window.devicePixelRatio;
+						canvasEl.height = this.#bounds.height * window.devicePixelRatio;
 						canvasEl.style.position = 'absolute';
 						canvasEl.style.width = `100%`;
 						canvasEl.style.height = `100%`;
@@ -81,35 +84,27 @@ export default class Viewer {
 								canvases: this.#offscreenCanvases,
 								canvasDefs: JSON.stringify(canvasDefs),
 								sharedBuf: this.#sharedBuf,
-								width: window.innerWidth * window.devicePixelRatio,
-								height: window.innerHeight * window.devicePixelRatio,
-								primary: this.#primary,
 								layers: JSON.stringify(this.#layers.toReversed())
 							}
 						},
 						this.#offscreenCanvases
 					);
 
-					this.#div.addEventListener('mousedown', this.onmousedown);
-					this.#div.addEventListener('touchstart', this.ontouchstart);
-					this.#div.addEventListener('wheel', this.onwheel);
-
-					window.addEventListener('resize', this.onresize);
-					window.addEventListener('mousemove', this.onmousemove);
-					window.addEventListener('touchmove', this.ontouchmove);
-					window.addEventListener('mouseup', this.onmouseup);
-					window.addEventListener('touchend', this.ontouchend);
+					const removeListeners = [
+						on(this.#div, 'mousedown', this.onmousedown),
+						on(this.#div, 'touchstart', this.ontouchstart),
+						on(this.#div, 'wheel', this.onwheel),
+						on(window, 'resize', this.onresize),
+						on(window, 'mousemove', this.onmousemove),
+						on(window, 'touchmove', this.ontouchmove),
+						on(window, 'mouseup', this.onmouseup),
+						on(window, 'touchend', this.ontouchend)
+					];
 
 					return () => {
-						this.#div?.removeEventListener('mousedown', this.onmousedown);
-						this.#div?.removeEventListener('touchstart', this.ontouchstart);
-						this.#div?.removeEventListener('wheel', this.onwheel);
-
-						window.removeEventListener('resize', this.onresize);
-						window.removeEventListener('mousemove', this.onmousemove);
-						window.removeEventListener('touchmove', this.ontouchmove);
-						window.removeEventListener('onmouseup', this.onmouseup);
-						window.removeEventListener('ontouchend', this.ontouchend);
+						for (const removeListener of removeListeners) {
+							removeListener();
+						}
 
 						this.#worker?.postMessage({ type: 'close' });
 						this.#worker?.terminate();
@@ -140,11 +135,9 @@ export default class Viewer {
 	}
 
 	resetScale() {
-		if (!this.#div) return;
-
 		this.#scale = 2;
 
-		const { width, height } = this.#div.getBoundingClientRect();
+		const { width, height, top, left } = this.#canvases[0].getBoundingClientRect();
 
 		const canvasWidth = width * window.devicePixelRatio;
 		const canvasHeight = height * window.devicePixelRatio;
@@ -160,8 +153,8 @@ export default class Viewer {
 		// Center the image in the canvas
 		const scaledImageWidth = imageWidth * this.#scaleFactor * this.#scale;
 		const scaledImageHeight = imageHeight * this.#scaleFactor * this.#scale;
-		this.#offset.x = (canvasWidth - scaledImageWidth) / 2;
-		this.#offset.y = (canvasHeight - scaledImageHeight) / 2;
+		this.#offset.x = (canvasWidth - scaledImageWidth) / 2 + left;
+		this.#offset.y = (canvasHeight - scaledImageHeight) / 2 + top;
 
 		this.#start = { x: 0, y: 0 };
 		this.markDirty();
@@ -189,12 +182,11 @@ export default class Viewer {
 		this.#mouseDown = false;
 	}
 
-	zoom(
-		delta: number,
-		mouseX: number = this.#canvases[0].width / (2 * window.devicePixelRatio),
-		mouseY: number = this.#canvases[0].height / (2 * window.devicePixelRatio)
-	) {
+	zoom(delta: number, mouseX?: number, mouseY?: number) {
 		const prevScale = this.#scale;
+
+		mouseX ??= this.#bounds.width / (2 * window.devicePixelRatio);
+		mouseY ??= this.#bounds.height / (2 * window.devicePixelRatio);
 
 		// Exponential zoom feels natural on wheel / pinch
 		const zoomFactor = Math.exp(-0.005 * delta);
@@ -217,14 +209,16 @@ export default class Viewer {
 	}
 
 	markDirty() {
+		const { width, height, top, left } = this.#canvases[0].getBoundingClientRect();
+
 		// [1] canvas width
-		this.#shared[Fields.Width] = Math.round(window.innerWidth * window.devicePixelRatio);
+		this.#shared[Fields.Width] = Math.round(width * window.devicePixelRatio);
 		// [2] canvas height
-		this.#shared[Fields.Height] = Math.round(window.innerHeight * window.devicePixelRatio);
+		this.#shared[Fields.Height] = Math.round(height * window.devicePixelRatio);
 		// [3] offset x
-		this.#shared[Fields.OffsetX] = Math.round(this.#offset.x);
+		this.#shared[Fields.OffsetX] = Math.round(this.#offset.x - left);
 		// [4] offset y
-		this.#shared[Fields.OffsetY] = Math.round(this.#offset.y);
+		this.#shared[Fields.OffsetY] = Math.round(this.#offset.y - top);
 		// [5] scale * 1e6
 		const actualScale = this.#scale * this.#scaleFactor;
 		this.#shared[Fields.Scale] = Math.floor(actualScale * 1e6);
@@ -266,6 +260,7 @@ export default class Viewer {
 	}
 
 	onresize() {
+		this.#bounds = this.#div.getBoundingClientRect();
 		this.markDirty();
 	}
 }
