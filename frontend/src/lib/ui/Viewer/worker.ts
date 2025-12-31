@@ -30,15 +30,20 @@ self.onmessage = (e) => {
 
 			canvases = data.canvases;
 			setCanvasDims({ width: data.width, height: data.height });
-			const contexts = canvases.map((canvas) => {
-				const ctx = canvas.getContext('2d', { alpha: false });
-				if (!ctx) throw Error('Failed to create 2D rendering context');
 
-				ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
-				return ctx;
-			});
+			const canvasDefs = JSON.parse(data.canvasDefs);
+			const contexts = [];
 
-			for (const layer of layers.toReversed()) {
+			for (const [index, canvas] of canvases.entries()) {
+				const canvasDef = canvasDefs[index];
+				const ctx = canvas.getContext(canvasDef.ctx);
+				if (!ctx) throw Error(`Failed to create ${canvasDef.ctx} rendering context`);
+
+				// ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
+				contexts.push(ctx);
+			}
+
+			for (const layer of layers) {
 				switch (layer.type) {
 					case 'tiled-image': {
 						const store = new ImageBitmapStore();
@@ -50,7 +55,7 @@ self.onmessage = (e) => {
 					case 'gltf': {
 						const store = new GltfStore();
 						stores.push(store);
-						renderers.push(new GltfRenderer(layer, store, contexts[0]));
+						renderers.push(new GltfRenderer(layer, store, contexts[1]));
 						networkers.push(new GltfNetworker(layer, store));
 						break;
 					}

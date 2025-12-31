@@ -1,6 +1,6 @@
 import { untrack } from 'svelte';
 import { clamp } from '$helpers';
-import type { AssetMetadata } from '$types';
+import { DEFAULT_POINT, type AssetMetadata } from '$types';
 import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
@@ -16,17 +16,19 @@ export default class Viewer {
 
 	#mouseDown = $state(false);
 	#isDragging = $state(false);
-	#start = $state({ x: 0, y: 0 });
-	#offset = $state({ x: 0, y: 0 });
+	#start = $state(DEFAULT_POINT);
+	#offset = $state(DEFAULT_POINT);
 
 	#minScale = 1;
 	#maxScale = 1000;
 	#scale = $state(2);
 	#scaleFactor = 1;
 
+	#div!: HTMLDivElement;
+	#canvases: HTMLCanvasElement[] = [];
+	#offscreenCanvases: OffscreenCanvas[] = [];
 	#sharedBuf = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT * NUM_FIELDS);
 	#shared = new Int32Array(this.#sharedBuf);
-	#canvas!: HTMLCanvasElement;
 	#worker: Worker | undefined;
 
 	constructor({ id, primary, layers }: ViewerOptions) {
@@ -47,42 +49,49 @@ export default class Viewer {
 		$effect.root(() => {
 			$effect(() => {
 				untrack(() => {
-					const canvas = document.getElementById(this.#id) as HTMLCanvasElement | undefined;
-					if (!canvas) throw Error('Canvas element not found');
+					const div = document.getElementById(this.#id) as HTMLDivElement | undefined;
+					if (!div) throw Error('Div element not found');
 
-					this.#canvas = canvas;
+					this.#div = div;
+
+					const canvasDefs = [{ ctx: '2d' }, { ctx: 'webgl' }];
+
+					for (const index of canvasDefs.keys()) {
+						const canvasEl = document.createElement('canvas');
+						canvasEl.width = window.innerWidth * window.devicePixelRatio;
+						canvasEl.height = window.innerHeight * window.devicePixelRatio;
+						canvasEl.style.position = 'absolute';
+						canvasEl.style.width = `100%`;
+						canvasEl.style.height = `100%`;
+						// canvasEl.style.zIndex = (Number(div.style.zIndex) + index).toString();
+						div.appendChild(canvasEl);
+
+						this.#canvases.push(canvasEl);
+						this.#offscreenCanvases.push(canvasEl.transferControlToOffscreen());
+					}
+
 					this.resetScale();
 
-					const offscreen = this.#canvas.transferControlToOffscreen();
 					this.#worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-
 					this.#worker.postMessage(
 						{
 							type: 'init',
 							data: {
-								canvases: [offscreen],
+								canvases: this.#offscreenCanvases,
+								canvasDefs: JSON.stringify(canvasDefs),
 								sharedBuf: this.#sharedBuf,
 								width: window.innerWidth * window.devicePixelRatio,
 								height: window.innerHeight * window.devicePixelRatio,
 								primary: this.#primary,
-								layers: JSON.stringify(this.#layers)
+								layers: JSON.stringify(this.#layers.toReversed())
 							}
 						},
-						[offscreen]
+						this.#offscreenCanvases
 					);
 
-					this.#worker.onmessage = (e) => {
-						const { type } = e.data;
-						switch (type) {
-							case 'connected':
-								this.markDirty();
-								break;
-						}
-					};
-
-					this.#canvas.addEventListener('mousedown', this.onmousedown);
-					this.#canvas.addEventListener('touchstart', this.ontouchstart);
-					this.#canvas.addEventListener('wheel', this.onwheel);
+					this.#div.addEventListener('mousedown', this.onmousedown);
+					this.#div.addEventListener('touchstart', this.ontouchstart);
+					this.#div.addEventListener('wheel', this.onwheel);
 
 					window.addEventListener('resize', this.onresize);
 					window.addEventListener('mousemove', this.onmousemove);
@@ -91,9 +100,9 @@ export default class Viewer {
 					window.addEventListener('touchend', this.ontouchend);
 
 					return () => {
-						this.#canvas?.removeEventListener('mousedown', this.onmousedown);
-						this.#canvas?.removeEventListener('touchstart', this.ontouchstart);
-						this.#canvas?.removeEventListener('wheel', this.onwheel);
+						this.#div?.removeEventListener('mousedown', this.onmousedown);
+						this.#div?.removeEventListener('touchstart', this.ontouchstart);
+						this.#div?.removeEventListener('wheel', this.onwheel);
 
 						window.removeEventListener('resize', this.onresize);
 						window.removeEventListener('mousemove', this.onmousemove);
@@ -130,11 +139,11 @@ export default class Viewer {
 	}
 
 	resetScale() {
-		if (!this.#canvas) return;
+		if (!this.#div) return;
 
 		this.#scale = 2;
 
-		const { width, height } = this.#canvas.getBoundingClientRect();
+		const { width, height } = this.#div.getBoundingClientRect();
 
 		const canvasWidth = width * window.devicePixelRatio;
 		const canvasHeight = height * window.devicePixelRatio;
@@ -181,8 +190,8 @@ export default class Viewer {
 
 	zoom(
 		delta: number,
-		mouseX: number = this.#canvas.width / (2 * window.devicePixelRatio),
-		mouseY: number = this.#canvas.height / (2 * window.devicePixelRatio)
+		mouseX: number = this.#canvases[0].width / (2 * window.devicePixelRatio),
+		mouseY: number = this.#canvases[0].height / (2 * window.devicePixelRatio)
 	) {
 		const prevScale = this.#scale;
 

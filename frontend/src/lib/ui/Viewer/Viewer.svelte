@@ -4,8 +4,8 @@
 	let { viewer }: { viewer: Viewer } = $props();
 </script>
 
-<canvas
+<div
 	id={viewer.id}
 	style="cursor: {viewer.isDragging ? 'grab' : 'crosshair'};"
 	class="absolute h-full w-full"
-></canvas>
+></div>
