@@ -144,20 +144,20 @@
           ${pkgs.lib.concatStringsSep "\n" (
             pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env
           )}
-          echo "> Running ............. http://localhost:$PUBLIC_PORT"
+          echo "> Running ............. http://localhost:$PORT"
           exec ${self.packages.${system}.default}/core "$@"
         '';
 
         podmanRunScript = pkgs.writeShellScriptBin "podman" ''
           echo "Loading podman container..."
           podman load < ${self.packages.${system}.container}
-          podman run --rm -it -p $PUBLIC_PORT:$PUBLIC_PORT -e CONTAINER=true localhost/magie:latest
+          podman run --rm -it -p ${env.PORT}:${env.PORT} -e CONTAINER=true magie:latest
         '';
 
         dockerRunScript = pkgs.writeShellScriptBin "docker" ''
           echo "Loading docker container..."
           docker load < ${self.packages.${system}.container}
-          docker run --rm -it -p $PUBLIC_PORT:$PUBLIC_PORT -e CONTAINER=true localhost/magie:latest
+          docker run --rm -it -p ${env.PORT}:${env.PORT} -e CONTAINER=true magie:latest
         '';
 
         devRunScript = pkgs.writeShellScriptBin "dev" ''
@@ -182,8 +182,6 @@
         # nix build
         packages = {
           default = magie;
-          backend = backend;
-          frontend = frontend;
 
           # nix build .#container
           container = pkgs.dockerTools.buildLayeredImage {
@@ -192,13 +190,12 @@
             contents = [ pkgs.coreutils ];
             config = {
               Cmd = [ "${runScript}/bin/run" ];
-              # FIXME: Use PUBLIC_PORT.
               ExposedPorts = {
-                "3000/tcp" = { };
+                "${toString env.PORT}/tcp" = { };
               };
               Volumes = {
-                "/_databases" = { };
-                "/_stores" = { };
+                env.DATABASES_PATH = { };
+                env.STORES_PATH = { };
               };
             };
           };

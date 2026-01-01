@@ -31,7 +31,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 
 #[tokio::main]
 async fn main() {
-    let port: &str = &env::var("PUBLIC_PORT").expect("PUBLIC_PORT environment variable not set");
+    let port: &str = &env::var("PORT").expect("PORT environment variable not set");
     let container: bool = env::var("CONTAINER").unwrap_or("false".into()) == "true";
     let host = if container { "0.0.0.0" } else { "localhost" };
 

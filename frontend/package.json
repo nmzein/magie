@@ -3,9 +3,9 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev --port 4000",
+		"dev": "vite dev --port $DEV_FRONTEND_PORT",
 		"build": "vite build",
-		"preview": "vite preview --port 4000",
+		"preview": "vite preview --port $DEV_FRONTEND_PORT",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",

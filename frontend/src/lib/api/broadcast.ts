@@ -1,11 +1,11 @@
-import { BROADCAST_URL } from '$constants';
+import { WEBSOCKET_BASE_URL } from '$constants';
 import { ByteReader } from '$lib/helpers/byte';
 import { WebSocketManager } from '$lib/helpers/network';
 import { registry } from '$states';
 import { DirectoryServerMsgTag, GeneralServerMsgTag } from '$types';
 
 export const socket = new WebSocketManager({
-	url: BROADCAST_URL,
+	url: `${WEBSOCKET_BASE_URL}/api/broadcast`,
 	onMessage: (event: MessageEvent) => {
 		const r = new ByteReader(event.data);
 		const tag = r.u8();
