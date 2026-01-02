@@ -1,16 +1,17 @@
 <script lang="ts">
 	import type { Bounds, Directory, Asset } from '$types';
-	import { type SelectionBoxState, contextMenu } from '$states';
+	import { contextMenu } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
 	import { twMerge } from 'tailwind-merge';
 	import { boundingClientRect } from '$attachments';
 	import { context } from './context.svelte.ts';
-
-	const explorer = context.get();
+	import type { SelectionBoxState } from '$ui/SelectionBox/state.svelte.ts';
 
 	let { item, selection }: { item: Directory | Asset; selection: SelectionBoxState } = $props();
+
+	const explorer = context.get();
 
 	let itemBounds: Bounds | undefined = $state();
 	let intersected = $state(false);

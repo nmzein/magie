@@ -14,7 +14,7 @@
 	onClickOutside(
 		() => button,
 		() => {
-			if (name == '') {
+			if (name === '') {
 				// Clicked outside and no name was set, cancel creation.
 				explorer.directoryCreator.close();
 			} else {

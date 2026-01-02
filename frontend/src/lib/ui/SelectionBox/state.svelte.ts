@@ -46,10 +46,7 @@ export class SelectionBoxState<T = any> {
 	update(cursor: Point = this.#lastPosition) {
 		if (!this.#dragging || !defined(this.parentBounds) || !defined(this.element)) return;
 
-		this.#lastPosition = {
-			x: cursor.x,
-			y: cursor.y
-		};
+		this.#lastPosition = { x: cursor.x, y: cursor.y };
 
 		const currentX = cursor.x - this.parentBounds.left + this.parentScroll.left;
 		const currentY = cursor.y - this.parentBounds.top + this.parentScroll.top;

@@ -1,56 +1,27 @@
 <script lang="ts">
-	import { clipboard, contextMenu, SelectionBoxState } from '$states';
+	import { clipboard, contextMenu } from '$states';
 	import Item from './Item.svelte';
 	import DirectoryCreator from './DirectoryCreator.svelte';
 	import { boundingClientRect } from '$attachments';
 	import { defined } from '$helpers';
 	import { context, BIN_ID } from './context.svelte.ts';
+	import SelectionBox from '$ui/SelectionBox/SelectionBox.svelte';
+	import type { SelectionBoxState } from '$ui/SelectionBox/state.svelte.ts';
 
 	const explorer = context.get();
-
-	const selection: SelectionBoxState<number> = new SelectionBoxState();
-	let mainPanel: HTMLElement | undefined = $state();
-
-	function autoscroll(e: PointerEvent) {
-		if (!selection.dragging || !defined(selection.parentBounds) || !defined(mainPanel)) return;
-
-		const SCROLL_SPEED = 10;
-		const SCROLL_THRESHOLD = 50; // # of pixels from edge to trigger scroll.
-
-		// Scroll down.
-		if (e.clientY > selection.parentBounds.bottom - SCROLL_THRESHOLD) {
-			mainPanel.scrollTop += SCROLL_SPEED;
-			selection.update({ x: e.clientX, y: e.clientY });
-		}
-		// Scroll up.
-		else if (e.clientY < selection.parentBounds.top + SCROLL_THRESHOLD) {
-			mainPanel.scrollTop -= SCROLL_SPEED;
-			selection.update({ x: e.clientX, y: e.clientY });
-		}
-	}
+	let mainPanel: HTMLDivElement | undefined = $state();
+	let selection: SelectionBoxState<number> | undefined = $state();
 
 	function onpointerdown(e: PointerEvent) {
 		// If main panel not clicked directly, return.
-		if ((e.target as HTMLElement)?.id !== 'main') return;
+		if ((e.target as HTMLDivElement)?.id !== 'main') return;
 
 		explorer.deselectAll();
 
 		// Return if not left click.
 		if (e.button !== 0) return;
 
-		selection.start({ x: e.clientX, y: e.clientY });
-	}
-
-	function onpointermove(e: PointerEvent) {
-		selection.update({ x: e.clientX, y: e.clientY });
-		autoscroll(e);
-	}
-
-	function onpointerup() {
-		if (!selection.dragging) return;
-
-		const selected = selection.finish();
-		explorer.selectGroup(selected);
+		selection?.start({ x: e.clientX, y: e.clientY });
 	}
 
 	function onkeydown(e: KeyboardEvent) {
@@ -135,12 +106,13 @@
 	}
 </script>
 
-<svelte:document {onkeydown} {onpointermove} {onpointerup} />
+<svelte:document {onkeydown} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={mainPanel}
 	onscroll={(e) => {
+		if (!selection) return;
 		let target = e.target as HTMLElement;
 
 		selection.parentScroll = {
@@ -149,7 +121,7 @@
 		};
 		selection.update();
 	}}
-	{@attach boundingClientRect((rect) => (selection.parentBounds = rect))}
+	{@attach boundingClientRect((rect) => selection && (selection.parentBounds = rect))}
 	class="@container h-102 rounded-br-[10px] select-none
            {contextMenu.show ? 'overflow-hidden' : 'overflow-auto'}"
 	{onpointerdown}
@@ -164,17 +136,17 @@
 		{/if}
 		{#each explorer.items as id (id)}
 			{@const item = explorer.get(id)}
-			{#if id !== BIN_ID && defined(item)}
+			{#if id !== BIN_ID && defined(item) && defined(selection)}
 				<Item {item} {selection} />
 			{/if}
 		{/each}
 
 		<div class="pointer-events-none absolute inset-0 h-full overflow-clip">
-			<div
-				bind:this={selection.element}
-				class="border-accent bg-accent/20 absolute rounded-md border"
-				class:invisible={!selection.show}
-			></div>
+			<SelectionBox
+				bind:selection
+				element={mainPanel}
+				onselected={(selected: number[]) => explorer.selectGroup(selected)}
+			/>
 		</div>
 	</div>
 </div>
