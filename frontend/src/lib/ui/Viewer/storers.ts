@@ -1,6 +1,6 @@
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
-export class Store<T> {
+export class Storer<T> {
 	get(_key: string): T | undefined {
 		throw new Error('get(1) must be implemented');
 	}
@@ -22,7 +22,7 @@ export class Store<T> {
 	}
 }
 
-export class ImageBitmapStore extends Store<ImageBitmap> {
+export class ImageBitmapStorer extends Storer<ImageBitmap> {
 	#store: { [key: string]: ImageBitmap } = {};
 
 	get(key: string): ImageBitmap | undefined {
@@ -51,7 +51,7 @@ export class ImageBitmapStore extends Store<ImageBitmap> {
 	}
 }
 
-export class GltfStore extends Store<GLTF> {
+export class GltfStorer extends Storer<GLTF> {
 	#store: { [key: string]: GLTF } = {};
 
 	get(key: string): GLTF | undefined {

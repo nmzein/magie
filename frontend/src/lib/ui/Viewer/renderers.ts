@@ -15,7 +15,7 @@ import type {
 	Point,
 	TiledImageAssetMetadata
 } from '$types';
-import type { GltfStore, ImageBitmapStore, Store } from './stores';
+import type { GltfStorer, ImageBitmapStorer, Storer } from './storers';
 import type { GltfLayerIdentifier, TileIdentifier } from './worker';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
@@ -24,7 +24,7 @@ const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 export class Renderer<T, S> {
 	constructor(
 		_metadata: AssetMetadata,
-		_store: Store<S>,
+		_store: Storer<S>,
 		_canvas: OffscreenCanvas,
 		_ctx: OffscreenCanvasRenderingContext2D | WebGL2RenderingContext
 	) {
@@ -42,18 +42,18 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 	#metadata: TiledImageAssetMetadata;
 	#ctx: OffscreenCanvasRenderingContext2D;
 	#currentLevel = 0;
-	#store: ImageBitmapStore;
+	#storer: ImageBitmapStorer;
 
 	constructor(
 		metadata: TiledImageAssetMetadata,
-		store: ImageBitmapStore,
+		storer: ImageBitmapStorer,
 		canvas: OffscreenCanvas,
 		ctx: OffscreenCanvasRenderingContext2D
 	) {
-		super(metadata, store, canvas, ctx);
+		super(metadata, storer, canvas, ctx);
 
 		this.#metadata = metadata;
-		this.#store = store;
+		this.#storer = storer;
 		this.#ctx = ctx;
 	}
 
@@ -123,7 +123,7 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 
 		for (const tile of visible) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
-			const bmp = this.#store.get(key);
+			const bmp = this.#storer.get(key);
 			if (!bmp) continue;
 
 			this.#ctx.drawImage(bmp, tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -135,7 +135,7 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 
 export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 	#metadata: GltfAssetMetadata;
-	#store: GltfStore;
+	#storer: GltfStorer;
 
 	#scene: Scene;
 	#camera: OrthographicCamera;
@@ -144,14 +144,14 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 	constructor(
 		metadata: GltfAssetMetadata,
-		store: GltfStore,
+		storer: GltfStorer,
 		canvas: OffscreenCanvas,
 		ctx: WebGL2RenderingContext
 	) {
-		super(metadata, store, canvas, ctx);
+		super(metadata, storer, canvas, ctx);
 
 		this.#metadata = metadata;
-		this.#store = store;
+		this.#storer = storer;
 		this.#scene = new Scene();
 		this.#camera = new OrthographicCamera(0, metadata.width, 0, -1 * metadata.height, 0.1, 10);
 		this.#camera.position.z = 1;
@@ -176,7 +176,7 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 		this.#camera.updateProjectionMatrix();
 
-		for (const [url, file] of this.#store.getAll()) {
+		for (const [url, file] of this.#storer.getAll()) {
 			const layer = this.#metadata.layers.find((l) => l.url === url);
 			if (!layer || !layer.visible) continue;
 

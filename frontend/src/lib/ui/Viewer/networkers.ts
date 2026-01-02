@@ -8,11 +8,11 @@ import {
 	type TiledImageAssetMetadata
 } from '$types';
 import { shared } from './shared';
-import type { GltfStore, ImageBitmapStore, Store } from './stores';
+import type { GltfStorer, ImageBitmapStorer, Storer } from './storers';
 import type { GltfLayerIdentifier, TileIdentifier } from './worker';
 
 export class Networker<T, S> {
-	constructor(_metadata: AssetMetadata, _store: Store<S>) {
+	constructor(_metadata: AssetMetadata, _store: Storer<S>) {
 		if (new.target === Networker) {
 			throw new Error('Networker is abstract and cannot be instantiated');
 		}
@@ -30,12 +30,12 @@ export class Networker<T, S> {
 export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> {
 	#metadata: TiledImageAssetMetadata;
 	#socketManager: WebSocketManager;
-	#store: ImageBitmapStore;
+	#storer: ImageBitmapStorer;
 
-	constructor(metadata: TiledImageAssetMetadata, store: ImageBitmapStore) {
-		super(metadata, store);
+	constructor(metadata: TiledImageAssetMetadata, storer: ImageBitmapStorer) {
+		super(metadata, storer);
 
-		this.#store = store;
+		this.#storer = storer;
 		this.#metadata = metadata;
 		this.#socketManager = new WebSocketManager({
 			url: metadata.url,
@@ -59,7 +59,7 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 			const blob = new Blob([tileData], { type: 'image/jpeg' });
 			const imageBitmap = await createImageBitmap(blob);
 
-			this.#store.set(key, imageBitmap);
+			this.#storer.set(key, imageBitmap);
 			shared.setDirty();
 		} catch (error) {
 			console.error('Error processing tile:', error);
@@ -71,7 +71,7 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 	async request(tiles: TileIdentifier[]) {
 		for (const tile of tiles) {
 			const key = `${tile.level}_${tile.x}_${tile.y}`;
-			if (this.#store.has(key) || this.#socketManager.pending(key)) continue;
+			if (this.#storer.has(key) || this.#socketManager.pending(key)) continue;
 
 			const layer = this.#metadata.layers[tile.level];
 			if (!layer || tile.x >= layer.cols || tile.y >= layer.rows) continue;
@@ -93,20 +93,20 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 }
 
 export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
-	#store: GltfStore;
+	#storer: GltfStorer;
 	#pending: Set<string> = new Set();
 	#gltfLoader: GLTFLoader;
 
-	constructor(metadata: GltfAssetMetadata, store: GltfStore) {
-		super(metadata, store);
+	constructor(metadata: GltfAssetMetadata, storer: GltfStorer) {
+		super(metadata, storer);
 
-		this.#store = store;
+		this.#storer = storer;
 		this.#gltfLoader = new GLTFLoader();
 	}
 
 	async request(requests: GltfLayerIdentifier[]) {
 		for (const layer of requests) {
-			if (this.#store.has(layer.url) || this.#pending.has(layer.url)) {
+			if (this.#storer.has(layer.url) || this.#pending.has(layer.url)) {
 				continue;
 			}
 
@@ -115,7 +115,7 @@ export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
 			this.#gltfLoader
 				.loadAsync(layer.url)
 				.then((gltf) => {
-					this.#store.set(layer.url, gltf);
+					this.#storer.set(layer.url, gltf);
 					shared.setDirty();
 				})
 				.catch((err) => {

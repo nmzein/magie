@@ -3,13 +3,13 @@ import type { AssetMetadata, Dimensions } from '$types';
 import { GltfNetworker, type Networker, TiledImageNetworker } from './networkers';
 import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
 import { Fields, shared } from './shared';
-import { GltfStore, ImageBitmapStore, type Store } from './stores';
+import { GltfStorer, ImageBitmapStorer, type Storer } from './storers';
 
 export type TileIdentifier = { level: number; x: number; y: number };
 export type GltfLayerIdentifier = { url: string };
 
 let canvases: OffscreenCanvas[] = [];
-const stores: Store<any>[] = [];
+const storers: Storer<any>[] = [];
 const renderers: Renderer<any, any>[] = [];
 const networkers: Networker<any, any>[] = [];
 
@@ -45,17 +45,17 @@ self.onmessage = (e) => {
 			for (const layer of layers) {
 				switch (layer.type) {
 					case 'tiled-image': {
-						const store = new ImageBitmapStore();
-						stores.push(store);
-						renderers.push(new TiledImageRenderer(layer, store, canvases[0], contexts[0]));
-						networkers.push(new TiledImageNetworker(layer, store));
+						const storer = new ImageBitmapStorer();
+						storers.push(storer);
+						renderers.push(new TiledImageRenderer(layer, storer, canvases[0], contexts[0]));
+						networkers.push(new TiledImageNetworker(layer, storer));
 						break;
 					}
 					case 'gltf': {
-						const store = new GltfStore();
-						stores.push(store);
-						renderers.push(new GltfRenderer(layer, store, canvases[1], contexts[1]));
-						networkers.push(new GltfNetworker(layer, store));
+						const storer = new GltfStorer();
+						storers.push(storer);
+						renderers.push(new GltfRenderer(layer, storer, canvases[1], contexts[1]));
+						networkers.push(new GltfNetworker(layer, storer));
 						break;
 					}
 				}
@@ -66,8 +66,8 @@ self.onmessage = (e) => {
 			break;
 		}
 		case 'close': {
-			for (const [store, networker] of zip(stores, networkers)) {
-				store.clear();
+			for (const [storer, networker] of zip(storers, networkers)) {
+				storer.clear();
 				networker.close();
 			}
 			break;
