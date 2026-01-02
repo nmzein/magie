@@ -1,9 +1,9 @@
-import type { AssetMetadata, Dimensions } from '$types';
-import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
-import { GltfNetworker, Networker, TiledImageNetworker } from './networkers';
-import { Fields, shared } from './shared';
-import { type Store, GltfStore, ImageBitmapStore } from './stores';
 import { zip } from '$lib/helpers/array';
+import type { AssetMetadata, Dimensions } from '$types';
+import { GltfNetworker, type Networker, TiledImageNetworker } from './networkers';
+import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
+import { Fields, shared } from './shared';
+import { GltfStore, ImageBitmapStore, type Store } from './stores';
 
 export type TileIdentifier = { level: number; x: number; y: number };
 export type GltfLayerIdentifier = { url: string };

@@ -37,4 +37,4 @@ class Shared {
 	}
 }
 
-export let shared = new Shared();
+export const shared = new Shared();

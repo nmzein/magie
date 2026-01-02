@@ -1,6 +1,6 @@
-import { STORE_URL } from '$constants';
-import { request, defined } from '$helpers';
+import { defined, request } from '$helpers';
 import type { GltfLayer, TiledImageLayer, UploaderOptions } from '$types';
+import { HTTP_BASE_URL } from './urls.ts';
 
 type Properties = {
 	metadata: TiledImageLayer[];
@@ -9,14 +9,14 @@ type Properties = {
 
 export async function properties(storeId: number, assetId: number): Promise<Properties | null> {
 	const properties = (await request.get({
-		url: `${STORE_URL}/${storeId}/asset/${assetId}/properties`
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/properties`
 	})) as Properties | null;
 
 	if (!defined(properties)) return null;
 
 	properties.annotations = properties.annotations.map((a) => ({
 		...a,
-		url: `${STORE_URL}/${storeId}/asset/${assetId}/annotations/${a.id}`,
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/annotations/${a.id}`,
 		dirty: true
 	}));
 
@@ -28,7 +28,7 @@ export async function thumbnail(
 	assetId: number
 ): Promise<HTMLImageElement | null> {
 	const blob: Blob | null = await request.get({
-		url: `${STORE_URL}/${storeId}/asset/${assetId}/thumbnail`
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/thumbnail`
 	});
 	if (!defined(blob)) return null;
 
@@ -39,16 +39,15 @@ export async function thumbnail(
 
 export async function remove(storeId: number, assetId: number, mode: 'soft' | 'hard') {
 	await request.delete({
-		url: `${STORE_URL}/${storeId}/asset/${assetId}`,
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}`,
 		query: { mode }
 	});
 }
 
 export async function move(storeId: number, assetId: number, destinationId: number) {
 	await request.patch({
-		url: `${STORE_URL}/${storeId}/asset/${assetId}`,
-		body: { destination_id: destinationId },
-		type: 'json'
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}`,
+		body: { destination_id: destinationId }
 	});
 }
 
@@ -60,7 +59,7 @@ export async function upload(
 	options: UploaderOptions
 ) {
 	await request.post({
-		url: `${STORE_URL}/${storeId}/asset/${parentId}/${options.name}`,
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${parentId}/${options.name}`,
 		body: {
 			decoder: options.decoder,
 			encoder: options.encoder,

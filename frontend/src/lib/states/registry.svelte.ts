@@ -1,7 +1,7 @@
-import { http } from '$api';
-import type { Store, Entry } from '$types';
-import { defined } from '$helpers';
 import { SvelteMap } from 'svelte/reactivity';
+import { http } from '$api';
+import { defined } from '$helpers';
+import type { Entry, Store } from '$types';
 
 type RegistryEntry = { properties: Store; items: SvelteMap<Entry['id'], Entry> };
 

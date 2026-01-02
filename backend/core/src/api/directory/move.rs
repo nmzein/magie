@@ -95,7 +95,6 @@ pub async fn r#move(
 
     logger.log("Directory moved in the database.");
 
-    // Broadcast directory move.
     match csm
         .broadcast(GeneralServerMsg::Directory(DirectoryServerMsg::Move {
             store_id,

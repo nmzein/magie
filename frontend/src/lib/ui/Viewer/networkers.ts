@@ -1,5 +1,4 @@
-import { STORE_URL } from '$constants';
-import { zip } from '$lib/helpers/array';
+import { type GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ByteReader, ByteWriter } from '$lib/helpers/byte';
 import { WebSocketManager } from '$lib/helpers/network';
 import {
@@ -8,19 +7,18 @@ import {
 	type GltfAssetMetadata,
 	type TiledImageAssetMetadata
 } from '$types';
-import { type Store, GltfStore, ImageBitmapStore } from './stores';
 import { shared } from './shared';
-import { type GltfLayerIdentifier, type TileIdentifier } from './worker';
-import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import type { GltfStore, ImageBitmapStore, Store } from './stores';
+import type { GltfLayerIdentifier, TileIdentifier } from './worker';
 
 export class Networker<T, S> {
-	constructor(metadata: AssetMetadata, store: Store<S>) {
+	constructor(_metadata: AssetMetadata, _store: Store<S>) {
 		if (new.target === Networker) {
 			throw new Error('Networker is abstract and cannot be instantiated');
 		}
 	}
 
-	async request(requests: T[]) {
+	async request(_requests: T[]) {
 		throw new Error('request(1) must be implemented');
 	}
 

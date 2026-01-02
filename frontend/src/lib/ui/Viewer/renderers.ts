@@ -1,3 +1,13 @@
+import {
+	Color,
+	type Mesh,
+	MeshBasicMaterial,
+	OrthographicCamera,
+	Scene,
+	Vector2,
+	WebGLRenderer
+} from 'three';
+import type { GLTF } from 'three/examples/jsm/Addons.js';
 import type {
 	AssetMetadata,
 	Dimensions,
@@ -5,28 +15,25 @@ import type {
 	Point,
 	TiledImageAssetMetadata
 } from '$types';
-import type { GLTF } from 'three/examples/jsm/Addons.js';
-import type { Store, GltfStore, ImageBitmapStore } from './stores';
+import type { GltfStore, ImageBitmapStore, Store } from './stores';
 import type { GltfLayerIdentifier, TileIdentifier } from './worker';
-import { Mesh, MeshBasicMaterial, OrthographicCamera, Scene, Vector2, WebGLRenderer } from 'three';
-import { Color } from 'three';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
 
 export class Renderer<T, S> {
 	constructor(
-		metadata: AssetMetadata,
-		store: Store<S>,
-		canvas: OffscreenCanvas,
-		ctx: OffscreenCanvasRenderingContext2D | WebGL2RenderingContext
+		_metadata: AssetMetadata,
+		_store: Store<S>,
+		_canvas: OffscreenCanvas,
+		_ctx: OffscreenCanvasRenderingContext2D | WebGL2RenderingContext
 	) {
 		if (new.target === Renderer) {
 			throw new Error('Renderer is abstract and cannot be instantiated');
 		}
 	}
 
-	render(dims: Dimensions, offset: Point, scale: number): T[] {
+	render(_dims: Dimensions, _offset: Point, _scale: number): T[] {
 		throw new Error('render(3) must be implemented');
 	}
 }

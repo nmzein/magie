@@ -1,7 +1,7 @@
-import { type GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
 export class Store<T> {
-	get(key: string): T | undefined {
+	get(_key: string): T | undefined {
 		throw new Error('get(1) must be implemented');
 	}
 
@@ -9,11 +9,11 @@ export class Store<T> {
 		throw new Error('getAll(0) must be implemented');
 	}
 
-	set(key: string, value: T): void {
+	set(_key: string, _value: T): void {
 		throw new Error('set(2) must be implemented');
 	}
 
-	has(key: string): boolean {
+	has(_key: string): boolean {
 		throw new Error('has(1) must be implemented');
 	}
 

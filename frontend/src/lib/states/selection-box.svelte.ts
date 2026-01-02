@@ -1,6 +1,6 @@
-import { DEFAULT_BOUND, type Bounds, DEFAULT_POINT, type Point } from '$types';
-import { appendPx, defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
+import { appendPx, defined } from '$helpers';
+import { type Bounds, DEFAULT_BOUND, DEFAULT_POINT, type Point } from '$types';
 
 export class SelectionBoxState<T = any> {
 	#dragging: boolean = $state(false);

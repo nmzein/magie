@@ -1,8 +1,8 @@
-import { WEBSOCKET_BASE_URL } from '$constants';
 import { ByteReader } from '$lib/helpers/byte';
 import { WebSocketManager } from '$lib/helpers/network';
 import { registry } from '$states';
 import { DirectoryServerMsgTag, GeneralServerMsgTag } from '$types';
+import { WEBSOCKET_BASE_URL } from './urls.ts';
 
 export const socket = new WebSocketManager({
 	url: `${WEBSOCKET_BASE_URL}/api/broadcast`,

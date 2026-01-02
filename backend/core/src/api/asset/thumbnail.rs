@@ -29,7 +29,7 @@ pub async fn thumbnail(
         }
     };
 
-    // Try to open and read the thumbnail image.
+    // Open and read the thumbnail image.
     match File::open(&path) {
         Ok(mut file) => {
             let mut buffer = Vec::new();

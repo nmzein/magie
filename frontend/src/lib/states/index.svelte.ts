@@ -1,8 +1,8 @@
+import { ContextMenu } from '$ui/ContextMenu/state.svelte.ts';
+import { Clipboard } from './clipboard.svelte.ts';
 import { Registry } from './registry.svelte.ts';
 import { Repository } from './repository.svelte.ts';
 import { SelectionBoxState } from './selection-box.svelte.ts';
-import { ContextMenu } from '$ui/ContextMenu/state.svelte.ts';
-import { Clipboard } from './clipboard.svelte.ts';
 import { ViewerManager } from './viewer-manager.svelte.ts';
 
 export { SelectionBoxState };

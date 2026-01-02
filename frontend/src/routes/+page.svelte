@@ -9,8 +9,8 @@
 	import { viewerManager } from '$states';
 
 	$effect(() => {
-		if (broadcast.socket.state === 'disconnected') {
-			broadcast.socket.connect();
+		if (broadcast.state === 'disconnected') {
+			broadcast.connect();
 		}
 
 		let stats = new Stats();
@@ -23,7 +23,7 @@
 </script>
 
 <div class="absolute flex h-full w-full flex-col flex-wrap">
-	{#each viewerManager.viewers as [id, _] (id)}
+	{#each viewerManager.viewers as [id, state] (state.instance.id)}
 		<Viewer viewer={viewerManager.viewers.get(id)!} />
 	{/each}
 </div>

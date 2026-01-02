@@ -179,8 +179,8 @@
           '';
         };
 
-        # nix build
         packages = {
+          # nix build
           default = magie;
 
           # nix build .#container

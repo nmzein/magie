@@ -1,8 +1,8 @@
 import { untrack } from 'svelte';
-import { clamp } from '$helpers';
-import { DEFAULT_BOUND, DEFAULT_POINT, type AssetMetadata, type Bounds } from '$types';
-import { Fields, NUM_FIELDS } from './shared';
 import { on } from 'svelte/events';
+import { clamp } from '$helpers';
+import { type AssetMetadata, type Bounds, DEFAULT_BOUND, DEFAULT_POINT } from '$types';
+import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
 	id: string;

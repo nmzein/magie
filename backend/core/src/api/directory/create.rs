@@ -42,7 +42,6 @@ pub async fn create(
         }
     };
 
-    // [DATABASE]: Insert directory into the database.
     let id = match crate::db::directory::insert(&dbm, store_id, parent_id, &name) {
         Ok(id) => id,
         Err(e) => {
@@ -58,7 +57,6 @@ pub async fn create(
 
     logger.log("Directory inserted into the database.");
 
-    // [COMMS]: Broadcast directory create message to connected clients.
     match csm
         .broadcast(GeneralServerMsg::Directory(DirectoryServerMsg::Create {
             store_id,
