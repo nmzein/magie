@@ -8,7 +8,6 @@ const headers = {
 export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
-	// Set headers for dynamic routes
 	Object.entries(headers).forEach(([key, value]) => {
 		response.headers.set(key, value);
 	});
