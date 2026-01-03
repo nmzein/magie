@@ -1,24 +1,48 @@
 import { defined, request } from '$helpers';
-import type { GltfLayer, TiledImageLayer, UploaderOptions } from '$types';
-import { HTTP_BASE_URL } from './urls.ts';
+import type {
+	AssetMetadata,
+	GltfAssetMetadata,
+	TiledImageAssetMetadata,
+	UploaderOptions
+} from '$types';
+import { HTTP_BASE_URL, WEBSOCKET_BASE_URL } from './urls.ts';
 
-type Properties = {
-	metadata: TiledImageLayer[];
-	annotations: GltfLayer[];
-};
-
-export async function properties(storeId: number, assetId: number): Promise<Properties | null> {
-	const properties: Properties | null = await request.get({
+// TODO: Fix upstream in backend.
+export async function properties(
+	storeId: number,
+	assetId: number
+): Promise<AssetMetadata[] | null> {
+	const properties: {
+		metadata: TiledImageAssetMetadata['layers'];
+		annotations: Omit<GltfAssetMetadata['layers'][number], 'url'>[];
+	} | null = await request.get({
 		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/properties`
 	});
 	if (!defined(properties)) return null;
 
-	properties.annotations = properties.annotations.map((a) => ({
-		...a,
-		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/annotations/${a.id}`
-	}));
+	const width = properties.metadata[0].width;
+	const height = properties.metadata[0].height;
 
-	return properties;
+	const tiledImage: TiledImageAssetMetadata = {
+		type: 'tiled-image',
+		width,
+		height,
+		primary: true,
+		url: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
+		layers: properties.metadata
+	};
+
+	const gltf: GltfAssetMetadata = {
+		type: 'gltf',
+		width,
+		height,
+		layers: properties.annotations.map((layer) => ({
+			...layer,
+			url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/annotations/${layer.id}`
+		}))
+	};
+
+	return [gltf, tiledImage];
 }
 
 export async function thumbnail(

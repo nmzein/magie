@@ -28,38 +28,34 @@ export type Asset = {
 	name: string;
 };
 
-export type AssetMetadata = { width: number; height: number; primary?: true } & (
-	| {
-			type: 'tiled-image';
-			url: string;
-			layers: TiledImageLayer[];
-	  }
-	| {
-			type: 'gltf';
-			layers: GltfLayer[];
-	  }
-);
+export type AssetMetadata = Dimensions & { primary?: true } & (
+		| {
+				type: 'tiled-image';
+				url: string;
+				layers: {
+					level: number;
+					cols: number;
+					rows: number;
+					width: number;
+					height: number;
+				}[];
+		  }
+		| {
+				type: 'gltf';
+				layers: {
+					url: string;
+					id: number;
+					tag: string;
+					visible: boolean;
+					opacity: number;
+					fill: string;
+					stroke: string;
+				}[];
+		  }
+	);
 
 export type TiledImageAssetMetadata = Extract<AssetMetadata, { type: 'tiled-image' }>;
 export type GltfAssetMetadata = Extract<AssetMetadata, { type: 'gltf' }>;
-
-export type TiledImageLayer = {
-	level: number;
-	cols: number;
-	rows: number;
-	width: number;
-	height: number;
-};
-
-export type GltfLayer = {
-	url: string;
-	id: number;
-	tag: string;
-	visible: boolean;
-	opacity: number;
-	fill: string;
-	stroke: string;
-};
 
 export type UploaderOptions = {
 	name: string;

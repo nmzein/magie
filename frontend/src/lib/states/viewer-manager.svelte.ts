@@ -1,8 +1,8 @@
 import { SvelteMap } from 'svelte/reactivity';
-import { http, WEBSOCKET_BASE_URL } from '$api';
+import { http } from '$api';
 import { defined } from '$helpers';
-import type { Asset } from '$types';
-import Viewer from '$ui/Viewer/viewer.svelte.ts';
+import type { Asset, AssetMetadata } from '$types';
+import Viewer, { type AssetOptions } from '$ui/Viewer/viewer.svelte.ts';
 
 type Position = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
@@ -35,9 +35,8 @@ export class ViewerManager {
 	}
 
 	async load(storeId: number, parentId: number, assetId: number, name: string) {
-		const properties = await http.asset.properties(storeId, assetId);
-
-		if (!defined(properties) || properties.metadata.length === 0) return;
+		const group = await http.asset.properties(storeId, assetId);
+		if (!defined(group) || group.length === 0) return;
 
 		const asset: Asset = {
 			type: 'Asset',
@@ -47,30 +46,15 @@ export class ViewerManager {
 			name
 		};
 
-		const width = properties.metadata[0].width;
-		const height = properties.metadata[0].height;
+		const layers: (AssetMetadata & AssetOptions)[] = group.map((asset) => {
+			if (asset.type === 'tiled-image') return { ...asset, contextId: '2d' };
+			if (asset.type === 'gltf') return { ...asset, contextId: 'webgl2' };
+			throw Error('Unsupported asset type.');
+		});
 
 		const position = this.#nextPosition();
 		const id = `${position}-${storeId}-${assetId}`;
-		const instance = new Viewer({
-			id,
-			layers: [
-				{
-					type: 'gltf',
-					width,
-					height,
-					layers: properties.annotations
-				},
-				{
-					type: 'tiled-image',
-					width,
-					height,
-					primary: true,
-					url: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
-					layers: properties.metadata
-				}
-			]
-		});
+		const instance = new Viewer({ id, layers });
 
 		// TEMP: Allow only one viewer for now.
 		// this.#width = this.viewers.size === 0 ? 100 : 50;

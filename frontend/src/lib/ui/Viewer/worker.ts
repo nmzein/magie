@@ -4,14 +4,15 @@ import { GltfNetworker, type Networker, TiledImageNetworker } from './networkers
 import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
 import { Fields, shared } from './shared';
 import { GltfStorer, ImageBitmapStorer, type Storer } from './storers';
+import type { AssetOptions, InjectedAssetMetadata } from './viewer.svelte';
 
 export type TileIdentifier = { level: number; x: number; y: number };
 export type GltfLayerIdentifier = { url: string };
 
 let canvases: OffscreenCanvas[] = [];
-const storers: Storer<any>[] = [];
-const renderers: Renderer<any, any>[] = [];
-const networkers: Networker<any, any>[] = [];
+const storers: Storer<unknown>[] = [];
+const renderers: Renderer<unknown, unknown>[] = [];
+const networkers: Networker<unknown, unknown>[] = [];
 
 function setCanvasDims(dims: Dimensions) {
 	canvases.forEach((canvas) => {
@@ -25,21 +26,21 @@ self.onmessage = (e) => {
 
 	switch (type) {
 		case 'init': {
-			const layers: AssetMetadata[] = JSON.parse(data.layers);
+			const layers: (AssetMetadata & AssetOptions & InjectedAssetMetadata)[] = JSON.parse(
+				data.layers
+			);
 			shared.init(data.sharedBuf);
-
 			canvases = data.canvases;
 
-			const canvasDefs: { ctx: '2d' | 'webgl2' }[] = JSON.parse(data.canvasDefs);
+			const contextIds: AssetOptions['contextId'][] = JSON.parse(data.contextIds);
 			const contexts = [];
 
-			for (const [index, canvas] of canvases.entries()) {
-				const canvasDef = canvasDefs[index];
-				const ctx = canvas.getContext(canvasDef.ctx);
-				if (!ctx) throw Error(`Failed to create ${canvasDef.ctx} rendering context`);
+			for (const [canvas, contextId] of zip(canvases, contextIds)) {
+				const ctx = canvas.getContext(contextId);
+				if (!ctx) throw Error(`Failed to create ${contextId} rendering context`);
+				contexts.push(ctx);
 
 				// ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
-				contexts.push(ctx);
 			}
 
 			for (const layer of layers) {
@@ -47,14 +48,28 @@ self.onmessage = (e) => {
 					case 'tiled-image': {
 						const storer = new ImageBitmapStorer();
 						storers.push(storer);
-						renderers.push(new TiledImageRenderer(layer, storer, canvases[0], contexts[0]));
+						renderers.push(
+							new TiledImageRenderer(
+								layer,
+								storer,
+								canvases[layer.contextIndex],
+								contexts[layer.contextIndex] as OffscreenCanvasRenderingContext2D
+							)
+						);
 						networkers.push(new TiledImageNetworker(layer, storer));
 						break;
 					}
 					case 'gltf': {
 						const storer = new GltfStorer();
 						storers.push(storer);
-						renderers.push(new GltfRenderer(layer, storer, canvases[1], contexts[1]));
+						renderers.push(
+							new GltfRenderer(
+								layer,
+								storer,
+								canvases[layer.contextIndex],
+								contexts[layer.contextIndex] as WebGL2RenderingContext
+							)
+						);
 						networkers.push(new GltfNetworker(layer, storer));
 						break;
 					}

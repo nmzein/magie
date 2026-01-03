@@ -6,12 +6,20 @@ import { Fields, NUM_FIELDS } from './shared';
 
 type ViewerOptions = {
 	id: string;
-	layers: AssetMetadata[];
+	layers: (AssetMetadata & AssetOptions)[];
+};
+
+export type AssetOptions = {
+	contextId: Extract<OffscreenRenderingContextId, '2d' | 'webgl2'>;
+};
+
+export type InjectedAssetMetadata = {
+	contextIndex: number;
 };
 
 export default class Viewer {
 	#id: ViewerOptions['id'];
-	#layers: ViewerOptions['layers'];
+	#layers: (AssetMetadata & AssetOptions & InjectedAssetMetadata)[];
 	#primary: number;
 
 	#mouseDown = $state(false);
@@ -34,8 +42,18 @@ export default class Viewer {
 
 	constructor({ id, layers }: ViewerOptions) {
 		this.#id = id;
-		this.#primary = layers.findIndex((layer) => layer.primary);
-		this.#layers = layers;
+
+		const contextIds: AssetOptions['contextId'][] = [];
+		// Collapses adjacent layers into the same canvas context.
+		// Stores in each layer which context it should use.
+		this.#layers = layers.reverse().map((layer, i) => {
+			if (i === 0 || layer.contextId !== layers[i - 1].contextId) {
+				contextIds.push(layer.contextId);
+			}
+			return { ...layer, contextIndex: contextIds.length - 1 };
+		});
+
+		this.#primary = this.#layers.findIndex((layer) => layer.primary);
 
 		this.onmousedown = this.onmousedown.bind(this);
 		this.onmousemove = this.onmousemove.bind(this);
@@ -51,9 +69,7 @@ export default class Viewer {
 					this.#div = div;
 					this.#setBounds(this.#div.getBoundingClientRect());
 
-					const canvasDefs = [{ ctx: '2d' }, { ctx: 'webgl2' }];
-
-					for (const index of canvasDefs.keys()) {
+					for (const index of contextIds.keys()) {
 						const canvas = document.createElement('canvas');
 
 						canvas.width = this.#bounds.width;
@@ -76,9 +92,9 @@ export default class Viewer {
 							type: 'init',
 							data: {
 								canvases: this.#offscreenCanvases,
-								canvasDefs: JSON.stringify(canvasDefs),
+								contextIds: JSON.stringify(contextIds),
 								sharedBuf: this.#sharedBuf,
-								layers: JSON.stringify(this.#layers.toReversed())
+								layers: JSON.stringify(this.#layers)
 							}
 						},
 						this.#offscreenCanvases
@@ -200,11 +216,12 @@ export default class Viewer {
 		const scaleRatio = nextScale / prevScale;
 
 		// DOM -> canvas
-		const canvasX = mouseX * window.devicePixelRatio;
-		const canvasY = mouseY * window.devicePixelRatio;
+		const dpr = window.devicePixelRatio;
+		mouseX *= dpr;
+		mouseY *= dpr;
 
-		this.#offset.x = canvasX - (canvasX - this.#offset.x) * scaleRatio;
-		this.#offset.y = canvasY - (canvasY - this.#offset.y) * scaleRatio;
+		this.#offset.x = mouseX - (mouseX - this.#offset.x) * scaleRatio;
+		this.#offset.y = mouseY - (mouseY - this.#offset.y) * scaleRatio;
 		this.#scale = nextScale;
 
 		const layer = this.#layers[this.#primary];

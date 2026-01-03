@@ -28,9 +28,9 @@ export class Networker<T, S> {
 }
 
 export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> {
+	#storer: ImageBitmapStorer;
 	#metadata: TiledImageAssetMetadata;
 	#socketManager: WebSocketManager;
-	#storer: ImageBitmapStorer;
 
 	constructor(metadata: TiledImageAssetMetadata, storer: ImageBitmapStorer) {
 		super(metadata, storer);

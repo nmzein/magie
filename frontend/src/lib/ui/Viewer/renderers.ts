@@ -164,11 +164,9 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 	}
 
 	render(dims: Dimensions, offset: Point, scale: number): GltfLayerIdentifier[] {
-		// Top-left anchored ortho camera.
 		this.#camera.right = dims.width / scale;
 		this.#camera.bottom = -dims.height / scale;
 
-		// Camera center in world space.
 		this.#camera.position.x = -offset.x / scale;
 		this.#camera.position.y = offset.y / scale;
 
