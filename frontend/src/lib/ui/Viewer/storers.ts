@@ -1,12 +1,20 @@
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 
 export class Storer<T> {
-	get(_key: string): T | undefined {
-		throw new Error('get(1) must be implemented');
+	keys(): string[] {
+		throw new Error('keys(0) must be implemented');
 	}
 
-	getAll(): [string, T][] {
-		throw new Error('getAll(0) must be implemented');
+	entries(): [string, T][] {
+		throw new Error('entries(0) must be implemented');
+	}
+
+	consume(_key: string): T | undefined {
+		throw new Error('consume(1) must be implemented');
+	}
+
+	get(_key: string): T | undefined {
+		throw new Error('get(1) must be implemented');
 	}
 
 	set(_key: string, _value: T): void {
@@ -25,12 +33,22 @@ export class Storer<T> {
 export class ImageBitmapStorer extends Storer<ImageBitmap> {
 	#store: { [key: string]: ImageBitmap } = {};
 
-	get(key: string): ImageBitmap | undefined {
-		return this.#store[key];
+	keys(): string[] {
+		return Object.keys(this.#store);
 	}
 
-	getAll(): [string, ImageBitmap][] {
+	entries(): [string, ImageBitmap][] {
 		return Object.entries(this.#store);
+	}
+
+	consume(key: string): ImageBitmap | undefined {
+		const bmp = this.#store[key];
+		delete this.#store[key];
+		return bmp;
+	}
+
+	get(key: string): ImageBitmap | undefined {
+		return this.#store[key];
 	}
 
 	set(key: string, value: ImageBitmap): void {
@@ -54,12 +72,22 @@ export class ImageBitmapStorer extends Storer<ImageBitmap> {
 export class GltfStorer extends Storer<GLTF> {
 	#store: { [key: string]: GLTF } = {};
 
-	get(key: string): GLTF | undefined {
-		return this.#store[key];
+	keys(): string[] {
+		return Object.keys(this.#store);
 	}
 
-	getAll(): [string, GLTF][] {
+	entries(): [string, GLTF][] {
 		return Object.entries(this.#store);
+	}
+
+	consume(key: string): GLTF | undefined {
+		const gltf = this.#store[key];
+		delete this.#store[key];
+		return gltf;
+	}
+
+	get(key: string): GLTF | undefined {
+		return this.#store[key];
 	}
 
 	set(key: string, value: GLTF): void {

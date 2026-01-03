@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { viewerManager } from '$states';
 	import type { ViewerState } from '$lib/states/viewer-manager.svelte';
+	import DebugPanel from '$ui/DebugPanel.svelte';
 
 	let { viewer }: { viewer: ViewerState } = $props();
 </script>
@@ -15,4 +16,10 @@
 	style:height="{viewerManager.height}%"
 	style:cursor={viewer.instance.isDragging ? 'grab' : 'crosshair'}
 	class="relative"
-></div>
+>
+	<DebugPanel
+		dims={viewer.instance.dims}
+		offset={viewer.instance.offset}
+		scale={viewer.instance.effectiveScale}
+	/>
+</div>

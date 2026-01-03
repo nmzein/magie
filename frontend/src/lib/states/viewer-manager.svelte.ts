@@ -14,8 +14,11 @@ export type ViewerState = {
 export class ViewerManager {
 	#width: 50 | 100 = 100;
 	#height: 50 | 100 = 100;
-	viewers: SvelteMap<Position, ViewerState> = new SvelteMap();
+	viewers: SvelteMap<string, ViewerState> = new SvelteMap();
 	active: string | undefined = $state();
+	activeViewer: Viewer | undefined = $derived(
+		this.active ? this.viewers.get(this.active)?.instance : undefined
+	);
 
 	get width() {
 		return this.#width;
@@ -23,10 +26,6 @@ export class ViewerManager {
 
 	get height() {
 		return this.#height;
-	}
-
-	get activeViewer() {
-		return this.active ? this.viewers.get(this.active as Position)?.instance : undefined;
 	}
 
 	#nextPosition() {
@@ -52,9 +51,9 @@ export class ViewerManager {
 		const height = properties.metadata[0].height;
 
 		const position = this.#nextPosition();
+		const id = `${position}-${storeId}-${assetId}`;
 		const instance = new Viewer({
-			id: `${position}-${storeId}-${assetId}`,
-			primary: 1,
+			id,
 			layers: [
 				{
 					type: 'gltf',
@@ -66,6 +65,7 @@ export class ViewerManager {
 					type: 'tiled-image',
 					width,
 					height,
+					primary: true,
 					url: `${WEBSOCKET_BASE_URL}/api/store/${storeId}/asset/${assetId}/socket`,
 					layers: properties.metadata
 				}
@@ -75,7 +75,8 @@ export class ViewerManager {
 		// TEMP: Allow only one viewer for now.
 		// this.#width = this.viewers.size === 0 ? 100 : 50;
 		// this.#height = this.viewers.size <= 1 ? 100 : 50;
-		this.viewers.set(position, { instance, asset });
-		this.active = position;
+		this.viewers.clear();
+		this.viewers.set(id, { instance, asset });
+		this.active = id;
 	}
 }

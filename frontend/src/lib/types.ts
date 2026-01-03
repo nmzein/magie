@@ -28,7 +28,7 @@ export type Asset = {
 	name: string;
 };
 
-export type AssetMetadata = { width: number; height: number } & (
+export type AssetMetadata = { width: number; height: number; primary?: true } & (
 	| {
 			type: 'tiled-image';
 			url: string;
@@ -59,7 +59,6 @@ export type GltfLayer = {
 	opacity: number;
 	fill: string;
 	stroke: string;
-	dirty: boolean;
 };
 
 export type UploaderOptions = {

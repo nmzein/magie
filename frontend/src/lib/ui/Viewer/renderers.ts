@@ -136,11 +136,9 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 	#metadata: GltfAssetMetadata;
 	#storer: GltfStorer;
-
 	#scene: Scene;
 	#camera: OrthographicCamera;
 	#renderer: WebGLRenderer;
-	#meshes: Map<string, Mesh> = new Map();
 
 	constructor(
 		metadata: GltfAssetMetadata,
@@ -176,13 +174,20 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 		this.#camera.updateProjectionMatrix();
 
-		for (const [url, file] of this.#storer.getAll()) {
-			const layer = this.#metadata.layers.find((l) => l.url === url);
-			if (!layer || !layer.visible) continue;
+		const requests: GltfLayerIdentifier[] = [];
 
-			let mesh = this.#meshes.get(layer.tag);
+		for (const layer of this.#metadata.layers) {
+			if (!layer.visible) continue;
+
+			let mesh = this.#scene.getObjectByName(layer.tag) as Mesh | undefined;
 
 			if (!mesh) {
+				const file = this.#storer.consume(layer.url);
+				if (!file) {
+					requests.push({ url: layer.url });
+					continue;
+				}
+
 				const node = file.scene.children[0];
 				if (node?.type !== 'Mesh') continue;
 
@@ -197,13 +202,15 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 				mesh.position.set(0, 0, 0);
 				this.#scene.add(mesh);
-				this.#meshes.set(layer.tag, mesh);
-			} else {
+			} else if (
+				mesh.visible !== layer.visible ||
+				(mesh.material as MeshBasicMaterial).color.getHexString() !== layer.fill ||
+				(mesh.material as MeshBasicMaterial).opacity !== layer.opacity
+			) {
 				mesh.visible = layer.visible;
 				(mesh.material as MeshBasicMaterial).color = new Color(layer.fill);
 				(mesh.material as MeshBasicMaterial).opacity = layer.opacity;
 			}
-			layer.dirty = false;
 		}
 
 		// Only resize if dimensions changed.
@@ -214,6 +221,6 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 		this.#renderer.render(this.#scene, this.#camera);
 
-		return this.#metadata.layers.filter((l) => l.visible);
+		return requests;
 	}
 }

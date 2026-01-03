@@ -62,7 +62,6 @@ self.onmessage = (e) => {
 			}
 
 			requestAnimationFrame(loop);
-
 			break;
 		}
 		case 'close': {

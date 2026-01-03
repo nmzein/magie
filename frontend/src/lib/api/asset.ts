@@ -16,8 +16,7 @@ export async function properties(storeId: number, assetId: number): Promise<Prop
 
 	properties.annotations = properties.annotations.map((a) => ({
 		...a,
-		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/annotations/${a.id}`,
-		dirty: true
+		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/annotations/${a.id}`
 	}));
 
 	return properties;

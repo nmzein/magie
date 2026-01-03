@@ -63,7 +63,7 @@
 							</Tabs.Trigger>
 							<button
 								onclick={() => {
-									viewerManager.activeViewer?.resetScale();
+									viewerManager.activeViewer?.reset();
 								}}
 								disabled={!defined(viewerManager.activeViewer)}
 								class="my-1.25 text-center select-none"
@@ -71,7 +71,7 @@
 								class:opacity-30={!defined(viewerManager.activeViewer)}
 							>
 								{defined(viewerManager.activeViewer)
-									? truncateNumber(viewerManager.activeViewer.scale / 2)
+									? truncateNumber(viewerManager.activeViewer.scale)
 									: '1.0'}x
 							</button>
 							<Tabs.Trigger
