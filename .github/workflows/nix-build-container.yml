@@ -2,6 +2,8 @@ name: "Build Prod Container"
 on:
   pull_request:
   push:
+permissions:
+  contents: read
 jobs:
   tests:
     runs-on: ubuntu-latest
