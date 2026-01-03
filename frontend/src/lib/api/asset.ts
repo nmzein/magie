@@ -8,10 +8,9 @@ type Properties = {
 };
 
 export async function properties(storeId: number, assetId: number): Promise<Properties | null> {
-	const properties = (await request.get({
+	const properties: Properties | null = await request.get({
 		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/properties`
-	})) as Properties | null;
-
+	});
 	if (!defined(properties)) return null;
 
 	properties.annotations = properties.annotations.map((a) => ({

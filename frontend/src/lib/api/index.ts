@@ -14,8 +14,6 @@ async function modules(): Promise<Modules | null> {
 	return await request.get({ url: `${HTTP_BASE_URL}/api/modules` });
 }
 
-const http = (() => {
-	return { asset, directory, store, registry, modules };
-})();
+const http = { asset, directory, store, registry, modules };
 
 export { broadcast, http, HTTP_BASE_URL, WEBSOCKET_BASE_URL };
