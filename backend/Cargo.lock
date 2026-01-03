@@ -161,9 +161,9 @@ dependencies = [
 
 [[package]]
 name = "axum_typed_multipart"
-version = "0.16.4"
+version = "0.16.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3e5345def2a33cfc056ece2751f3e255597691e84bdf7f4380086010495bd4b"
+checksum = "74c8b2ee396b35396ec27f5b9aa101f77000ba842dc82549a381b74c3ae2db7e"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -179,11 +179,11 @@ dependencies = [
 
 [[package]]
 name = "axum_typed_multipart_macros"
-version = "0.16.4"
+version = "0.16.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15c97c70acc884855204b16861765d0c7e9765ab7cfcfbe6dcc36b32d703ac87"
+checksum = "a27cefbd055910a29c4a3710016559cece5bdb4fb78ec055a1c2e9f8c61e3aa9"
 dependencies = [
- "darling 0.20.11",
+ "darling 0.23.0",
  "heck",
  "proc-macro-error2",
  "quote",
@@ -454,16 +454,6 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.20.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc7f46116c46ff9ab3eb1597a45688b6715c6e628b5c133e288e709a29bcb4ee"
-dependencies = [
- "darling_core 0.20.11",
- "darling_macro 0.20.11",
-]
-
-[[package]]
-name = "darling"
 version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9cdf337090841a411e2a7f3deb9187445851f91b309c0c0a29e05f74a00a48c0"
@@ -473,17 +463,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "darling_core"
-version = "0.20.11"
+name = "darling"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d00b9596d185e565c2207a0b01f8bd1a135483d02d9b7b0a54b11da8d53412e"
+checksum = "25ae13da2f202d56bd7f91c25fba009e7717a1e4a1cc98a76d844b65ae912e9d"
 dependencies = [
- "fnv",
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim",
- "syn",
+ "darling_core 0.23.0",
+ "darling_macro 0.23.0",
 ]
 
 [[package]]
@@ -501,13 +487,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "darling_macro"
-version = "0.20.11"
+name = "darling_core"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
+checksum = "9865a50f7c335f53564bb694ef660825eb8610e0a53d3e11bf1b0d3df31e03b0"
 dependencies = [
- "darling_core 0.20.11",
+ "ident_case",
+ "proc-macro2",
  "quote",
+ "strsim",
  "syn",
 ]
 
@@ -518,6 +506,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
  "darling_core 0.21.3",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3984ec7bd6cfa798e62b4a642426a5be0e68f9401cfc2a01e3fa9ea2fcdb8d"
+dependencies = [
+ "darling_core 0.23.0",
  "quote",
  "syn",
 ]
@@ -678,9 +677,9 @@ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "fast_image_resize"
-version = "5.4.0"
+version = "5.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "049915d74c5dfae375a3f5bf54f47ed593ba27b29f792617a9a987521d56d674"
+checksum = "fbc7fe45cf92b43817ff62a3723e862b85bd1d06288f63007f7645d1d2f7a060"
 dependencies = [
  "bytemuck",
  "cfg-if",
@@ -1096,9 +1095,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.178"
+version = "0.2.179"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37c93d8daa9d8a012fd8ab92f088405fb202ea0b6ab73ee2482ae66af4f42091"
+checksum = "c5a2d376baa530d1238d133232d15e239abad80d05838b4b59354e5268af431f"
 
 [[package]]
 name = "libloading"
@@ -1921,9 +1920,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "syn"
-version = "2.0.111"
+version = "2.0.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "390cc9a294ab71bdb1aa2e99d13be9c753cd2d7bd6560c77118597410c4d2e87"
+checksum = "21f182278bf2d2bcb3c88b1b08a37df029d71ce3d3ae26168e3c653b213b99d4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2006,9 +2005,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.48.0"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff360e02eab121e0bc37a2d3b4d4dc622e6eda3a8e5253d5435ecf5bd4c68408"
+checksum = "72a2903cd7736441aac9df9d7688bd0ce48edccaadf181c3b90be801e81d3d86"
 dependencies = [
  "bytes",
  "libc",
@@ -2618,16 +2617,15 @@ dependencies = [
 
 [[package]]
 name = "zarrs_filesystem"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6605bf47c71b8b87396550b9ae3f234fbac54145eafc1888460cc3d66560b60"
+checksum = "b56c130d3dbd382a30a2b1e374b01ba69d1444417abacee27a6ae4c9846dab74"
 dependencies = [
  "bytes",
  "derive_more",
  "itertools 0.14.0",
  "libc",
  "page_size",
- "parking_lot",
  "pathdiff",
  "thiserror 2.0.17",
  "walkdir",
@@ -2687,15 +2685,14 @@ dependencies = [
 
 [[package]]
 name = "zarrs_storage"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bc1037a8fa8c44ccb8f5c6c85753a63ddf296fb43280f28150f0f29fda8d301"
+checksum = "16767661621b3a9d6d59afe7669e9e46e1f4856053ceb14968bbe222cbcc053c"
 dependencies = [
  "auto_impl",
  "bytes",
  "derive_more",
  "itertools 0.14.0",
- "parking_lot",
  "thiserror 2.0.17",
  "unsafe_cell_slice",
 ]
@@ -2722,6 +2719,6 @@ dependencies = [
 
 [[package]]
 name = "zmij"
-version = "1.0.0"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6d6085d62852e35540689d1f97ad663e3971fc19cf5eceab364d62c646ea167"
+checksum = "4ee2a72b10d087f75fb2e1c2c7343e308fe6970527c22a41caf8372e165ff5c1"

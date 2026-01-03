@@ -21,7 +21,7 @@ axum = { version = "0.8.8", features = [
     "query",
     "ws",
 ], default-features = false }
-axum_typed_multipart = { version = "0.16.4", features = [
+axum_typed_multipart = { version = "0.16.5", features = [
     "tempfile_3",
 ], default-features = false }
 chrono = { version = "0.4.42" }
@@ -35,9 +35,9 @@ rayon = { version = "1.11.0", default-features = false }
 rusqlite = "0.38.0"
 serde = { version = "1.0.228", features = ["serde_derive"] }
 serde_json = { version = "1.0.148", default-features = false }
-syn = { version = "2.0.111", default-features = false }
+syn = { version = "2.0.112", default-features = false }
 tempfile = { version = "3.24.0", default-features = false }
-tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
+tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.8", default-features = false, features = [
     "cors",
