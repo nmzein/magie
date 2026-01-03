@@ -1,4 +1,4 @@
-name: "Build Prod Podman"
+name: "Build Prod Container"
 on:
   pull_request:
   push:
@@ -10,5 +10,5 @@ jobs:
       - uses: cachix/install-nix-action@v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - run: nix build .#podman
+      - run: nix build .#container
       - run: nix flake check
