@@ -123,7 +123,8 @@ async fn main() {
             HeaderName::from_static("content-security-policy"),
             HeaderValue::from_static(
                 "default-src 'none'; \
-                 script-src 'self' 'unsafe-inline'; \
+                 script-src 'self' 'unsafe-inline' 'unsafe-eval'; \
+                 worker-src 'self' blob:; \
                  style-src 'self' 'unsafe-inline'; \
                  img-src 'self' blob:; \
                  font-src 'self'; \

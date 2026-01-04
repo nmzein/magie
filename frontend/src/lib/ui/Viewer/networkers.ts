@@ -108,9 +108,7 @@ export class DracoGeometryNetworker extends Networker<GeometryLayerIdentifier, B
 
 	async request(requests: GeometryLayerIdentifier[]) {
 		for (const layer of requests) {
-			if (this.#storer.has(layer.url) || this.#pending.has(layer.url)) {
-				continue;
-			}
+			if (this.#storer.has(layer.url) || this.#pending.has(layer.url)) continue;
 
 			this.#pending.add(layer.url);
 
