@@ -54,7 +54,7 @@ pub async fn annotations(
                 Error::ResourceExistence,
                 "IA-E01",
                 &format!(
-                    "Failed to retrieve GLB annotation layer file: {}",
+                    "Failed to retrieve annotation layer file: {}",
                     path.display()
                 ),
                 Some(e.into()),
