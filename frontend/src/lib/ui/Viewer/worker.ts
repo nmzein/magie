@@ -1,5 +1,5 @@
 import { zip } from '$lib/helpers/array';
-import type { AssetMetadata, Dimensions } from '$types';
+import type { AssetMetadata } from '$types';
 import { DracoGeometryNetworker, type Networker, TiledImageNetworker } from './networkers';
 import { DracoGeometryRenderer, type Renderer, TiledImageRenderer } from './renderers';
 import { Fields, shared } from './shared';
@@ -10,16 +10,7 @@ export type TileIdentifier = { level: number; x: number; y: number };
 export type GeometryLayerIdentifier = { url: string };
 
 let canvases: OffscreenCanvas[] = [];
-const storers: Storer<unknown>[] = [];
-const renderers: Renderer<unknown, unknown>[] = [];
-const networkers: Networker<unknown, unknown>[] = [];
-
-function setCanvasDims(dims: Dimensions) {
-	canvases.forEach((canvas) => {
-		canvas.width = dims.width;
-		canvas.height = dims.height;
-	});
-}
+let actors: [Storer<unknown>, Renderer<unknown, unknown>, Networker<unknown, unknown>][];
 
 self.onmessage = (e) => {
 	const { type, data } = e.data;
@@ -33,7 +24,7 @@ self.onmessage = (e) => {
 			canvases = data.canvases;
 
 			const contextIds: AssetOptions['contextId'][] = JSON.parse(data.contextIds);
-			const contexts = [];
+			const contexts: OffscreenRenderingContext[] = [];
 
 			for (const [canvas, contextId] of zip(canvases, contextIds)) {
 				const ctx = canvas.getContext(contextId);
@@ -43,44 +34,40 @@ self.onmessage = (e) => {
 				// ctx.imageSmoothingEnabled = false; // TODO: Look into this option.
 			}
 
-			for (const layer of layers) {
+			actors = layers.map((layer) => {
 				switch (layer.type) {
 					case 'tiled-image': {
 						const storer = new ImageBitmapStorer();
-						storers.push(storer);
-						renderers.push(
-							new TiledImageRenderer(
-								layer,
-								storer,
-								canvases[layer.contextIndex],
-								contexts[layer.contextIndex] as OffscreenCanvasRenderingContext2D
-							)
+						const renderer = new TiledImageRenderer(
+							layer,
+							storer,
+							canvases[layer.contextIndex],
+							contexts[layer.contextIndex] as OffscreenCanvasRenderingContext2D
 						);
-						networkers.push(new TiledImageNetworker(layer, storer));
-						break;
+						const networker = new TiledImageNetworker(layer, storer);
+						return [storer, renderer, networker];
 					}
 					case 'draco-geometry': {
 						const storer = new BufferGeometryStorer();
-						storers.push(storer);
-						renderers.push(
-							new DracoGeometryRenderer(
-								layer,
-								storer,
-								canvases[layer.contextIndex],
-								contexts[layer.contextIndex] as WebGL2RenderingContext
-							)
+						const renderer = new DracoGeometryRenderer(
+							layer,
+							storer,
+							canvases[layer.contextIndex],
+							contexts[layer.contextIndex] as WebGL2RenderingContext
 						);
-						networkers.push(new DracoGeometryNetworker(layer, storer));
-						break;
+						const networker = new DracoGeometryNetworker(layer, storer);
+						return [storer, renderer, networker];
 					}
+					default:
+						throw Error(`Unsupported asset type.`);
 				}
-			}
+			});
 
 			requestAnimationFrame(loop);
 			break;
 		}
 		case 'close': {
-			for (const [storer, networker] of zip(storers, networkers)) {
+			for (const [storer, _, networker] of actors) {
 				storer.clear();
 				networker.close();
 			}
@@ -96,9 +83,12 @@ function loop() {
 		const offset = { x: shared.get(Fields.OffsetX), y: shared.get(Fields.OffsetY) };
 		const scale = shared.get(Fields.Scale) / 1e6;
 
-		setCanvasDims(dims);
+		canvases.forEach((canvas) => {
+			canvas.width = dims.width;
+			canvas.height = dims.height;
+		});
 
-		for (const [renderer, networker] of zip(renderers, networkers)) {
+		for (const [_, renderer, networker] of actors) {
 			const requests = renderer.render(dims, offset, scale);
 			networker.request(requests);
 		}

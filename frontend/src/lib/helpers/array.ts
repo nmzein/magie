@@ -1,6 +1,9 @@
-export function* zip<A, B>(a: readonly A[], b: readonly B[]): IterableIterator<readonly [A, B]> {
-	const len = Math.min(a.length, b.length);
+export function* zip<T extends readonly [unknown, unknown, ...unknown[]]>(
+	...arrays: { [K in keyof T]: readonly T[K][] }
+): IterableIterator<Readonly<T>> {
+	const len = Math.min(...arrays.map((a) => a.length));
+
 	for (let i = 0; i < len; i++) {
-		yield [a[i], b[i]];
+		yield arrays.map((a) => a[i]) as unknown as Readonly<T>;
 	}
 }
