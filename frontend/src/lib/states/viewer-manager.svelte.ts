@@ -48,7 +48,7 @@ export class ViewerManager {
 
 		const layers: (AssetMetadata & AssetOptions)[] = group.map((asset) => {
 			if (asset.type === 'tiled-image') return { ...asset, contextId: '2d' };
-			if (asset.type === 'gltf') return { ...asset, contextId: 'webgl2' };
+			if (asset.type === 'draco-geometry') return { ...asset, contextId: 'webgl2' };
 			throw Error('Unsupported asset type.');
 		});
 

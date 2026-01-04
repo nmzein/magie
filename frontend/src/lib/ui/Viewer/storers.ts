@@ -1,4 +1,4 @@
-import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
+import type { BufferGeometry } from 'three';
 
 export class Storer<T> {
 	keys(): string[] {
@@ -69,28 +69,28 @@ export class ImageBitmapStorer extends Storer<ImageBitmap> {
 	}
 }
 
-export class GltfStorer extends Storer<GLTF> {
-	#store: { [key: string]: GLTF } = {};
+export class BufferGeometryStorer extends Storer<BufferGeometry> {
+	#store: { [key: string]: BufferGeometry } = {};
 
 	keys(): string[] {
 		return Object.keys(this.#store);
 	}
 
-	entries(): [string, GLTF][] {
+	entries(): [string, BufferGeometry][] {
 		return Object.entries(this.#store);
 	}
 
-	consume(key: string): GLTF | undefined {
-		const gltf = this.#store[key];
+	consume(key: string): BufferGeometry | undefined {
+		const geom = this.#store[key];
 		delete this.#store[key];
-		return gltf;
+		return geom;
 	}
 
-	get(key: string): GLTF | undefined {
+	get(key: string): BufferGeometry | undefined {
 		return this.#store[key];
 	}
 
-	set(key: string, value: GLTF): void {
+	set(key: string, value: BufferGeometry): void {
 		this.#store[key] = value;
 	}
 

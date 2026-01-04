@@ -1,7 +1,7 @@
 import { defined, request } from '$helpers';
 import type {
 	AssetMetadata,
-	GltfAssetMetadata,
+	GeometryAssetMetadata,
 	TiledImageAssetMetadata,
 	UploaderOptions
 } from '$types';
@@ -14,7 +14,7 @@ export async function properties(
 ): Promise<AssetMetadata[] | null> {
 	const properties: {
 		metadata: TiledImageAssetMetadata['layers'];
-		annotations: Omit<GltfAssetMetadata['layers'][number], 'url'>[];
+		annotations: Omit<GeometryAssetMetadata['layers'][number], 'url'>[];
 	} | null = await request.get({
 		url: `${HTTP_BASE_URL}/api/store/${storeId}/asset/${assetId}/properties`
 	});
@@ -32,8 +32,8 @@ export async function properties(
 		layers: properties.metadata
 	};
 
-	const gltf: GltfAssetMetadata = {
-		type: 'gltf',
+	const draco: GeometryAssetMetadata = {
+		type: 'draco-geometry',
 		width,
 		height,
 		layers: properties.annotations.map((layer) => ({
@@ -42,7 +42,7 @@ export async function properties(
 		}))
 	};
 
-	return [gltf, tiledImage];
+	return [draco, tiledImage];
 }
 
 export async function thumbnail(

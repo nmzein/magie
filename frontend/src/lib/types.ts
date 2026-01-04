@@ -41,7 +41,7 @@ export type AssetMetadata = Dimensions & { primary?: true } & (
 				}[];
 		  }
 		| {
-				type: 'gltf';
+				type: 'draco-geometry';
 				layers: {
 					url: string;
 					id: number;
@@ -55,7 +55,7 @@ export type AssetMetadata = Dimensions & { primary?: true } & (
 	);
 
 export type TiledImageAssetMetadata = Extract<AssetMetadata, { type: 'tiled-image' }>;
-export type GltfAssetMetadata = Extract<AssetMetadata, { type: 'gltf' }>;
+export type GeometryAssetMetadata = Extract<AssetMetadata, { type: 'draco-geometry' }>;
 
 export type UploaderOptions = {
 	name: string;

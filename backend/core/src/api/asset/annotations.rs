@@ -38,10 +38,10 @@ pub async fn annotations(
 
             (
                 axum::response::AppendHeaders([
-                    (header::CONTENT_TYPE, "model/gltf-binary"),
+                    (header::CONTENT_TYPE, "application/octet-stream"),
                     (
                         header::CONTENT_DISPOSITION,
-                        &format!("attachment; filename=\"a{annotation_layer_id}.glb\""),
+                        &format!("attachment; filename=\"a{annotation_layer_id}.drc\""),
                     ),
                 ]),
                 Bytes::from(file_data),

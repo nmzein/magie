@@ -1,15 +1,16 @@
-import { type GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import type { BufferGeometry } from 'three';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { ByteReader, ByteWriter } from '$lib/helpers/byte';
 import { WebSocketManager } from '$lib/helpers/network';
 import {
 	AssetClientMsgTag,
 	type AssetMetadata,
-	type GltfAssetMetadata,
+	type GeometryAssetMetadata,
 	type TiledImageAssetMetadata
 } from '$types';
 import { shared } from './shared';
-import type { GltfStorer, ImageBitmapStorer, Storer } from './storers';
-import type { GltfLayerIdentifier, TileIdentifier } from './worker';
+import type { BufferGeometryStorer, ImageBitmapStorer, Storer } from './storers';
+import type { GeometryLayerIdentifier, TileIdentifier } from './worker';
 
 export class Networker<T, S> {
 	constructor(_metadata: AssetMetadata, _store: Storer<S>) {
@@ -92,19 +93,20 @@ export class TiledImageNetworker extends Networker<TileIdentifier, ImageBitmap> 
 	}
 }
 
-export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
-	#storer: GltfStorer;
+export class DracoGeometryNetworker extends Networker<GeometryLayerIdentifier, BufferGeometry> {
+	#storer: BufferGeometryStorer;
 	#pending: Set<string> = new Set();
-	#gltfLoader: GLTFLoader;
+	#loader: DRACOLoader;
 
-	constructor(metadata: GltfAssetMetadata, storer: GltfStorer) {
+	constructor(metadata: GeometryAssetMetadata, storer: BufferGeometryStorer) {
 		super(metadata, storer);
 
 		this.#storer = storer;
-		this.#gltfLoader = new GLTFLoader();
+		this.#loader = new DRACOLoader();
+		this.#loader.setDecoderPath('/draco/');
 	}
 
-	async request(requests: GltfLayerIdentifier[]) {
+	async request(requests: GeometryLayerIdentifier[]) {
 		for (const layer of requests) {
 			if (this.#storer.has(layer.url) || this.#pending.has(layer.url)) {
 				continue;
@@ -112,10 +114,10 @@ export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
 
 			this.#pending.add(layer.url);
 
-			this.#gltfLoader
+			this.#loader
 				.loadAsync(layer.url)
-				.then((gltf) => {
-					this.#storer.set(layer.url, gltf);
+				.then((file) => {
+					this.#storer.set(layer.url, file);
 					shared.setDirty();
 				})
 				.catch((err) => {
@@ -127,5 +129,7 @@ export class GltfNetworker extends Networker<GltfLayerIdentifier, GLTF> {
 		}
 	}
 
-	close() {}
+	close() {
+		this.#loader.dispose();
+	}
 }

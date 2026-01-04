@@ -40,8 +40,9 @@
         ];
 
         backendBuildInputs = with pkgs; [
-          nodejs_24
+          draco
           libjpeg
+          nodejs_24
           openslide
           sqlite
           # OpenSlide dependencies.

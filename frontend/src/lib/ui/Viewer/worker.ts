@@ -1,13 +1,13 @@
 import { zip } from '$lib/helpers/array';
 import type { AssetMetadata, Dimensions } from '$types';
-import { GltfNetworker, type Networker, TiledImageNetworker } from './networkers';
-import { GltfRenderer, type Renderer, TiledImageRenderer } from './renderers';
+import { DracoGeometryNetworker, type Networker, TiledImageNetworker } from './networkers';
+import { DracoGeometryRenderer, type Renderer, TiledImageRenderer } from './renderers';
 import { Fields, shared } from './shared';
-import { GltfStorer, ImageBitmapStorer, type Storer } from './storers';
+import { BufferGeometryStorer, ImageBitmapStorer, type Storer } from './storers';
 import type { AssetOptions, InjectedAssetMetadata } from './viewer.svelte';
 
 export type TileIdentifier = { level: number; x: number; y: number };
-export type GltfLayerIdentifier = { url: string };
+export type GeometryLayerIdentifier = { url: string };
 
 let canvases: OffscreenCanvas[] = [];
 const storers: Storer<unknown>[] = [];
@@ -59,18 +59,18 @@ self.onmessage = (e) => {
 						networkers.push(new TiledImageNetworker(layer, storer));
 						break;
 					}
-					case 'gltf': {
-						const storer = new GltfStorer();
+					case 'draco-geometry': {
+						const storer = new BufferGeometryStorer();
 						storers.push(storer);
 						renderers.push(
-							new GltfRenderer(
+							new DracoGeometryRenderer(
 								layer,
 								storer,
 								canvases[layer.contextIndex],
 								contexts[layer.contextIndex] as WebGL2RenderingContext
 							)
 						);
-						networkers.push(new GltfNetworker(layer, storer));
+						networkers.push(new DracoGeometryNetworker(layer, storer));
 						break;
 					}
 				}

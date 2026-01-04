@@ -1,22 +1,22 @@
 import {
+	type BufferGeometry,
 	Color,
-	type Mesh,
+	Mesh,
 	MeshBasicMaterial,
 	OrthographicCamera,
 	Scene,
 	Vector2,
 	WebGLRenderer
 } from 'three';
-import type { GLTF } from 'three/examples/jsm/Addons.js';
 import type {
 	AssetMetadata,
 	Dimensions,
-	GltfAssetMetadata,
+	GeometryAssetMetadata,
 	Point,
 	TiledImageAssetMetadata
 } from '$types';
-import type { GltfStorer, ImageBitmapStorer, Storer } from './storers';
-import type { GltfLayerIdentifier, TileIdentifier } from './worker';
+import type { BufferGeometryStorer, ImageBitmapStorer, Storer } from './storers';
+import type { GeometryLayerIdentifier, TileIdentifier } from './worker';
 
 const TILE_SIZE = 1024; // FIXME: Don't hardcode.
 const TARGET_PIXELS_PER_LAYER_PIXEL = 1;
@@ -40,9 +40,9 @@ export class Renderer<T, S> {
 
 export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 	#metadata: TiledImageAssetMetadata;
+	#storer: ImageBitmapStorer;
 	#ctx: OffscreenCanvasRenderingContext2D;
 	#currentLevel = 0;
-	#storer: ImageBitmapStorer;
 
 	constructor(
 		metadata: TiledImageAssetMetadata,
@@ -133,16 +133,16 @@ export class TiledImageRenderer extends Renderer<TileIdentifier, ImageBitmap> {
 	}
 }
 
-export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
-	#metadata: GltfAssetMetadata;
-	#storer: GltfStorer;
+export class DracoGeometryRenderer extends Renderer<GeometryLayerIdentifier, BufferGeometry> {
+	#metadata: GeometryAssetMetadata;
+	#storer: BufferGeometryStorer;
 	#scene: Scene;
 	#camera: OrthographicCamera;
 	#renderer: WebGLRenderer;
 
 	constructor(
-		metadata: GltfAssetMetadata,
-		storer: GltfStorer,
+		metadata: GeometryAssetMetadata,
+		storer: BufferGeometryStorer,
 		canvas: OffscreenCanvas,
 		ctx: WebGL2RenderingContext
 	) {
@@ -163,7 +163,7 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 		});
 	}
 
-	render(dims: Dimensions, offset: Point, scale: number): GltfLayerIdentifier[] {
+	render(dims: Dimensions, offset: Point, scale: number): GeometryLayerIdentifier[] {
 		this.#camera.right = dims.width / scale;
 		this.#camera.bottom = -dims.height / scale;
 
@@ -172,7 +172,7 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 
 		this.#camera.updateProjectionMatrix();
 
-		const requests: GltfLayerIdentifier[] = [];
+		const requests: GeometryLayerIdentifier[] = [];
 
 		for (const layer of this.#metadata.layers) {
 			if (!layer.visible) continue;
@@ -180,16 +180,13 @@ export class GltfRenderer extends Renderer<GltfLayerIdentifier, GLTF> {
 			let mesh = this.#scene.getObjectByName(layer.tag) as Mesh | undefined;
 
 			if (!mesh) {
-				const file = this.#storer.consume(layer.url);
-				if (!file) {
+				const geometry = this.#storer.consume(layer.url);
+				if (!geometry) {
 					requests.push({ url: layer.url });
 					continue;
 				}
 
-				const node = file.scene.children[0];
-				if (node?.type !== 'Mesh') continue;
-
-				mesh = node as Mesh;
+				mesh = new Mesh(geometry);
 				mesh.name = layer.tag;
 				mesh.visible = layer.visible;
 				mesh.material = new MeshBasicMaterial({

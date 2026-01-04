@@ -362,8 +362,7 @@ fn translate_annotations(
         }
     };
 
-    // TODO: Use capnproto rather than storing an intermediate translated annotations json file.
-    // TODO: Or, try writing own buffer geometry creator/gltf lib in Rust.
+    // TODO: Rust-based DRACO exporter.
     // Serialize annotation layers.
     let Ok(serialized_annotation_layers) = serde_json::to_string(&annotation_layers) else {
         return Err(logger.error(
@@ -387,7 +386,7 @@ fn translate_annotations(
 
     // Compute annotation positions and normals.
     match Command::new("node")
-        .arg("--max-old-space-size=4096")
+        .arg("--max-old-space-size=8192")
         .arg("geometry-computer/index.js")
         .arg(translated_annotations_path)
         .arg(final_annotations_path)
