@@ -16,10 +16,9 @@ pub fn annotation_path(
     image_id: u32,
     annotation_layer_id: u32,
 ) -> Result<PathBuf> {
-    Ok(dbm
-        .store_properties(store_id)?
-        .path
-        .join(format!("i{image_id}/a{annotation_layer_id}.glb")))
+    Ok(dbm.store_properties(store_id)?.path.join(format!(
+        "i{image_id}/annotations/a{annotation_layer_id}.drc"
+    )))
 }
 
 pub fn thumbnail_path(dbm: &DatabaseManager, store_id: u32, image_id: u32) -> Result<PathBuf> {

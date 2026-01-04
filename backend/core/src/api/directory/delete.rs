@@ -82,8 +82,7 @@ pub async fn delete(
         },
     };
 
-    // [COMMS]: Broadcast to connected clients.
-    match csm.broadcast(ServerMsg::Directory(message)).await {
+    match csm.broadcast(GeneralServerMsg::Directory(message)).await {
         Ok(()) => logger.success(StatusCode::OK, "Directory deleted successfully."),
         Err(e) => logger.error(
             StatusCode::INTERNAL_SERVER_ERROR,

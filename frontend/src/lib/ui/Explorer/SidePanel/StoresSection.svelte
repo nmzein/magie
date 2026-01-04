@@ -8,10 +8,10 @@
 </script>
 
 <Section title="stores">
-	{#each registry.registry ?? [] as store}
+	{#each registry.stores as store}
 		<Button
 			onclick={() => explorer.gotoStore(store.id)}
-			class="flex w-full items-center gap-[10px] rounded-lg py-0.5 text-left hover:underline"
+			class="flex w-full items-center gap-2.5 rounded-lg py-0.5 text-left hover:underline"
 		>
 			{store.name}
 		</Button>

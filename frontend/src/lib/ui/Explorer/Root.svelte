@@ -10,7 +10,7 @@
 </script>
 
 <div
-	class="panel flex w-[800px] max-w-full origin-center flex-col"
+	class="panel flex w-200 max-w-full origin-center flex-col"
 	onwheel={(e) => e.stopPropagation()}
 >
 	<Uploader />

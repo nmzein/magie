@@ -1,4 +1,6 @@
+pub type UserId = u32;
+
 #[derive(Clone, Debug)]
 pub struct User {
-    pub id: u32,
+    pub id: UserId,
 }

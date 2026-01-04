@@ -1,16 +1,17 @@
 <script lang="ts">
 	import type { Bounds, Directory, Asset } from '$types';
-	import { type SelectionBoxState, contextMenu } from '$states';
+	import { contextMenu } from '$states';
 	import { defined } from '$helpers';
 	import Icon from '$icon';
 	import { http } from '$api';
 	import { twMerge } from 'tailwind-merge';
-	import { BoundingClientRect } from '$actions';
+	import { boundingClientRect } from '$attachments';
 	import { context } from './context.svelte.ts';
-
-	const explorer = context.get();
+	import type { SelectionBoxState } from '$ui/SelectionBox/state.svelte.ts';
 
 	let { item, selection }: { item: Directory | Asset; selection: SelectionBoxState } = $props();
+
+	const explorer = context.get();
 
 	let itemBounds: Bounds | undefined = $state();
 	let intersected = $state(false);
@@ -79,6 +80,7 @@
 			{
 				name: 'Pin',
 				action: () => explorer.pinSelected(),
+				// TODO: Should also hide when all selected are pinned.
 				hidden: explorer.inBin || (explorer.isPinned(item.id) && explorer.selected.size === 1),
 				shortcut: 'Ctrl+P'
 			},
@@ -116,7 +118,7 @@
 	}
 </script>
 
-<div use:BoundingClientRect={(v) => (itemBounds = v)} class="h-fit">
+<div {@attach boundingClientRect((rect) => (itemBounds = rect))} class="h-fit">
 	<button
 		class={twMerge(
 			`hover:bg-primary/10 active:bg-primary/20 focus:bg-primary/10 focus:outline-none ${intersected ? 'bg-primary/10' : ''} ${selected ? 'bg-accent/20 hover:bg-accent/30 active:bg-accent/40 focus:bg-accent/30' : ''} flex h-fit w-full flex-col items-center gap-3 rounded-lg p-3 text-sm`
@@ -127,18 +129,18 @@
 		{oncontextmenu}
 	>
 		{#if item.type === 'Asset'}
-			{#await http.asset.thumbnail(explorer.storeId, item.id)}
+			{#await http.asset.thumbnail(item.storeId, item.id)}
 				<div class="h-16"></div>
 			{:then thumbnail}
 				{#if thumbnail}
 					<!-- svelte-ignore a11y_missing_attribute -->
 					<img src={thumbnail.src} class="h-16 rounded-md" />
 				{:else}
-					<Icon name="image" class="my-[-13px] h-[90px] w-[90px]" />
+					<Icon name="image" class="-my-3.25 h-22.5 w-22.5" />
 				{/if}
 			{/await}
 		{:else}
-			<Icon name="directory" class="my-[-13px] h-[90px] w-[90px]" />
+			<Icon name="directory" class="-my-3.25 h-22.5 w-22.5" />
 		{/if}
 		<span class="line-clamp-2 break-all">
 			{item.name}

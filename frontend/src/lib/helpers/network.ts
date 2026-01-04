@@ -1,0 +1,134 @@
+import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+
+export type WebSocketManagerOptions = {
+	url: string;
+	maxReconnectAttempts?: number;
+	minDelay?: number;
+	maxDelay?: number;
+	factor?: number;
+	binaryType?: 'blob' | 'arraybuffer';
+	onOpen?: (socket: WebSocket) => void;
+	onMessage?: (event: MessageEvent) => void | Promise<void> | string | Promise<string>;
+	onError?: (error: Event) => void;
+	onClose?: (event: CloseEvent, willReconnect: boolean) => void;
+};
+
+export class WebSocketManager {
+	private _url: string;
+	private _socket: WebSocket | null = null;
+	private _reconnectAttempts = 0;
+	private _maxReconnectAttempts = 5;
+	private _minDelay = 1000;
+	private _maxDelay = 30000;
+	private _factor = 2;
+	private _binaryType: 'blob' | 'arraybuffer' = 'arraybuffer';
+	private _state: 'connecting' | 'reconnecting' | 'connected' | 'disconnected' = 'disconnected';
+	private _pending = new SvelteSet<string>();
+	private _replay = new SvelteMap<string, () => void>();
+
+	private _onOpen?: WebSocketManagerOptions['onOpen'];
+	private _onMessage?: WebSocketManagerOptions['onMessage'];
+	private _onError?: WebSocketManagerOptions['onError'];
+	private _onClose?: WebSocketManagerOptions['onClose'];
+
+	constructor(options: WebSocketManagerOptions) {
+		this._url = options.url;
+
+		if (options.maxReconnectAttempts !== undefined)
+			this._maxReconnectAttempts = options.maxReconnectAttempts;
+		if (options.minDelay !== undefined) this._minDelay = options.minDelay;
+		if (options.maxDelay !== undefined) this._maxDelay = options.maxDelay;
+		if (options.factor !== undefined) this._factor = options.factor;
+		if (options.binaryType !== undefined) this._binaryType = options.binaryType;
+
+		this._onOpen = options.onOpen;
+		this._onMessage = options.onMessage;
+		this._onError = options.onError;
+		this._onClose = options.onClose;
+	}
+
+	get state() {
+		return this._state;
+	}
+
+	connect() {
+		this._socket = new WebSocket(this._url);
+		this._socket.binaryType = this._binaryType;
+
+		this._socket.onopen = () => {
+			this._state = 'connected';
+			this._reconnectAttempts = 0;
+			for (const [key, replay] of this._replay) {
+				replay();
+				this._replay.delete(key);
+			}
+			this._onOpen?.(this._socket!);
+		};
+
+		this._socket.onmessage = async (event) => {
+			const key = await this._onMessage?.(event);
+			if (key) this._pending.delete(key);
+		};
+
+		this._socket.onerror = (error) => {
+			if (this._onError) {
+				this._onError(error);
+			} else {
+				console.error(error);
+			}
+		};
+
+		this._socket.onclose = (event) => {
+			const willReconnect = this._reconnectAttempts < this._maxReconnectAttempts;
+			this._onClose?.(event, willReconnect);
+
+			if (willReconnect) {
+				this._state = 'reconnecting';
+				this._reconnectAttempts++;
+				const delay = this.getReconnectDelay(this._reconnectAttempts);
+				setTimeout(() => this.connect(), delay);
+			} else {
+				this._state = 'disconnected';
+			}
+		};
+	}
+
+	// Exponential backoff.
+	private getReconnectDelay(attempt: number): number {
+		const expDelay = this._minDelay * this._factor ** (attempt - 1);
+		return Math.min(expDelay, this._maxDelay);
+	}
+
+	send(data: string | ArrayBuffer | Blob | ArrayBufferView, key: string, force = false) {
+		// Already requested and force was not specified.
+		if (this._pending.has(key) && !force) return;
+
+		// If sent before socket open, queue for later replay.
+		if (!this._socket || this._socket.readyState !== WebSocket.OPEN) {
+			this._replay.set(key, () => this.send(data, key, force));
+			return;
+		}
+
+		this._socket.send(data);
+		this._pending.add(key);
+	}
+
+	pending(key: string) {
+		return this._pending.has(key);
+	}
+
+	numPending() {
+		return this._pending.size;
+	}
+
+	disconnect() {
+		if (this._socket) {
+			this._socket.onopen = null;
+			this._socket.onmessage = null;
+			this._socket.onerror = null;
+			this._socket.onclose = null;
+			this._socket.close();
+			this._socket = null;
+		}
+	}
+}

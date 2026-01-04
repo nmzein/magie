@@ -2,7 +2,7 @@
 	import type { Bounds, Point } from '$types';
 	import { defined } from '$helpers';
 	import { untrack, type Snippet } from 'svelte';
-	import { ResizeObserver } from '$actions';
+	import { resizeObserver } from '$attachments';
 	import { context } from './context.svelte.ts';
 
 	let { contentSpaceBounds, children }: { contentSpaceBounds: Bounds; children: Snippet } =
@@ -73,7 +73,7 @@
 <div
 	class="h-fit max-h-full w-fit max-w-full"
 	style="transform: translate({position.x}px, {position.y}px);"
-	use:ResizeObserver={(v) => (bounds = v)}
+	{@attach resizeObserver((el) => (bounds = el.getBoundingClientRect()))}
 >
 	{@render children()}
 </div>

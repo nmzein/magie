@@ -3,8 +3,8 @@ import { defined } from '$helpers';
 
 export class Repository {
 	#generators: string[] = $state([]);
-	#decoders: string[] = $state(['Auto (default)']);
-	#encoders: string[] = $state(['OMEZarr']);
+	#decoders: string[] = $state([]);
+	#encoders: string[] = $state([]);
 
 	get generators() {
 		return this.#generators;
@@ -21,9 +21,11 @@ export class Repository {
 	constructor() {
 		$effect.root(() => {
 			$effect(() => {
-				http.generators().then((generators) => {
-					if (!defined(generators)) return;
-					this.#generators = generators;
+				http.modules().then((modules) => {
+					if (!defined(modules)) return;
+					this.#generators = modules.generators;
+					this.#decoders = modules.decoders;
+					this.#encoders = modules.encoders;
 				});
 			});
 		});

@@ -1,11 +1,13 @@
 <script lang="ts">
+	import type { ClassValue } from 'svelte/elements';
+
 	let {
 		name,
 		class: classes = '',
 		onclick = undefined
 	}: {
 		name: string;
-		class?: string;
+		class?: ClassValue;
 		onclick?: () => void;
 	} = $props();
 
@@ -30,6 +32,7 @@
 	import Cursor from '~icons/material-symbols/point-scan-rounded';
 	import Freehand from '~icons/material-symbols-light/draw';
 	import Square from '~icons/material-symbols-light/square-outline';
+	import Shapes from '~icons/fluent/shapes-32-regular';
 	import Explorer from '~icons/material-symbols-light/folder-rounded';
 	import Control from '~icons/codicon/settings';
 	import Info from '~icons/material-symbols-light/info-rounded';
@@ -86,6 +89,8 @@
 		<Freehand class={classes} />
 	{:else if name === 'square'}
 		<Square class={classes} />
+	{:else if name === 'shapes'}
+		<Shapes class={classes} />
 	{:else if name === 'explorer'}
 		<Explorer class={classes} />
 	{:else if name === 'control'}

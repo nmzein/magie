@@ -1,7 +1,7 @@
 import { applyDefaults } from '$helpers';
-import { Context } from 'runed';
+import { Context } from '$lib/helpers/context.ts';
 
-export const context = new Context<DropdownState>('');
+export const context = new Context<DropdownState>();
 
 const DEFAULT_CLASSES: DropdownClasses = { trigger: '', list: '', item: '' };
 

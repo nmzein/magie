@@ -1,9 +1,7 @@
-_databases/
-_static/
+_databases
 _static
-_stores/
+_stores
 result
-result/
 
 .DS_Store
 node_modules/

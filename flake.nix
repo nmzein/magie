@@ -5,42 +5,44 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     crane.url = "github:ipetkov/crane";
   };
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+      crane,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs { inherit system overlays; };
         craneLib = crane.mkLib pkgs;
-        rustToolchain = pkgs.rust-bin.nightly.latest.default;
+        pkgs = import nixpkgs { inherit system overlays; };
 
-        config = builtins.fromTOML (builtins.readFile ./config.toml);
-
+        config = fromTOML (builtins.readFile ./config.toml);
         env = {
-          PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
           LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
-          RUSTC_LINKER = "${pkgs.llvmPackages.clangUseLLVM}/bin/clang";
-          RUSTFLAGS = "-Z threads=8";
-        } // config.env;
+          BINDGEN_EXTRA_CLANG_ARGS = "-isystem ${pkgs.llvmPackages.libclang.lib}/lib/clang/${pkgs.llvmPackages.libclang.version}/include";
+          PKG_CONFIG_PATH = "${pkgs.openslide}/lib/pkgconfig";
+        }
+        // config.env;
 
-        devDeps = with pkgs; [
-          bun
-          cargo
-          rustfmt
-        ];
-
-        nativeBuildDeps = with pkgs; [
+        backendNativeBuildInputs = with pkgs; [
           clang
           cmake
           nasm
-          rustToolchain
-          llvmPackages_latest.llvm
-          llvmPackages_latest.lld
+          rust-bin.stable."1.92.0".default
+          llvmPackages.libclang
+          pkg-config
         ];
 
-        buildDeps = with pkgs; [
-          nodejs_24
+        backendBuildInputs = with pkgs; [
+          draco
           libjpeg
-          pkg-config
+          nodejs_24
           openslide
           sqlite
           # OpenSlide dependencies.
@@ -64,69 +66,55 @@
           zstd
         ];
 
-        # Install node_modules.
-        node_modules = pkgs.stdenv.mkDerivation {
-          pname = "frontend-node-modules";
+        devDeps = with pkgs; [
+          cargo
+          rustfmt
+          rust-analyzer
+        ];
+
+        geometry-computer = pkgs.buildNpmPackage {
+          pname = "geometry-computer";
           version = "0.0.0";
-          src = ./frontend;
+          src = ./backend/geometry-computer;
+          nodejs = pkgs.nodejs_24;
 
-          nativeBuildInputs = [ pkgs.bun ];
-          buildInputs = [ pkgs.nodejs-slim_latest ];
-
-          dontConfigure = true;
-          dontFixup = true;
-
-          buildPhase = ''
-            runHook preBuild
-            export HOME=$TMPDIR
-            bun install --frozen-lockfile
-            runHook postBuild
-          '';
+          env = env;
+          npmDeps = pkgs.importNpmLock {
+            npmRoot = ./backend/geometry-computer;
+          };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
 
           installPhase = ''
             runHook preInstall
-            mkdir -p $out/node_modules
-            mv node_modules $out/
+            mkdir -p $out
+            mv ./** $out
             runHook postInstall
           '';
-
-          outputHash = "sha256-RJT4PRnMbVeFpdCw0IFkPlw+rK99LMS70O+bSKL93ow=";
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
         };
 
-        # Frontend build.
-        frontend = pkgs.stdenv.mkDerivation {
+        backend = craneLib.buildPackage {
+          pname = "backend";
+          src = craneLib.cleanCargoSource ./backend;
+          cargoExtraArgs = "--workspace";
+
+          strictDeps = true;
+          env = env;
+
+          nativeBuildInputs = backendNativeBuildInputs;
+          buildInputs = backendBuildInputs;
+        };
+
+        frontend = pkgs.buildNpmPackage {
           pname = "frontend";
           version = "0.0.0";
           src = ./frontend;
+          nodejs = pkgs.nodejs_24;
 
           env = env;
-          nativeBuildInputs = [
-              pkgs.bun
-              pkgs.nodejs-slim_latest
-              node_modules
-          ];
-
-          configurePhase = ''
-            runHook preConfigure
-
-            cp -a ${node_modules}/node_modules ./node_modules
-            chmod -R u+rw node_modules
-            chmod -R u+x node_modules/.bin
-            patchShebangs node_modules
-
-            export HOME=$TMPDIR
-            export PATH="$PWD/node_modules/.bin:$PATH"
-
-            runHook postConfigure
-          '';
-
-          buildPhase = ''
-            runHook preBuild
-            bun run build
-            runHook postBuild
-          '';
+          npmDeps = pkgs.importNpmLock {
+            npmRoot = ./frontend;
+          };
+          npmConfigHook = pkgs.importNpmLock.npmConfigHook;
 
           installPhase = ''
             runHook preInstall
@@ -134,62 +122,56 @@
             mv ./build $out
             runHook postInstall
           '';
-
-          outputHash = "sha256-kRSwOJXFH2uxVXyqMSmY3pIEQlWH/zBFTsil9fE3GMw=";
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
         };
 
-        # Backend build.
-        backend = craneLib.buildPackage {
-          pname = "backend";
+        # Combined application
+        magie = pkgs.stdenv.mkDerivation {
+          pname = "magie";
           version = "0.0.0";
-          src = craneLib.cleanCargoSource ./backend;
-
-          env = env;
-          nativeBuildInputs = nativeBuildDeps ++ buildDeps;
-          buildInputs = buildDeps;
-
-          cargoHash = "sha256-oC7BeeffeV8pdJlS+/yOJ8XLrdZaWHoBZyrL1GXglSg=";
+          buildCommand = ''
+            mkdir -p $out
+            mkdir -p $out/_static/
+            mkdir -p $out/geometry-computer/
+            cp ${backend}/bin/* $out
+            cp -r ${geometry-computer}/* $out/geometry-computer/
+            cp -r ${frontend}/build/* $out/_static/
+          '';
         };
 
+        # Runtime scripts
         runScript = pkgs.writeShellScriptBin "run" ''
           rm -rf ./_static
           ln -s ${self.packages.${system}.default}/_static ./_static
-          ${pkgs.lib.concatStringsSep "\n" (pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env)}
-          echo ""
-          if [ -n "$FRONTEND_PORT" ]; then
-            echo "> Frontend ............. http://localhost:$FRONTEND_PORT"
-            echo "> Backend  ............. http://localhost:$PUBLIC_PORT"
-          else
-            echo "> Running ............. http://localhost:$PUBLIC_PORT"
-          fi
+          ${pkgs.lib.concatStringsSep "\n" (
+            pkgs.lib.mapAttrsToList (k: v: "export ${k}=${pkgs.lib.escapeShellArg v}") env
+          )}
+          echo "> Running ............. http://localhost:$PORT"
           exec ${self.packages.${system}.default}/core "$@"
         '';
 
         podmanRunScript = pkgs.writeShellScriptBin "podman" ''
           echo "Loading podman container..."
           podman load < ${self.packages.${system}.container}
-          podman run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+          podman run --rm -it -p ${env.PORT}:${env.PORT} -e CONTAINER=true magie:latest
         '';
 
         dockerRunScript = pkgs.writeShellScriptBin "docker" ''
           echo "Loading docker container..."
           docker load < ${self.packages.${system}.container}
-          docker run --rm -it -p 3000:3000 -e CONTAINER=true localhost/magie:latest
+          docker run --rm -it -p ${env.PORT}:${env.PORT} -e CONTAINER=true magie:latest
         '';
 
         devRunScript = pkgs.writeShellScriptBin "dev" ''
           cd backend && cargo run & \
-          cd backend/geometry-computer && bun install & \
-          cd frontend && bun install && bun run dev
+          cd backend/geometry-computer && npm install & \
+          cd frontend && npm install && npm run dev
         '';
       in
       {
         # nix develop
         devShells.default = pkgs.mkShell {
           env = env;
-          buildInputs = devDeps ++ nativeBuildDeps ++ buildDeps;
+          buildInputs = devDeps ++ backendNativeBuildInputs ++ backendBuildInputs;
 
           shellHook = ''
             echo ""
@@ -198,32 +180,24 @@
           '';
         };
 
-        # nix build
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = "magie";
-          version = "0.0.0";
-          buildCommand = ''
-            mkdir -p $out
-            mkdir -p $out/_static/
-            cp ${backend}/bin/* $out
-            echo "Copying static output..."
-            cp -r ${frontend}/build/* $out/_static/
-          '';
-        };
+        packages = {
+          # nix build
+          default = magie;
 
-        # nix build .#container
-        packages.container = pkgs.dockerTools.buildLayeredImage {
-          name = "magie";
-          tag = "latest";
-          contents = [pkgs.coreutils];
-          config = {
-            Cmd = ["${runScript}/bin/run"];
-            ExposedPorts = {
-              "3000/tcp" = {};
-            };
-            Volumes = {
-              "/_databases" = { };
-              "/_stores" = { };
+          # nix build .#container
+          container = pkgs.dockerTools.buildLayeredImage {
+            name = "magie";
+            tag = "latest";
+            contents = [ pkgs.coreutils ];
+            config = {
+              Cmd = [ "${runScript}/bin/run" ];
+              ExposedPorts = {
+                "${toString env.PORT}/tcp" = { };
+              };
+              Volumes = {
+                env.DATABASES_PATH = { };
+                env.STORES_PATH = { };
+              };
             };
           };
         };
@@ -252,4 +226,4 @@
         };
       }
     );
- }
+}

@@ -1,6 +1,8 @@
 [workspace]
 members = ["core", "decoders", "encoders", "generators", "shared"]
 resolver = "3"
+package.version = "0.0.0"
+metadata.crane.name = "magie"
 
 [profile.dev]
 opt-level = 1
@@ -12,38 +14,39 @@ strip = "symbols"
 opt-level = 3     # TODO: Check speed compared to 2.
 
 [workspace.dependencies]
-anyhow = { version = "1.0.99", default-features = false }
-axum = { version = "0.8.4", features = [
+anyhow = { version = "1.0.100", default-features = false }
+axum = { version = "0.8.8", features = [
     "http1",
     "json",
     "query",
     "ws",
 ], default-features = false }
-axum_typed_multipart = { version = "0.16.4", features = [
+axum_typed_multipart = { version = "0.16.5", features = [
     "tempfile_3",
 ], default-features = false }
-bincode = "2.0.1"
 chrono = { version = "0.4.42" }
 dashmap = { version = "6.1.0", default-features = false }
 futures-util = { version = "0.3.31", default-features = false }
-image = { version = "0.25.8", default-features = false }
+image = { version = "0.25.9", default-features = false }
 prettyplease = { version = "0.2.37", default-features = false }
-proc-macro2 = { version = "1.0.101", default-features = false }
-quote = { version = "1.0.40", default-features = false }
+proc-macro2 = { version = "1.0.104", default-features = false }
+quote = { version = "1.0.42", default-features = false }
 rayon = { version = "1.11.0", default-features = false }
-rusqlite = "0.36.0"
-serde = { version = "1.0.225", features = ["serde_derive"] }
-serde_json = { version = "1.0.145", default-features = false }
-syn = { version = "2.0.106", default-features = false }
-tempfile = { version = "3.22.0", default-features = false }
-tokio = { version = "1.47.1", features = ["rt-multi-thread"] }
+rusqlite = "0.38.0"
+serde = { version = "1.0.228", features = ["serde_derive"] }
+serde_json = { version = "1.0.148", default-features = false }
+syn = { version = "2.0.112", default-features = false }
+tempfile = { version = "3.24.0", default-features = false }
+tokio = { version = "1.49.0", features = ["rt-multi-thread"] }
 tower = { version = "0.5.2", default-features = false }
-tower-http = { version = "0.6.6", default-features = false, features = [
+tower-http = { version = "0.6.8", default-features = false, features = [
     "cors",
     "fs",
+    "set-header",
 ] }
 turbojpeg = { version = "1.3.3", features = ["image"] }
-zarrs = { version = "0.22.0", default-features = false, features = [
+wincode = { version = "0.2.5", features = ["derive"] }
+zarrs = { version = "0.22.10", default-features = false, features = [
     "filesystem",
     "gzip",
 ] }

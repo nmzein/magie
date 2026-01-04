@@ -1,4 +1,4 @@
-use crate::constants::REGISTRY_URL;
+use crate::constants::REGISTRY_PATH;
 use anyhow::Result;
 use rusqlite::{
     Connection,
@@ -19,7 +19,7 @@ pub struct DatabaseManager {
 
 impl DatabaseManager {
     pub fn connect() -> Result<Self> {
-        let conn = Connection::open(REGISTRY_URL)?;
+        let conn = Connection::open(REGISTRY_PATH)?;
 
         conn.execute(
             r#"
@@ -38,19 +38,18 @@ impl DatabaseManager {
 
         let stores = crate::db::registry::get_(&conn)?
             .into_iter()
-            .map(|properties| {
-                (
+            .map(|properties| -> Result<(u32, Store)> {
+                let connection = Arc::new(Mutex::new(Connection::open(&properties.url)?));
+
+                Ok((
                     properties.id,
                     Store {
-                        connection: Arc::new(Mutex::new(
-                            // FIXME: Dont unwrap
-                            Connection::open(&properties.url).unwrap(),
-                        )),
+                        connection,
                         properties,
                     },
-                )
+                ))
             })
-            .collect();
+            .collect::<Result<_>>()?;
 
         Ok(Self {
             registry: Arc::new(Mutex::new(conn)),

@@ -95,11 +95,25 @@ class FetchHandler {
 
 export const request = new FetchHandler();
 
-export function appendPx<T extends Record<string, number>>(values: T): T {
-	const result = {} as T;
-	Object.entries(values).forEach(([key, value]) => {
-		result[key as keyof T] = `${value}px` as any;
-	});
+export function appendPx<T extends Record<string, unknown>>(
+	values: T
+): {
+	[K in keyof T]: T[K] extends number ? `${number}px` : T[K];
+} {
+	type AppendPx<T> = {
+		[K in keyof T]: T[K] extends number ? `${number}px` : T[K];
+	};
+
+	const result = {} as AppendPx<T>;
+
+	for (const [key, value] of Object.entries(values)) {
+		if (typeof value === 'number') {
+			result[key as keyof T] = `${value}px` as AppendPx<T>[keyof T];
+		} else {
+			result[key as keyof T] = value as AppendPx<T>[keyof T];
+		}
+	}
+
 	return result;
 }
 
@@ -128,10 +142,10 @@ export function truncateNumber(num: number, digits: number = 2) {
 			return integer;
 		} else if (integer.length + decimal.length >= digits) {
 			// Most cases.
-			return integer + '.' + decimal.slice(0, digits - integer.length);
+			return `${integer}.${decimal.slice(0, digits - integer.length)}`;
 		} else {
 			// For when scale is number like 0.1, 6.0, etc.
-			return integer + '.' + decimal + '0'.repeat(digits - integer.length - decimal.length);
+			return `${integer}.${decimal}${'0'.repeat(digits - integer.length - decimal.length)}`;
 		}
 	} else {
 		const integer = number;
@@ -140,7 +154,7 @@ export function truncateNumber(num: number, digits: number = 2) {
 			return integer;
 		} else {
 			// For when scale is integer like 1.
-			return integer + '.' + '0'.repeat(digits - integer.length);
+			return `${integer}.${'0'.repeat(digits - integer.length)}`;
 		}
 	}
 }
@@ -178,3 +192,30 @@ export type DeepRequired<T> = T extends object
 		? Array<DeepRequired<U>>
 		: { [K in keyof T]-?: DeepRequired<T[K]> }
 	: T;
+
+export function clamp(value: number, min: number, max: number): number {
+	return Math.min(max, Math.max(min, value));
+}
+
+// const FRAME_RATE_CAP = 60;
+// const ENABLE_FRAMERATE_CAP = true;
+
+// function withFrameCap<T extends (...args: any[]) => void>(
+// 	handler: T,
+// 	fps: number,
+// 	enabled: boolean = true
+// ): T {
+// 	if (!enabled) return handler as T;
+
+// 	const minInterval = 1000 / fps;
+// 	let lastTime = 0;
+
+// 	return ((...args: Parameters<T>) => {
+// 		const now = performance.now();
+// 		if (now - lastTime >= minInterval) {
+// 			lastTime = now;
+// 			handler(...args);
+// 		}
+// 	}) as T;
+// }
+//

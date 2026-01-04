@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { defined } from '$helpers';
 	import type { Snippet } from 'svelte';
-	import type { HTMLButtonAttributes } from 'svelte/elements';
+	import type { HTMLButtonAttributes, ClassValue } from 'svelte/elements';
 	import { tv } from 'tailwind-variants';
 
 	let {
@@ -13,7 +13,7 @@
 		children,
 		...restProps
 	}: {
-		class?: string;
+		class?: ClassValue;
 		component?: HTMLButtonElement;
 		variant?: 'plain' | 'primary' | 'accent';
 		invisible?: boolean;

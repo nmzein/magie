@@ -3,13 +3,15 @@
 <script lang="ts">
 	import '../app.css';
 	import Stats from 'three/examples/jsm/libs/stats.module.js';
-	import View from '$view/View.svelte';
 	import ControlPanel from '$ui/ControlPanel.svelte';
-	import { websocket } from '$api';
-	import { views } from '$states';
+	import Viewer from '$ui/Viewer/Viewer.svelte';
+	import { broadcast } from '$api';
+	import { viewerManager } from '$states';
 
 	$effect(() => {
-		websocket.connect();
+		if (broadcast.state === 'disconnected') {
+			broadcast.connect();
+		}
 
 		let stats = new Stats();
 		document.body.appendChild(stats.dom);
@@ -20,8 +22,10 @@
 	});
 </script>
 
-{#each views as view, idx (view.state.id)}
-	<View bind:view={views[idx]} />
-{/each}
+<div class="absolute flex h-full w-full flex-col flex-wrap">
+	{#each viewerManager.viewers as [id, state] (state.instance.id)}
+		<Viewer viewer={viewerManager.viewers.get(id)!} />
+	{/each}
+</div>
 
 <ControlPanel />

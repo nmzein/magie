@@ -1,32 +1,32 @@
-import { Context } from 'runed';
+import { PersistedState, StateHistory } from 'runed';
+import { Context } from '$lib/helpers/context.ts';
 import type { Directory, Asset, UploaderOptions } from '$types';
-import { registry, repository, clipboard } from '$states';
+import { registry, repository, clipboard, viewerManager } from '$states';
 import { http } from '$api';
-import { StateHistory } from 'runed';
 import { defined } from '$helpers';
 import { SvelteSet } from 'svelte/reactivity';
-import { load as createImage2DView } from '$view/Image2D/state.svelte.ts';
 
 export const ROOT_ID = 0;
 export const BIN_ID = 1;
 
-export const context = new Context<Explorer>('');
+export const context = new Context<Explorer>();
 
 export class Explorer {
 	#selected = new SvelteSet<number>();
-	#pinned = new SvelteSet<number>();
+	#pinned = new PersistedState('pinned', new Array<number>());
 	#storeId: number = $state(1); // TODO: This will be selected from a top level stores page.
 	#store = $derived(registry.store(this.#storeId));
 	#directoryId: number = $state(ROOT_ID); // TODO: Default to directory last opened by the user.
-	#directory: Directory = $derived(this.#store?.get(this.#directoryId) as Directory);
+	#directory: Directory = $derived(this.#store?.items.get(this.#directoryId) as Directory);
 	inBin: boolean = $derived.by(() => {
 		// Recursively go up the directories parent to check if in bin, stop when parentId is null or BIN_ID.
 		let currentDirectory = this.#directory;
+		if (!defined(currentDirectory)) return false;
 		if (currentDirectory.id === BIN_ID) return true;
 
 		while (defined(currentDirectory.parentId)) {
 			if (currentDirectory.parentId === BIN_ID) return true;
-			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+			currentDirectory = this.#store?.items.get(currentDirectory.parentId) as Directory;
 		}
 
 		return false;
@@ -37,13 +37,14 @@ export class Explorer {
 	path = $derived.by(() => {
 		const path: [string, number][] = [];
 		let currentDirectory = this.#directory;
+		if (!defined(currentDirectory)) return '';
 
 		while (defined(currentDirectory.parentId)) {
 			path.unshift([currentDirectory.name, currentDirectory.id]);
-			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+			currentDirectory = this.#store?.items.get(currentDirectory.parentId) as Directory;
 		}
 
-		const properties = registry.storeProperties(this.#storeId);
+		const properties = registry.store(this.#storeId)?.properties;
 		if (!defined(properties)) return;
 		path.unshift([properties.name, ROOT_ID]);
 
@@ -58,7 +59,7 @@ export class Explorer {
 		if (!query) return children;
 
 		children = this.#directory.children?.filter((child) =>
-			this.#store?.get(child)?.name.toLowerCase().includes(query)
+			this.#store?.items.get(child)?.name.toLowerCase().includes(query)
 		);
 
 		return children;
@@ -80,23 +81,13 @@ export class Explorer {
 		return this.#pinned;
 	}
 
-	get storeId() {
-		return this.#storeId;
-	}
-
-	get directoryId() {
-		return this.#directoryId;
-	}
-
-	get directory() {
-		return this.#directory;
-	}
-
 	constructor() {
 		$effect.root(() => {
 			this.#history = new StateHistory(
 				() => this.#directoryId,
-				(r) => (this.#directoryId = r)
+				(r) => {
+					this.#directoryId = r;
+				}
 			);
 		});
 	}
@@ -105,7 +96,7 @@ export class Explorer {
 		let currentDirectory = this.#directory;
 
 		while (levels > 0 && defined(currentDirectory.parentId)) {
-			currentDirectory = this.#store?.get(currentDirectory.parentId) as Directory;
+			currentDirectory = this.#store?.items.get(currentDirectory.parentId) as Directory;
 			levels -= 1;
 		}
 
@@ -113,7 +104,7 @@ export class Explorer {
 	}
 
 	get(id: number): Directory | Asset | undefined {
-		return this.#store?.get(id);
+		return this.#store?.items.get(id);
 	}
 
 	// Defaults to going up to parent #directory.
@@ -146,16 +137,16 @@ export class Explorer {
 				this.goto(item.id);
 				break;
 			case 'Asset':
-				await createImage2DView(this.storeId, item.parentId, item.id, item.name);
+				await viewerManager.load(this.#storeId, item.parentId, item.id, item.name);
 				break;
 		}
 	}
 
 	gotoStore(storeId: number) {
-		if (storeId === this.storeId && this.#directoryId === ROOT_ID) return;
+		if (storeId === this.#storeId && this.#directoryId === ROOT_ID) return;
 
 		const store = registry.store(storeId);
-		const directory = store?.get(ROOT_ID);
+		const directory = store?.items.get(ROOT_ID);
 
 		if (!defined(store) || !defined(directory) || directory.type !== 'Directory') return;
 
@@ -167,7 +158,7 @@ export class Explorer {
 	goto(id: number) {
 		if (id === this.#directoryId) return;
 
-		const directory = this.#store?.get(id);
+		const directory = this.#store?.items.get(id);
 		if (!defined(directory) || directory.type !== 'Directory') return;
 
 		this.deselectAll();
@@ -183,7 +174,9 @@ export class Explorer {
 	}
 
 	selectGroup(ids: number[]) {
-		ids.forEach((id) => this.#selected.add(id));
+		ids.forEach((id) => {
+			this.#selected.add(id);
+		});
 	}
 
 	selectAll() {
@@ -199,28 +192,33 @@ export class Explorer {
 	}
 
 	isPinned(id: number): boolean {
-		return this.#pinned.has(id);
+		return this.#pinned.current.includes(id);
 	}
 
 	pinSelected() {
-		this.#selected.forEach((id) => this.#pinned.add(id));
+		this.#selected.forEach((id) => {
+			this.pin(id);
+		});
 	}
 
 	unpinSelected() {
-		this.#selected.forEach((id) => this.#pinned.delete(id));
+		this.#selected.forEach((id) => {
+			this.unpin(id);
+		});
 	}
 
 	pin(id: number) {
-		this.#pinned.add(id);
+		if (this.isPinned(id)) return;
+		this.#pinned.current.push(id);
 	}
 
 	unpin(id: number) {
-		this.#pinned.delete(id);
+		this.#pinned.current = this.#pinned.current.filter((item) => item !== id);
 	}
 
 	deleteGroup(mode: 'soft' | 'hard', group: SvelteSet<number>) {
 		group.forEach((id) => {
-			switch (this.#store?.get(id)?.type) {
+			switch (this.#store?.items.get(id)?.type) {
 				case 'Directory':
 					http.directory.remove(this.#storeId, id, mode);
 					break;
@@ -249,7 +247,7 @@ export class Explorer {
 						return;
 					}
 
-					switch (this.#store?.get(id)?.type) {
+					switch (this.#store?.items.get(id)?.type) {
 						case 'Directory':
 							http.directory.move(this.#storeId, id, this.#directoryId);
 							break;

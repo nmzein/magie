@@ -4,7 +4,7 @@
 	let { x, y, z }: { x: number; y: number; z?: number } = $props();
 </script>
 
-<div class="panel absolute bottom-[10px] left-[10px] px-[7px] py-[3px] select-none">
+<div class="panel absolute bottom-2.5 left-2.5 px-1.75 py-0.75 select-none">
 	<span class="font-bold">x:</span>
 	{x},
 	<span class="font-bold">y:</span>

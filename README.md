@@ -11,15 +11,15 @@ MAGIE (Massively Annotated Gigapixel Image Explorer) is a web application and ba
 
 ### Features
 
-- ⚡️ **Extremely performant** Rust backend and Svelte frontend, utilising WebGL to render hundreds of thousands of annotations in milliseconds.
+- **Extremely performant** Rust backend and Svelte frontend, utilising WebGL to render hundreds of thousands of annotations in milliseconds.
 
-- 🖥️ **Sleek and modern** user interface.
+- **Sleek and modern** user interface.
 
-- 🗂️ Remotely access your library using a **fully-featured file explorer**.
+- Remotely access your library using a **fully-featured file explorer**.
 
-- 🛠️ **Easily integrate** your own image decoders, encoders, and analysis tools using a powerful, **flexible module interface**.
+- **Easily integrate** your own image decoders, encoders, and analysis tools using a **flexible plugin API**.
 
-- 🌐 **Accessible anywhere at any time** using any modern web browser.
+- **Accessible anywhere at any time** using any modern web browser.
 
 ---
 

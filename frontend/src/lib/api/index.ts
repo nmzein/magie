@@ -1,22 +1,19 @@
+import { request } from '$helpers';
+import type { Modules, Store } from '$types';
 import * as asset from './asset.ts';
+import { socket as broadcast } from './broadcast.ts';
 import * as directory from './directory.ts';
 import * as store from './store.ts';
-import * as websocket from './websocket.ts';
-
-import { HTTP_BASE_URL } from '$constants';
-import { request } from '$helpers';
-import type { Store } from '$types';
+import { HTTP_BASE_URL, WEBSOCKET_BASE_URL } from './urls.ts';
 
 async function registry(): Promise<Store[] | null> {
 	return await request.get({ url: `${HTTP_BASE_URL}/api/registry` });
 }
 
-async function generators(): Promise<string[] | null> {
-	return await request.get({ url: `${HTTP_BASE_URL}/api/generators` });
+async function modules(): Promise<Modules | null> {
+	return await request.get({ url: `${HTTP_BASE_URL}/api/modules` });
 }
 
-const http = (() => {
-	return { asset, directory, store, registry, generators };
-})();
+const http = { asset, directory, store, registry, modules };
 
-export { http, websocket };
+export { broadcast, http, HTTP_BASE_URL, WEBSOCKET_BASE_URL };
